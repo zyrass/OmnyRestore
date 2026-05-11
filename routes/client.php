@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Storage;
  * The middleware only ensures authentication and email verification.
  */
 
-Route::middleware(['auth', 'verified'])->prefix('client')->name('client.')->group(function () {
+Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('client.')->group(function () {
 
     // ─── Orders ───────────────────────────────────────────────────────────
     // Volt::route() active le cycle de vie complet du composant Livewire/Volt.

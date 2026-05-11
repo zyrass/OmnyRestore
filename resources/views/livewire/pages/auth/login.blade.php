@@ -14,7 +14,15 @@ new #[Layout('layouts.guest')] class extends Component
         $this->validate();
         $this->form->authenticate();
         Session::regenerate();
-        $this->redirectIntended(default: route('client.orders.index', absolute: false), navigate: true);
+
+        // Redirection selon le rôle :
+        //   Admin → /admin/dashboard
+        //   Client → /client/orders (ou la page demandée avant le login)
+        $default = auth()->user()->isAdmin()
+            ? route('admin.dashboard', absolute: false)
+            : route('client.orders.index', absolute: false);
+
+        $this->redirectIntended(default: $default, navigate: true);
     }
 }; ?>
 
