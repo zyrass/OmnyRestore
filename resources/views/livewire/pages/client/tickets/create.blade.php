@@ -27,6 +27,21 @@ class extends Component
     public string $priority  = 'normal';
     public ?string $order_id = null;
 
+    public function mount(): void
+    {
+        // Pré-sélectionne la commande si on arrive depuis /client/orders/{id} via ?order_id=
+        $orderId = request()->query('order_id');
+        if ($orderId) {
+            // Vérifier que la commande appartient bien à l'utilisateur connecté (IDOR)
+            $owns = \App\Models\Order::where('id', $orderId)
+                ->where('user_id', auth()->id())
+                ->exists();
+            if ($owns) {
+                $this->order_id = $orderId;
+            }
+        }
+    }
+
     public function with(): array
     {
         return [
