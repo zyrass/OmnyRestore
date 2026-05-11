@@ -260,6 +260,87 @@ class extends Component
             </div>
             @endif
 
+            {{-- === RESTAURATION IA AUTOMATIQUE (Phase 8) === --}}
+            {{-- Disponible pour PENDING et IN_PROGRESS --}}
+            @if (in_array($order->status, ['PENDING', 'IN_PROGRESS']))
+            <div class="card-glass overflow-hidden border border-purple-500/20">
+                <div class="px-5 py-4 border-b border-purple-500/15 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2h-2M9 9h.01M15 9h.01"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-[#F5F0E8] font-semibold text-sm">Restauration IA automatique</h2>
+                        <p class="text-purple-400/70 text-xs">GPT-4o Vision + DALL-E 3 HD + Upscale 8K</p>
+                    </div>
+                    <span class="ml-auto px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs border border-purple-500/20 rounded-full">
+                        Phase 8
+                    </span>
+                </div>
+
+                <div class="p-5">
+                    {{-- Description du pipeline --}}
+                    <div class="grid grid-cols-3 gap-3 mb-5">
+                        <div class="text-center p-3 bg-[#1A1510] rounded-sm border border-purple-500/10">
+                            <div class="text-purple-400 text-lg mb-1">👁</div>
+                            <p class="text-[#F5F0E8] text-xs font-medium">Analyse</p>
+                            <p class="text-[#7A6E5E] text-[10px] mt-0.5">GPT-4o Vision</p>
+                        </div>
+                        <div class="text-center p-3 bg-[#1A1510] rounded-sm border border-purple-500/10">
+                            <div class="text-purple-400 text-lg mb-1">✨</div>
+                            <p class="text-[#F5F0E8] text-xs font-medium">Restauration</p>
+                            <p class="text-[#7A6E5E] text-[10px] mt-0.5">DALL-E 3 HD</p>
+                        </div>
+                        <div class="text-center p-3 bg-[#1A1510] rounded-sm border border-purple-500/10">
+                            <div class="text-purple-400 text-lg mb-1">🔍</div>
+                            <p class="text-[#F5F0E8] text-xs font-medium">Upscale</p>
+                            <p class="text-[#7A6E5E] text-[10px] mt-0.5">8K · 7680×4320</p>
+                        </div>
+                    </div>
+
+                    {{-- Détection de colorisation depuis la description --}}
+                    @php
+                        $descText = strtolower(($order->description ?? '') . ' ' . ($order->instructions ?? ''));
+                        $wantsColor = str_contains($descText, 'coloris') || str_contains($descText, 'en couleur') || str_contains($descText, 'ajouter les couleurs');
+                        $wantsBW = str_contains($descText, 'noir et blanc') || str_contains($descText, 'n&b') || str_contains($descText, 'monochrome');
+                    @endphp
+                    @if ($wantsColor)
+                    <div class="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-900/20 border border-amber-500/20 rounded-sm">
+                        <span class="text-amber-400">🎨</span>
+                        <p class="text-amber-400 text-xs">Colorisation détectée — le modèle coloriera les photos N&B en couleur réaliste.</p>
+                    </div>
+                    @elseif ($wantsBW)
+                    <div class="flex items-center gap-2 mb-4 px-3 py-2 bg-slate-800/40 border border-slate-500/20 rounded-sm">
+                        <span class="text-slate-400">⬛</span>
+                        <p class="text-slate-400 text-xs">Conversion N&B détectée — le modèle convertira les photos en noir et blanc argentique.</p>
+                    </div>
+                    @endif
+
+                    {{-- Info coût estimé --}}
+                    <div class="flex items-start gap-2 mb-5 px-3 py-2 bg-[#1A1510] border border-[#C9A84C]/10 rounded-sm">
+                        <svg class="w-4 h-4 text-[#7A6E5E] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div>
+                            <p class="text-[#7A6E5E] text-xs">
+                                Coût estimé : <span class="text-[#C9A84C] font-medium">~{{ number_format($order->getMedia('originals')->count() * 0.06, 2) }}$</span>
+                                ({{ $order->getMedia('originals')->count() }} photo{{ $order->getMedia('originals')->count() > 1 ? 's' : '' }} × ~$0.06)
+                            </p>
+                            <p class="text-[#7A6E5E] text-[10px] mt-0.5">Les résultats apparaîtront automatiquement dans "Photos retouchées" une fois le traitement terminé.</p>
+                        </div>
+                    </div>
+
+                    {{-- Bouton de lancement --}}
+                    <form action="{{ route('admin.orders.auto-restore', $order) }}" method="POST">
+                        @csrf
+                        <button type="submit"
+                                onclick="return confirm('Lancer la restauration IA pour {{ $order->getMedia(\'originals\')->count() }} photo(s) ? Cette opération consomme des crédits OpenAI.')"
+                                class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 hover:border-purple-500/50 text-purple-300 hover:text-purple-200 rounded-sm transition-all text-sm font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            🤖 Lancer la restauration IA automatique
+                        </button>
+                    </form>
+                </div>
+            </div>
+            @endif
+
             {{-- === ACTION : UPLOAD + MARQUER DONE === --}}
             @if ($order->status === 'IN_PROGRESS')
             <form wire:submit="uploadAndMarkDone" class="card-glass p-6 border-blue-500/20">

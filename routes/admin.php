@@ -31,6 +31,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         \App\Http\Controllers\Admin\OrderController::class . '@updateStatus'
     )->name('orders.status');
 
+    // POST /admin/orders/{order}/auto-restore — Restauration IA automatique (Phase 8)
+    Route::post('/orders/{order}/auto-restore',
+        \App\Http\Controllers\Admin\OrderAutoRestoreController::class . '@dispatch'
+    )->name('orders.auto-restore');
+
     // ─── Support Tickets ──────────────────────────────────────────────────
     // GET /admin/tickets — Liste tous les tickets (filtrables par statut)
     Volt::route('/tickets', 'pages.admin.tickets.index')
