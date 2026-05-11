@@ -12,33 +12,67 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.5.1] — 2026-05-12 (hotfixes)
+
+### Corrigé
+
+- **`authorize()` cassé (Laravel 12)** : le trait `AuthorizesRequests` n'est plus inclus automatiquement dans `Controller`.
+  Remplacé par des `abort_if()` explicites dans `OrderCheckoutController` et `OrderDownloadController`.
+
+- **`$slot` undefined sur pages paiement** : le layout `app.blade.php` utilisait `{{ $slot }}` (composant Blade) mais les vues `payment/success` et `payment/cancel` utilisaient `@extends`/`@section`. Fix : layout hybride via `{!! isset($slot) ? $slot : $__env->yieldContent('content') !!}`
+
+- **`zip_path` non persisté** : champs `zip_path`, `zip_expires_at`, `payment_intent_id`, `paid_at`, `delivered_at` absents du `$fillable` du modèle `Order`. `GenerateOrderZipJob` ne pouvait pas sauvegarder le chemin ZIP.
+
+- **Bouton download invisible** : la vue `show.blade.php` vérifiait `$order->delivery?->zip_path` (relation `OrderDelivery` inexistante) au lieu de `$order->zip_path`.
+
+- **Download ne servait pas le fichier** : `OrderDownloadController` cherchait un `OrderDelivery` qui n'existe pas. Simplifié pour lire `order->zip_path` directement et servir le fichier via `response()->download()` (local) ou URL S3 pré-signée (prod).
+
+- **`BinaryFileResponse` return type** : `response()->download()` retourne `Symfony\BinaryFileResponse`, incompatible avec le type hint. Fix : `\Symfony\Component\HttpFoundation\Response` comme type de base.
+
+- **Config Stripe** : clés `pk_test_`/`sk_test_` correctement configurées (Mailtrap pour les emails de test).
+
+### Ajouté
+
+- **Config Mailtrap** pour tester les emails en local (`MAIL_MAILER=smtp`, `sandbox.smtp.mailtrap.io`)
+- `GenerateOrderZipJob::dispatchSync()` utilisable pour tests locaux sans queue worker
+
+---
+
 ## [0.5.0] — 2026-05-12
 
 ### Ajouté
 - **Intégration Stripe Checkout** — flux de paiement complet :
+
   - `OrderCheckoutController` : crée une Stripe Checkout Session avec métadonnées `order_id`
   - Redirection vers la page Stripe hébergée (locale `fr`, mode `payment`)
   - `success_url` → `/payment/success` + `cancel_url` → commande (annulation propre)
   - Montant calculé depuis `order.total_price_cents` (TTC)
+
 - **Webhook Stripe** (`POST /webhook/stripe`) opérationnel :
+
   - Vérification signature HMAC (`STRIPE_WEBHOOK_SECRET`) avant tout traitement
   - `checkout.session.completed` → marque commande `PAID` + dispatch `GenerateOrderZipJob`
   - `payment_intent.payment_failed` → log de l'échec pour suivi admin
   - Idempotence : skip si la commande est déjà `PAID`
   - Email `OrderPaidConfirmation` envoyé via queue au client après paiement
+
 - **`GenerateOrderZipJob`** (queue async, 3 retries, timeout 300s) :
   - Collecte les fichiers de la collection `retouched` (Spatie)
   - Crée un ZIP dans `storage/app/orders/zips/` avec README.txt lisible
   - Met à jour `order.zip_path` et passe le statut à `DELIVERED`
+
 - **Téléchargement ZIP client** (`GET /client/orders/{order}/download`) :
   - Vérifie ownership via `OrderPolicy::download`
   - Vérifie `payment_status === 'paid'`
   - Génère / rafraîchit URL signée (48h)
+
 - **Route stream local** (`GET /client/orders/download/stream/{delivery}`) :
   - Pour environnement de développement sans S3
   - URL Laravel signée temporaire (48h) → `response()->download()`
   - Vérification ownership + signature avant de servir le fichier
+
 - **`SignedUrlService`** mis à jour :
+
   - Disk `local` : URL Laravel signée via `URL::temporarySignedRoute()`
   - Disk `s3` : URL AWS pré-signée (inchangé)
   - Cache URL sur `OrderDelivery` pour éviter les appels S3 répétés
@@ -47,6 +81,7 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 - **Route Cashier native** : `POST /stripe/webhook` + `GET /stripe/payment/{id}` (Cashier built-in)
 
 ### Modifié
+
 - `app/Http/Controllers/Webhook/StripeWebhookController.php` : ajout dispatch job ZIP + mail confirmation
 - `app/Services/SignedUrlService.php` : support disk local via URL signée Laravel
 - `routes/client.php` : route stream local + imports `OrderDelivery` + `Storage`
@@ -56,33 +91,48 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 ## [0.4.1] — 2026-05-12
 
 ### Ajouté
+
 - **Module tickets support côté admin** (`/admin/tickets`) :
+
   - Liste paginée avec filtres par statut (Ouvert / En attente / Fermé)
   - Badge or dans la nav indiquant le nombre de tickets non lus (nouveaux messages clients)
   - Vue conversation (`/admin/tickets/{ticket}`) : fil chronologique, réponse, fermer / rouvrir
   - Passage automatique `open → pending` à l'ouverture par l'admin, `pending → open` à la réponse client
   - Sidebar : infos client + lien vers commande liée
+
 - **Module tickets support côté client** (`/client/tickets`) :
+
   - Formulaire de création avec pré-sélection de commande via `?order_id=xxx`
   - Fil de conversation avec métadonnées (date, auteur, équipe OmnyRestore)
   - Action clore / rouvrir ticket
+
 - **Routes admin tickets** : `GET /admin/tickets` + `GET /admin/tickets/{ticket}`
+
 - **Navigation contextuelle** selon le rôle :
+
   - Admin : Dashboard / Commandes / Tickets (avec badge non-lus)
   - Client : Mes commandes / + Nouvelle commande / Support
+
 - **Badge rôle Admin** dans la barre de navigation : badge `[Admin]` en or + avatar avec bordure 2px pleine
+
 - **Modal de confirmation custom Alpine.js** (remplace `wire:confirm` navigateur) :
+
   - `window.omnyConfirm({title, message, confirmLabel, danger})` → `Promise`
   - `Alpine.store('confirmModal')` disponible globalement
   - Design dark/gold cohérent avec le thème : backdrop blur, bandeau top, icône contextuelle
   - Appliqué sur : admin tickets (Fermer/Rouvrir ×3) + client tickets (Clore)
+
 - **Commandes Artisan de diagnostic** :
+
   - `php artisan debug:media` — vérifie URLs, paths, disk, symlink, fichiers présents
   - `php artisan debug:users` — liste tous les utilisateurs avec leur rôle
+
 - **Barre de progression Livewire** en couleur or `#C9A84C` (cohérence thème)
+
 - **Support TIFF** dans les `preview_mimes` Livewire
 
 ### Corrigé
+
 - **Race condition Livewire + Spatie MediaLibrary** sur les uploads client ET admin :
   - Les fichiers tmp Livewire étaient supprimés avant que `addMedia()` puisse les lire
   - Fix : copie explicite dans `storage/app/tmp-uploads/` avant `addMedia()`, nettoyage post-upload

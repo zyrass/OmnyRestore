@@ -13,7 +13,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
-[![Version](https://img.shields.io/badge/version-0.4.1-blue?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.5.1-blue?style=flat-square)](CHANGELOG.md)
 
 </div>
 
@@ -440,6 +440,7 @@ git commit -m "feat(tickets): interface admin tickets support" \
 | `v0.4.0` | Back office admin (gestion commandes, upload photos) |
 | `v0.4.1` | **Module tickets support + fixes upload + nav contextuelle** |
 | `v0.5.0` | Stripe Cashier + livraison ZIP async |
+| `v0.5.1` | **Hotfixes Stripe + download ZIP opérationnel** |
 | `v1.0.0` | **MVP — Prêt pour production** |
 | `v1.1.0` | Système d'aperçu filigranné automatique (Intervention Image) |
 | `v1.2.0` | Intégration API OpenAI (restauration auto) |
@@ -463,7 +464,20 @@ git commit -m "feat(tickets): interface admin tickets support" \
   - [x] Modal de confirmation custom Alpine.js (remplace `wire:confirm`)
   - [x] Navigation contextuelle admin/client avec badge rôle
   - [x] Aperçu photos restaurées côté client (collection retouched + watermark CSS)
-- [ ] `v0.5.0` — Stripe Cashier + livraison ZIP async
+- [x] `v0.5.0` — **Stripe Cashier + livraison ZIP async**
+  - [x] `OrderCheckoutController` : Session Stripe Checkout (métadonnées `order_id`)
+  - [x] Webhook `checkout.session.completed` → PAID + dispatch job ZIP
+  - [x] `GenerateOrderZipJob` : ZIP depuis collection `retouched` + README.txt
+  - [x] `OrderDownloadController` : serve local (BinaryFileResponse) ou S3 pré-signé
+  - [x] Email `OrderPaidConfirmation` via queue (Mailtrap en local)
+  - [x] Pages `/payment/success` et `/payment/cancel`
+- [x] `v0.5.1` — **Hotfixes Stripe + download ZIP**
+  - [x] `authorize()` → `abort_if()` (Laravel 12 sans `AuthorizesRequests`)
+  - [x] Layout hybride `$slot` / `@yield('content')`
+  - [x] `zip_path` ajouté au `$fillable` du modèle `Order`
+  - [x] Download controller simplifié (suppression `OrderDelivery` intermédiaire)
+  - [x] Return type `BinaryFileResponse` corrigé
+  - [x] Config Stripe TEST + Mailtrap opérationnels
 - [ ] `v1.0.0` — **MVP — Prêt pour production**
 - [ ] `v1.1.0` — Aperçu filigranné automatique (Intervention Image / GD)
 - [ ] `v1.2.0` — Intégration API OpenAI (restauration automatique)
