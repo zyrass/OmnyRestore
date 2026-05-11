@@ -1,7 +1,6 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 /* ============================================================
    OmnyRestore — Design System
    Police : Inter (Google Fonts, chargée dans app layout)
@@ -86,3 +85,45 @@
 /* Scroll reveal (class ajoutée par Alpine.js) */
 .reveal { opacity: 0; transform: translateY(30px); transition: all 0.7s ease; }
 .reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── Pages légales (prose) ──────────────────────────────────────── */
+.prose-legal h2 {
+    font-family: 'Playfair Display', serif;
+    @apply text-xl font-bold text-[#F5F0E8] mt-12 mb-4 pt-8 border-t border-[#C9A84C]/10;
+}
+.prose-legal h3 {
+    @apply text-base font-semibold text-[#F5F0E8] mt-6 mb-3;
+}
+.prose-legal p {
+    @apply text-[#7A6E5E] text-sm leading-relaxed mb-4;
+}
+.prose-legal ul {
+    @apply text-[#7A6E5E] text-sm leading-relaxed mb-4 space-y-1 ml-4;
+    list-style: none;
+}
+.prose-legal ul li::before {
+    content: '—';
+    @apply text-[#C9A84C] mr-2;
+}
+.prose-legal a {
+    @apply text-[#C9A84C] underline underline-offset-2 hover:text-[#E8C97A] transition-colors;
+}
+.prose-legal strong {
+    @apply text-[#F5F0E8] font-semibold;
+}
+.prose-legal .info-box {
+    @apply bg-[#1A1510] border border-[#C9A84C]/20 rounded-sm p-5 my-6 text-sm text-[#7A6E5E];
+}
+.prose-legal .info-box strong {
+    @apply block text-[#C9A84C] text-xs tracking-widest uppercase mb-2;
+}
+.prose-legal table {
+    @apply w-full text-sm text-[#7A6E5E] border-collapse mb-6;
+}
+.prose-legal th {
+    @apply text-left text-[#C9A84C] text-xs tracking-widest uppercase py-2 border-b border-[#C9A84C]/20;
+}
+.prose-legal td {
+    @apply py-3 border-b border-[#C9A84C]/10 align-top;
+}
+
