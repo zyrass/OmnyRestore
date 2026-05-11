@@ -1,0 +1,598 @@
+# OmnyRestore — Technical Architecture & Developer Guide
+
+> **Stack**: TALL (Tailwind 4 / Alpine.js 3 / Laravel 12 / Livewire 3)  
+> **Version**: 1.0 — May 2026  
+> **Author**: Alain Guillon — OmnyVia
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#1-executive-summary)
+2. [Application Architecture](#2-application-architecture)
+3. [Data Model (ERD)](#3-data-model-erd)
+4. [Business Flows — Sequence Diagrams](#4-business-flows--sequence-diagrams)
+5. [Order State Machine](#5-order-state-machine)
+6. [Module Breakdown](#6-module-breakdown)
+7. [Payment Flow (Stripe)](#7-payment-flow-stripe)
+8. [ZIP Delivery Architecture](#8-zip-delivery-architecture)
+9. [AI Restoration Pipeline](#9-ai-restoration-pipeline)
+10. [Security Architecture (OWASP)](#10-security-architecture-owasp)
+11. [GDPR Compliance Map](#11-gdpr-compliance-map)
+12. [Git Workflow & Branching Strategy](#12-git-workflow--branching-strategy)
+
+---
+
+## 1. Executive Summary
+
+OmnyRestore is a **professional web platform** combining:
+- A **public showcase** (landing page, portfolio, CTA)
+- A **client space** (order submission, real-time tracking, payment, download)
+- An **admin back office** (order management, AI-enhanced photo upload, delivery)
+
+The **key differentiator** is the AI-powered restoration pipeline:
+the admin uses a precision-crafted ChatGPT prompt to upscale and restore photos to 8K quality.
+The client sees a watermarked preview, pays, and downloads the full-resolution ZIP.
+
+This eliminates the classic "pay before work" vs "work before pay" dilemma:
+since AI restoration takes minutes, the platform can show results before payment
+while maintaining 100% revenue security.
+
+---
+
+## 2. Application Architecture
+
+### 2.1 Global Layer Overview
+
+```mermaid
+graph TB
+    subgraph PUBLIC["🌐 Public Zone"]
+        V[Landing Page<br/>Portfolio + CTA]
+        AUTH[Auth<br/>Register / Login]
+    end
+
+    subgraph CLIENT["👤 Client Space — Auth Required"]
+        DC[Order Submission<br/>Photos + Description]
+        SUIVI[Order Tracking<br/>Real-time Status]
+        PAY[Payment Module<br/>Stripe Checkout]
+        DL[Download<br/>Signed ZIP URL]
+    end
+
+    subgraph ADMIN["🔧 Back Office — Admin Role"]
+        DASH[Dashboard<br/>Order Queue]
+        GES[Status Management<br/>PENDING / IN_PROGRESS / DONE]
+        UPLOAD[AI Photo Upload<br/>Restored Images]
+        ZIP_GEN[ZIP Generation<br/>Async Job]
+    end
+
+    subgraph INFRA["⚙️ Infrastructure"]
+        DB[(PostgreSQL 16)]
+        S3[(S3 Compatible<br/>Storage)]
+        REDIS[(Redis<br/>Queues + Cache)]
+        STRIPE_API[Stripe API<br/>Payments]
+        OPENAI[OpenAI API<br/>GPT-4o Vision]
+        MAIL[Resend<br/>Transactional Email]
+    end
+
+    V --> AUTH --> DC --> SUIVI --> PAY --> DL
+    DASH --> GES --> UPLOAD --> ZIP_GEN
+
+    DC --> DB
+    DC --> S3
+    GES --> DB
+    UPLOAD --> S3
+    UPLOAD --> OPENAI
+    ZIP_GEN --> REDIS
+    PAY --> STRIPE_API
+    GES --> MAIL
+    ZIP_GEN --> S3
+```
+
+### 2.2 Route & Middleware Separation
+
+```mermaid
+graph LR
+    subgraph ROUTES["Laravel Routes"]
+        R1["/ — Public showcase"]
+        R2["/client/* — Client space"]
+        R3["/admin/* — Back office"]
+        R4["/webhook/stripe — Stripe webhooks"]
+    end
+
+    subgraph MIDDLEWARE["Middleware Stack"]
+        M1["auth — authenticated user"]
+        M2["role:admin — admin role check"]
+        M3["verified — email confirmed"]
+    end
+
+    subgraph POLICIES["Authorization Policies"]
+        P1["OrderPolicy<br/>Client sees only own orders (IDOR prevention)"]
+        P2["FilePolicy<br/>ZIP accessible only if payment_status=paid"]
+    end
+
+    R2 --> M1 --> M3 --> P1
+    R3 --> M2
+    R4 --> P2
+```
+
+---
+
+## 3. Data Model (ERD)
+
+```mermaid
+erDiagram
+    USERS {
+        uuid id PK
+        string name
+        string email
+        string password
+        string role "client | admin"
+        timestamp email_verified_at
+        string stripe_id "Stripe Customer ID"
+        timestamp rgpd_consent_at "GDPR consent timestamp"
+        boolean marketing_consent
+        timestamp created_at
+        timestamp updated_at
+        timestamp deleted_at "Soft delete for GDPR erasure"
+    }
+
+    ORDERS {
+        uuid id PK
+        uuid user_id FK
+        string reference "ORD-2026-XXXX"
+        text description "Client restoration instructions"
+        string status "PENDING | IN_PROGRESS | DONE | CANCELLED"
+        integer photo_count
+        decimal amount_ht
+        decimal tva_rate
+        decimal amount_ttc
+        string payment_intent_id "Stripe PaymentIntent ID"
+        string payment_status "pending | paid | refunded"
+        timestamp paid_at
+        timestamp delivered_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    MEDIA {
+        uuid id PK
+        uuid model_id FK "Polymorphic — Order UUID"
+        string model_type "App\\Models\\Order"
+        string collection_name "originals | retouched | watermarked"
+        string file_name
+        string mime_type
+        string disk "s3"
+        string path
+        bigint size
+        json custom_properties "AI metadata, restoration parameters"
+        timestamp created_at
+    }
+
+    ORDER_DELIVERIES {
+        uuid id PK
+        uuid order_id FK
+        string zip_disk "s3"
+        string zip_path "deliveries/{order_id}.zip"
+        string signed_url "nullable — generated on demand"
+        timestamp signed_url_expires_at "48h TTL"
+        timestamp created_at
+    }
+
+    AUDIT_LOGS {
+        uuid id PK
+        uuid user_id FK "nullable — system actions"
+        string action "ORDER_CREATED | STATUS_CHANGED | PAYMENT | DOWNLOAD | LOGIN"
+        string subject_type "App\\Models\\Order"
+        uuid subject_id
+        json payload "Full action context"
+        string ip_address
+        string user_agent
+        timestamp created_at "Immutable — no updated_at"
+    }
+
+    USERS ||--o{ ORDERS : "places"
+    ORDERS ||--o{ MEDIA : "contains"
+    ORDERS ||--o| ORDER_DELIVERIES : "generates"
+    USERS ||--o{ AUDIT_LOGS : "generates"
+    ORDERS ||--o{ AUDIT_LOGS : "referenced in"
+```
+
+---
+
+## 4. Business Flows — Sequence Diagrams
+
+### 4.1 Client Order Submission
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant Browser
+    participant Livewire as Livewire<br/>OrderCreateForm
+    participant Laravel
+    participant S3
+    participant DB as PostgreSQL
+    participant Queue as Redis Queue
+    participant Mail
+
+    Client->>Browser: Fill form + upload photos (multi-file)
+    Browser->>Livewire: wire:model + chunked upload
+    Livewire->>S3: Store to temporary disk (disk:temp)
+    S3-->>Livewire: Temporary path confirmed
+
+    Client->>Browser: Click "Submit my order"
+    Browser->>Livewire: submit()
+    Livewire->>Laravel: OrderController@store()
+
+    Note over Laravel,DB: Validation: MIME type, size, count
+
+    Laravel->>DB: INSERT orders (status = PENDING)
+    Laravel->>S3: Move photos temp → disk:s3/originals/{order_id}/
+    Laravel->>DB: INSERT media (collection = originals)
+    Laravel->>Queue: Dispatch NotifyAdminNewOrderJob
+    Queue->>Mail: Email admin — New order received
+
+    Laravel-->>Browser: Redirect /client/orders/{id}
+    Browser-->>Client: Tracking page — status: PENDING
+```
+
+### 4.2 Admin Processing (AI-Assisted Restoration)
+
+```mermaid
+sequenceDiagram
+    actor Admin
+    participant Browser
+    participant Livewire as Livewire<br/>AdminOrderManage
+    participant Laravel
+    participant OpenAI as OpenAI API<br/>GPT-4o Vision
+    participant S3
+    participant DB
+    participant Queue
+    participant Mail
+
+    Admin->>Browser: Open order from dashboard
+    Browser->>Livewire: Display original photos grid
+    Admin->>Browser: Click "Take charge"
+    Livewire->>Laravel: PATCH /admin/orders/{id}/status
+    Laravel->>DB: UPDATE status = IN_PROGRESS
+    Laravel->>Queue: Dispatch NotifyClientStatusJob
+    Queue->>Mail: Email client — Order in progress
+
+    Note over Admin,OpenAI: Admin downloads originals, runs AI restoration prompt<br/>(ChatGPT 8K upscale / colorization prompt)
+
+    Admin->>Browser: Upload AI-restored photos
+    Livewire->>S3: disk:s3/retouched/{order_id}/
+
+    Note over Laravel,S3: Auto-generate watermarked preview (low-res + overlay)
+
+    Admin->>Browser: Click "Mark as done"
+    Livewire->>Laravel: PATCH status = DONE
+    Laravel->>DB: UPDATE status + delivered_at
+    Laravel->>Queue: Dispatch GenerateOrderZipJob
+    Queue->>S3: Read retouched photos
+    Queue->>S3: Write ZIP (disk:s3/deliveries/{order_id}.zip)
+    Queue->>DB: INSERT order_deliveries
+    Laravel->>Queue: Dispatch NotifyClientPaymentJob
+    Queue->>Mail: Email client — Photos ready, payment link
+```
+
+### 4.3 Payment & Download (Stripe Checkout)
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant Browser
+    participant Laravel
+    participant Stripe
+    participant DB
+    participant S3
+    participant Queue
+    participant Mail
+
+    Client->>Browser: Click "Pay & download"
+    Browser->>Laravel: POST /client/orders/{id}/checkout
+    Laravel->>Stripe: Create Checkout Session (line items, metadata)
+    Stripe-->>Laravel: session_url
+    Laravel-->>Browser: Redirect to Stripe Checkout
+
+    Client->>Stripe: Enter card details + 3DS2 SCA
+    Stripe->>Laravel: POST /webhook/stripe (payment_intent.succeeded)
+
+    Note over Laravel: Verify HMAC-SHA256 webhook signature
+
+    Laravel->>DB: UPDATE payment_status = paid, paid_at = now()
+    Laravel->>Queue: Dispatch GenerateSignedDownloadUrlJob
+    Queue->>S3: Generate pre-signed URL (TTL: 48h)
+    Queue->>DB: UPDATE order_deliveries.signed_url
+    Queue->>Mail: Email client — Download link (48h validity)
+
+    Client->>Browser: Click link in email or client space
+    Browser->>Laravel: GET /client/orders/{id}/download
+    Laravel->>DB: Verify payment_status = paid (FilePolicy)
+    Laravel->>S3: Redirect to signed URL
+    S3-->>Browser: ZIP file download
+    Laravel->>DB: INSERT audit_logs (action = DOWNLOAD)
+```
+
+---
+
+## 5. Order State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING : Client submits order + photos
+
+    PENDING --> IN_PROGRESS : Admin takes charge
+    PENDING --> CANCELLED : Admin or client cancels
+
+    IN_PROGRESS --> DONE : Admin uploads AI-restored photos
+    IN_PROGRESS --> CANCELLED : Admin cancels (unrestorable photos)
+
+    DONE --> PAID : Stripe webhook payment_intent.succeeded
+    PAID --> DOWNLOADED : Client downloads ZIP
+
+    CANCELLED --> [*]
+    DOWNLOADED --> [*]
+
+    note right of PENDING
+        Triggers:
+        → Email to admin (new order)
+        → Dashboard badge increment
+    end note
+
+    note right of IN_PROGRESS
+        Triggers:
+        → Email to client (order started)
+        → Admin accesses original photos
+    end note
+
+    note right of DONE
+        Triggers:
+        → Async ZIP generation job
+        → Watermarked preview generated
+        → Payment email sent to client
+    end note
+
+    note right of PAID
+        Triggers:
+        → Signed download URL generated (48h TTL)
+        → Download email sent to client
+        → Audit log: PAYMENT
+    end note
+
+    note right of DOWNLOADED
+        Triggers:
+        → Audit log: DOWNLOAD
+        → (Future) Media cleanup scheduled
+    end note
+```
+
+---
+
+## 6. Module Breakdown
+
+### 6.1 Public Showcase (Vitrine)
+
+| Section | Content | Component |
+|---|---|---|
+| Hero | Hook copy, "Submit my photos" CTA | Blade + Alpine.js transition |
+| Concept | Service explanation, illustrated steps | Blade static |
+| Portfolio | Before/After slider (original vs restored) | Alpine.js + CSS clip-path |
+| Pricing | Price grid by photo count | Blade |
+| FAQ | Accordion | Alpine.js `x-show` |
+| Trust Signals | GDPR badge, delivery time, security | Blade |
+| Footer | ToS, privacy policy, legal notices | Blade |
+
+### 6.2 Client Module
+
+| Feature | Livewire Component | Description |
+|---|---|---|
+| Registration / Login | Breeze TALL scaffold | Email verification required |
+| Order submission | `OrderCreateForm` | Multi-file wizard, description, pricing preview |
+| Order list | `OrderList` | Color-coded status, sort, pagination |
+| Order detail | `OrderDetail` | Original photos, watermarked preview, timeline |
+| Payment | Stripe Checkout redirect | Cashier + webhook |
+| Download | `OrderDownload` | Active button if paid, signed URL |
+| Profile / GDPR | `ProfileSettings` | Data export, account deletion |
+
+### 6.3 Admin Back Office
+
+| Feature | Livewire Component | Description |
+|---|---|---|
+| Dashboard | `AdminDashboard` | KPIs, pending order queue |
+| Order list | `AdminOrderList` | Status filters, search, CSV export |
+| Order management | `AdminOrderManage` | Photo viewer, status change, upload |
+| Photo upload | `AdminPhotoUpload` | Bulk upload, preview, progress bar |
+| ZIP generation | Async job | Auto-triggered on status = DONE |
+| Audit history | `AdminAuditLog` | Full traceability |
+
+---
+
+## 7. Payment Flow (Stripe)
+
+```
+Payment method: Stripe Checkout (hosted by Stripe)
+Advantages   : PCI-DSS offloaded, native 3DS2/SCA, European compliance built-in
+```
+
+```mermaid
+graph LR
+    A[Client clicks Pay] --> B[Laravel creates<br/>Checkout Session]
+    B --> C[Stripe Checkout<br/>Hosted Page]
+    C --> D{3DS2<br/>Validation}
+    D -->|Success| E[Stripe fires webhook<br/>payment_intent.succeeded]
+    D -->|Failure| F[Client notified<br/>Payment failed]
+    E --> G[Laravel webhook handler<br/>HMAC-SHA256 verified]
+    G --> H[DB: payment_status = paid]
+    H --> I[Async: Generate signed URL]
+    I --> J[Email: Download link 48h]
+```
+
+**Stripe `.env` configuration:**
+```bash
+STRIPE_KEY=pk_test_xxx
+STRIPE_SECRET=sk_test_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+```
+
+**Webhook events to listen:**
+- `payment_intent.succeeded` → unlock download
+- `payment_intent.payment_failed` → notify client
+- `charge.refunded` → update `payment_status = refunded`
+
+---
+
+## 8. ZIP Delivery Architecture
+
+```mermaid
+graph TB
+    A[Admin marks order DONE] --> B[GenerateOrderZipJob dispatched<br/>via Redis queue]
+    B --> C[Fetch all retouched media<br/>from Spatie Media Library]
+    C --> D[PHP ZipArchive:<br/>add each file to ZIP in memory]
+    D --> E[Upload ZIP to S3<br/>disk:deliveries/ORD-2026-XXXX.zip]
+    E --> F[INSERT order_deliveries<br/>zip_disk + zip_path]
+    F --> G[GenerateSignedDownloadUrlJob]
+    G --> H[S3 presigned URL<br/>TTL: 48 hours]
+    H --> I[UPDATE order_deliveries.signed_url]
+    I --> J[Email client: Download link]
+```
+
+**File access policy (IDOR + payment prevention):**
+```
+GET /client/orders/{id}/download
+    → Authenticate (auth middleware)
+    → OrderPolicy::download() — verifies user owns the order
+    → Checks: payment_status = paid
+    → If signed_url expired: regenerate it on the fly
+    → 302 Redirect to fresh presigned S3 URL
+    → INSERT audit_logs (action = DOWNLOAD)
+```
+
+---
+
+## 9. AI Restoration Pipeline
+
+The AI restoration is performed using a precision-crafted prompt
+submitted to **ChatGPT GPT-4o** (or OpenAI API for future automation):
+
+```
+Act as a high-precision visual data restoration algorithm.
+Mission: correct compression artifacts and motion blur to recover original clarity.
+
+TECHNICAL INSTRUCTIONS:
+1. Perform intelligent upscale to 8K resolution without altering base vectors.
+2. Reconstruct surface textures (micro-details, pores, fibers) from existing luminance data.
+3. Stabilize edge sharpness and optimize global contrast for "Studio Professional" rendering.
+4. Strictly preserve geometry, facial features, and source lighting.
+
+Expected result: An ultra-sharp, photorealistic, clean version of the provided image,
+with zero structural modifications.
+```
+
+**Phase 1 (MVP):** Admin-assisted (manual prompt + ChatGPT UI)
+
+**Phase 2 (v1.2.0 roadmap):** Automated via OpenAI API
+```mermaid
+graph LR
+    Upload[Admin uploads<br/>original photo] --> Job[AIRestorationJob<br/>dispatched to queue]
+    Job --> API[POST openai.com/v1/images/edits<br/>model: gpt-4o<br/>prompt: restoration template]
+    API --> Result[Restored image URL]
+    Result --> S3[Upload to S3<br/>collection: retouched]
+    S3 --> Preview[Generate watermarked preview]
+    Preview --> Notify[Notify client]
+```
+
+---
+
+## 10. Security Architecture (OWASP Top 10)
+
+| # | Vector | Countermeasure |
+|---|---|---|
+| A01 | Broken Access Control | `OrderPolicy`, `FilePolicy` — ownership check on every request |
+| A02 | Cryptographic Failures | HTTPS TLS 1.3, S3 SSE-AES256, bcrypt passwords |
+| A03 | Injection | Eloquent ORM + Query Builder only — zero raw SQL |
+| A04 | Insecure Design | Payment-before-download, webhook HMAC verification |
+| A05 | Security Misconfiguration | `.env` in `.gitignore`, S3 private buckets, no directory listing |
+| A06 | Vulnerable Components | `composer audit` + `npm audit` in CI, Dependabot |
+| A07 | Auth Failures | `throttle:60,1` on auth, email verification required, 2FA admin |
+| A08 | Software Integrity | `composer.lock` + `package-lock.json` version-pinned |
+| A09 | Logging & Monitoring | `AUDIT_LOGS` table + Laravel Telescope + Slack alerts |
+| A10 | SSRF | No user-controlled HTTP requests; S3 signed URLs are server-generated |
+
+---
+
+## 11. GDPR Compliance Map
+
+```mermaid
+graph TB
+    A[GDPR Obligation] --> B[Technical Implementation]
+
+    A1[Explicit Consent] --> B1["Mandatory checkbox at registration<br/>→ users.rgpd_consent_at (timestamp)"]
+    A2[Right to Access] --> B2["JSON data export<br/>→ ProfileSettings Livewire component"]
+    A3[Right to Erasure] --> B3["Soft delete: users.deleted_at<br/>+ field anonymization<br/>+ S3 deletion via CleanupJob"]
+    A4[Data Portability] --> B4["ZIP export: personal data + JSON metadata"]
+    A5[Retention Period] --> B5["Orders: 5 years (accounting law)<br/>Photos: auto-deleted 6 months post-delivery"]
+    A6[Security] --> B6["HTTPS + S3 AES-256 + IAM least-privilege"]
+    A7[Sub-processors] --> B7["DPA signed: Stripe + AWS/S3 + Resend"]
+```
+
+---
+
+## 12. Git Workflow & Branching Strategy
+
+```mermaid
+gitGraph
+    commit id: "v0.0.1 — Architectural docs"
+
+    branch test
+    checkout test
+
+    branch feature/docs-github-setup
+    checkout feature/docs-github-setup
+    commit id: "docs: GitHub templates + README"
+    commit id: "docs: architecture.mdx with diagrams"
+
+    checkout test
+    merge feature/docs-github-setup tag: "docs-setup"
+
+    branch feature/scaffolding-laravel
+    checkout feature/scaffolding-laravel
+    commit id: "chore: Laravel 12 + TALL stack install"
+    commit id: "feat(auth): Breeze TALL + email verification"
+    commit id: "chore: Horizon + Spatie + Cashier packages"
+
+    checkout test
+    merge feature/scaffolding-laravel tag: "v0.1.0"
+
+    branch feature/database-migrations
+    checkout feature/database-migrations
+    commit id: "feat(db): users migration with GDPR fields"
+    commit id: "feat(db): orders + order_deliveries migrations"
+    commit id: "feat(db): audit_logs migration"
+    commit id: "feat(models): Eloquent models + relations"
+
+    checkout test
+    merge feature/database-migrations tag: "v0.2.0"
+
+    checkout main
+    merge test tag: "v1.0.0 — MVP"
+```
+
+**Branch naming conventions:**
+
+| Prefix | Purpose | Example |
+|--------|---------|---------|
+| `feature/` | New functionality | `feature/livewire-order-form` |
+| `fix/` | Bug fix | `fix/stripe-webhook-signature` |
+| `docs/` | Documentation | `docs/api-sequence-diagrams` |
+| `chore/` | Config, tooling | `chore/horizon-redis-setup` |
+| `refactor/` | Code cleanup | `refactor/zip-generator-service` |
+| `test/` | Test suite | `test/pest-order-lifecycle` |
+
+**Commit message format:**
+```
+type(scope): short description (imperative, < 72 chars)
+
+- Bullet detail 1
+- Bullet detail 2
+- Refs: #issue-number
+```
