@@ -196,10 +196,11 @@ class Order extends Model implements HasMedia
              ->useDisk($disk);
 
         // ─── Watermarked Preview ──────────────────────────────────────────
-        // Aperçu basse résolution filigrané, montré avant paiement.
+        // Aperçus basse résolution filigranés, montrés avant paiement.
+        // Générés automatiquement par GenerateWatermarkJob (Intervention Image GD).
+        // Un fichier watermarked par photo retouchée (pas de singleFile ici).
         $this->addMediaCollection('watermarked')
-             ->useDisk($disk)
-             ->singleFile();
+             ->useDisk($disk);
     }
 
     // =========================================================================

@@ -94,19 +94,22 @@ class extends Component
                     </span>
                 </div>
 
-                {{-- Grille aperçus — collection retouched (watermark CSS) --}}
+                {{-- Grille aperçus — collection watermarked (Intervention Image) ou fallback CSS --}}
                 <div class="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
                     @php
-                        $previews = $order->getMedia('watermarked');
-                        if ($previews->isEmpty()) {
-                            $previews = $order->getMedia('retouched');
-                        }
+                        $watermarked = $order->getMedia('watermarked');
+                        $useCssFallback = $watermarked->isEmpty();
+                        $previews = $useCssFallback
+                            ? $order->getMedia('retouched')
+                            : $watermarked;
                     @endphp
                     @forelse ($previews as $media)
                     <div class="relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/10 group select-none">
                         <img src="{{ $media->getUrl() }}" alt="Aperçu restauré"
-                             class="w-full h-full object-cover pointer-events-none">
-                        {{-- Watermark overlay CSS --}}
+                             class="w-full h-full object-cover pointer-events-none"
+                             draggable="false">
+                        @if ($useCssFallback)
+                        {{-- Fallback CSS watermark si le job n'a pas encore tourné --}}
                         <div class="absolute inset-0 pointer-events-none overflow-hidden"
                              style="background: repeating-linear-gradient(
                                  -45deg,
@@ -121,6 +124,7 @@ class extends Component
                                 OmnyRestore
                             </span>
                         </div>
+                        @endif
                     </div>
                     @empty
                     {{-- Placeholder si les aperçus ne sont pas encore générés --}}
