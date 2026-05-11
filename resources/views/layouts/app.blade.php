@@ -68,10 +68,20 @@
         </nav>
 
         <div class="flex items-center gap-4" x-data="{ open: false }">
-            <span class="text-[#7A6E5E] text-sm hidden md:block">{{ Auth::user()->name }}</span>
+            <div class="hidden md:flex items-center gap-2">
+                <span class="text-[#7A6E5E] text-sm">{{ Auth::user()->name }}</span>
+                @if (Auth::user()->role === 'admin')
+                <span class="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/40 rounded-full">
+                    Admin
+                </span>
+                @endif
+            </div>
             <div class="relative">
                 <button @click="open = !open"
-                        class="w-8 h-8 rounded-full border border-[#C9A84C]/30 bg-[#1A1510] flex items-center justify-center text-[#C9A84C] text-xs font-bold hover:border-[#C9A84C]/60 transition-colors">
+                        class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors
+                               {{ Auth::user()->role === 'admin'
+                                  ? 'border-2 border-[#C9A84C] bg-[#C9A84C]/20 text-[#C9A84C] hover:bg-[#C9A84C]/30'
+                                  : 'border border-[#C9A84C]/30 bg-[#1A1510] text-[#C9A84C] hover:border-[#C9A84C]/60' }}">
                     {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                 </button>
                 <div x-show="open" @click.outside="open = false" x-transition
