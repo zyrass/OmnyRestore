@@ -1,3 +1,88 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ============================================================
+   OmnyRestore — Design System
+   Police : Inter (Google Fonts, chargée dans app layout)
+   Palette : Sépia doré sur fond sombre — ambiance vintage premium
+   ============================================================ */
+
+@layer base {
+    :root {
+        --gold:     #C9A84C;
+        --gold-lt:  #E8C97A;
+        --gold-dk:  #8B6914;
+        --sepia:    #F5F0E8;
+        --dark:     #0D0B08;
+        --dark-2:   #1A1510;
+        --dark-3:   #241E14;
+        --muted:    #7A6E5E;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+        @apply bg-[#0D0B08] text-[#F5F0E8] antialiased;
+        font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    h1, h2, h3 { font-family: 'Playfair Display', serif; }
+}
+
+@layer components {
+    /* Bouton principal doré */
+    .btn-gold {
+        @apply inline-flex items-center gap-2 px-8 py-4 rounded-sm font-semibold tracking-wide
+               text-[#0D0B08] bg-[#C9A84C] hover:bg-[#E8C97A]
+               transition-all duration-300 hover:shadow-[0_0_30px_rgba(201,168,76,0.4)]
+               hover:-translate-y-0.5;
+    }
+
+    /* Bouton outline */
+    .btn-outline {
+        @apply inline-flex items-center gap-2 px-8 py-4 rounded-sm font-semibold tracking-wide
+               text-[#C9A84C] border border-[#C9A84C]/40 hover:border-[#C9A84C]
+               hover:bg-[#C9A84C]/10 transition-all duration-300;
+    }
+
+    /* Carte glassmorphism */
+    .card-glass {
+        @apply bg-[#1A1510]/80 border border-[#C9A84C]/15 rounded-sm backdrop-blur-sm
+               hover:border-[#C9A84C]/40 transition-all duration-500;
+    }
+
+    /* Séparateur doré */
+    .divider-gold {
+        @apply w-16 h-px bg-gradient-to-r from-transparent via-[#C9A84C] to-transparent mx-auto;
+    }
+
+    /* Badge étape */
+    .step-badge {
+        @apply w-10 h-10 rounded-full border border-[#C9A84C]/50 flex items-center justify-center
+               text-[#C9A84C] font-bold text-sm bg-[#C9A84C]/10;
+    }
+}
+
+/* Grain texture overlay */
+.noise::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+}
+
+/* Glow animation */
+@keyframes pulse-gold {
+    0%, 100% { box-shadow: 0 0 20px rgba(201,168,76,0.2); }
+    50%       { box-shadow: 0 0 50px rgba(201,168,76,0.5); }
+}
+
+.glow-gold { animation: pulse-gold 3s ease-in-out infinite; }
+
+/* Scroll reveal (class ajoutée par Alpine.js) */
+.reveal { opacity: 0; transform: translateY(30px); transition: all 0.7s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
