@@ -94,15 +94,30 @@ class extends Component
                     </span>
                 </div>
 
-                {{-- Grille aperçus filigranés --}}
+                {{-- Grille aperçus — collection retouched (watermark CSS) --}}
                 <div class="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
-                    @forelse ($order->getMedia('watermarked') as $media)
-                    <div class="relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/10 group">
+                    @php
+                        $previews = $order->getMedia('watermarked');
+                        if ($previews->isEmpty()) {
+                            $previews = $order->getMedia('retouched');
+                        }
+                    @endphp
+                    @forelse ($previews as $media)
+                    <div class="relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/10 group select-none">
                         <img src="{{ $media->getUrl() }}" alt="Aperçu restauré"
-                             class="w-full h-full object-cover select-none pointer-events-none">
-                        {{-- Watermark overlay visible --}}
-                        <div class="absolute inset-0 flex items-end justify-end p-2 pointer-events-none">
-                            <span class="text-white/20 text-[10px] font-bold tracking-widest rotate-[-15deg] select-none">
+                             class="w-full h-full object-cover pointer-events-none">
+                        {{-- Watermark overlay CSS --}}
+                        <div class="absolute inset-0 pointer-events-none overflow-hidden"
+                             style="background: repeating-linear-gradient(
+                                 -45deg,
+                                 transparent,
+                                 transparent 60px,
+                                 rgba(201,168,76,0.08) 60px,
+                                 rgba(201,168,76,0.08) 62px
+                             );">
+                        </div>
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span class="text-white/15 text-xs font-bold tracking-[0.3em] uppercase rotate-[-35deg] select-none whitespace-nowrap">
                                 OmnyRestore
                             </span>
                         </div>
