@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Order;
+use App\Observers\OrderObserver;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -12,31 +14,25 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap application services.
      *
-     * Définit les règles de mot de passe par défaut conformément aux recommandations
-     * de la CNIL (Guide sécurité des données personnelles — Fiche 5) :
-     *
-     * Recommandations CNIL 2023 (sans dispositif complémentaire) :
-     *   - Minimum 12 caractères
-     *   - Au moins 1 lettre majuscule
-     *   - Au moins 1 lettre minuscule
-     *   - Au moins 1 chiffre
-     *   - Au moins 1 caractère spécial
-     *
-     * Ces règles s'appliquent automatiquement partout où on utilise
-     * Rules\Password::defaults() dans les validations.
-     *
-     * @see https://www.cnil.fr/fr/mots-de-passe-les-recommandations-de-la-cnil
-     * @see https://www.cnil.fr/sites/cnil/files/atoms/files/cnil_guide_securite-donnees-personnelles.pdf
+     * - Règles de mot de passe CNIL (12 chars, mixedCase, numbers, symbols, HaveIBeenPwned)
+     * - Enregistrement de l'OrderObserver (emails transactionnels automatiques)
      */
     public function boot(): void
     {
+        // ── Politique de mot de passe CNIL ──────────────────────────────────
+        // @see https://www.cnil.fr/fr/mots-de-passe-les-recommandations-de-la-cnil
         Password::defaults(function () {
-            return Password::min(12)          // CNIL : 12 caractères minimum
-                ->mixedCase()                 // Majuscules + minuscules
-                ->numbers()                   // Au moins un chiffre
-                ->symbols()                   // Au moins un caractère spécial
-                ->uncompromised();            // Vérifie via HaveIBeenPwned API
-                                              // (rejette les mots de passe dans des fuites connues)
+            return Password::min(12)
+                ->mixedCase()
+                ->numbers()
+                ->symbols()
+                ->uncompromised();
         });
+
+        // ── Observer Eloquent ────────────────────────────────────────────────
+        // Écoute les changements de statut Order pour envoyer les emails
+        // (OrderReadyForPayment quand DONE, OrderPaidConfirmation quand PAID)
+        Order::observe(OrderObserver::class);
     }
 }
+
