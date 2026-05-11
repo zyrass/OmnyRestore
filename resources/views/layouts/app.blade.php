@@ -116,6 +116,8 @@
 
 {{-- ========== MAIN ========== --}}
 <main class="max-w-6xl mx-auto px-6 py-10">
+    {{-- Flash messages globaux (non affichés sur les pages Livewire qui gèrent leur propre feedback) --}}
+    @unless (request()->routeIs('admin.orders.show'))
     @if (session('success'))
     <div class="flex items-center gap-3 bg-emerald-950/50 border border-emerald-500/30 text-emerald-400 rounded-sm px-4 py-3 mb-6 text-sm">
         <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -128,6 +130,7 @@
         {{ session('error') }}
     </div>
     @endif
+    @endunless
 
     {!! isset($slot) ? $slot : $__env->yieldContent('content') !!}
 </main>
