@@ -1,5 +1,8 @@
-<x-layouts.app title="Paiement confirmé — OmnyRestore">
+@extends('layouts.app')
 
+@section('title', 'Paiement confirmé')
+
+@section('content')
 <div class="min-h-[70vh] flex items-center justify-center px-6">
     <div class="text-center max-w-md" x-data="{ dots: '' }" x-init="setInterval(() => dots = dots.length < 3 ? dots + '.' : '', 500)">
 
@@ -26,7 +29,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                <span>Le téléchargement est activé automatiquement dès la confirmation Stripe (quelques secondes). Vérifiez votre boite mail.</span>
+                <span>Le téléchargement est activé automatiquement dès la confirmation Stripe. Vérifiez votre boite mail.</span>
             </div>
         </div>
 
@@ -38,5 +41,4 @@
 
     </div>
 </div>
-
-</x-layouts.app>
+@endsection

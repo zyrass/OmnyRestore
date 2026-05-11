@@ -129,7 +129,7 @@
     </div>
     @endif
 
-    {{ $slot }}
+    {!! isset($slot) ? $slot : $__env->yieldContent('content') !!}
 </main>
 
 {{-- ═══ Modal de confirmation global ══════════════════════════════════ --}}

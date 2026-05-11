@@ -1,5 +1,8 @@
-<x-layouts.app title="Paiement annulé — OmnyRestore">
+@extends('layouts.app')
 
+@section('title', 'Paiement annulé')
+
+@section('content')
 <div class="min-h-[70vh] flex items-center justify-center px-6">
     <div class="text-center max-w-md">
 
@@ -27,5 +30,4 @@
 
     </div>
 </div>
-
-</x-layouts.app>
+@endsection
