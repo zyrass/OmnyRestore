@@ -66,17 +66,3 @@ Route::middleware(['auth', 'verified'])->prefix('client')->name('client.')->grou
 
 });
 
-/**
- * Stripe Success/Cancel redirect routes (public — no auth required)
- * Stripe redirects here after Checkout Session completion.
- * We do NOT rely on these for payment confirmation — use the webhook instead.
- */
-Route::get('/payment/success', function () {
-    // Show a "Thank you, we'll email you your download link" page
-    return view('pages.payment.success');
-})->name('payment.success');
-
-Route::get('/payment/cancel', function () {
-    // Show a "Payment cancelled, your order is still available" page
-    return view('pages.payment.cancel');
-})->name('payment.cancel');

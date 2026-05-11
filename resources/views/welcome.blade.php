@@ -214,9 +214,9 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
         @foreach([
-            ['label' => 'Photo simple',   'price' => 'dès 9€',  'desc' => '1 photo, dommages légers',       'features' => ['Restauration 8K', 'Aperçu filigranné', 'Livraison ZIP', 'Délai 24-48h']],
-            ['label' => 'Restauration+',  'price' => 'dès 24€', 'desc' => 'Photo très endommagée',           'features' => ['Tout ce qui précède', 'Reconstruction avancée', 'Corrections manuelles', 'Priorité admin'], 'featured' => true],
-            ['label' => 'Lot de photos',  'price' => 'Sur devis', 'desc' => 'À partir de 5 photos',         'features' => ['Tarif dégressif', 'Suivi personnalisé', 'Livraison groupée', 'Support prioritaire']],
+            ['label' => 'Restauration Standard', 'price' => 'dès 1€',    'desc' => '1 photo, dommages légers (jaunissement, poussière)',     'features' => ['Restauration 8K', 'Aperçu filigranné', 'Livraison ZIP', 'Délai 24-48h']],
+            ['label' => 'Restauration Avancée',  'price' => 'dès 10€',   'desc' => 'Photo très endommagée (déchirures, dommages eau…)',      'features' => ['Tout ce qui précède', 'Reconstruction avancée', 'Corrections manuelles', 'Délai 48-72h'], 'featured' => true],
+            ['label' => 'Lot de photos',          'price' => 'Sur devis', 'desc' => 'À partir de 5 photos — tarif dégressif',               'features' => ['Tarif dégressif', 'Suivi personnalisé', 'Livraison groupée', 'Support prioritaire']],
         ] as $plan)
         <div class="card-glass p-8 text-center {{ ($plan['featured'] ?? false) ? 'border-[#C9A84C]/50 relative' : '' }}">
             @if($plan['featured'] ?? false)
@@ -267,9 +267,9 @@
             <span class="text-[#7A6E5E] text-xs tracking-widest uppercase">OmnyRestore</span>
         </div>
         <div class="flex gap-6 text-[#7A6E5E] text-xs">
-            <a href="#" class="hover:text-[#C9A84C] transition-colors">Mentions légales</a>
-            <a href="#" class="hover:text-[#C9A84C] transition-colors">Politique de confidentialité</a>
-            <a href="#" class="hover:text-[#C9A84C] transition-colors">CGV</a>
+            <a href="{{ route('legal.mentions') }}" class="hover:text-[#C9A84C] transition-colors">Mentions légales</a>
+            <a href="{{ route('legal.privacy') }}" class="hover:text-[#C9A84C] transition-colors">Politique de confidentialité</a>
+            <a href="{{ route('legal.cgv') }}" class="hover:text-[#C9A84C] transition-colors">CGV</a>
         </div>
         <p class="text-[#7A6E5E] text-xs">© {{ date('Y') }} OmnyRestore — OmnyVia</p>
     </div>
