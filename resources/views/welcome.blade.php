@@ -216,7 +216,7 @@
         @foreach([
             ['label' => 'Restauration Standard', 'price' => 'dès 1€',    'desc' => '1 photo, dommages légers (jaunissement, poussière)',     'features' => ['Restauration 8K', 'Aperçu filigranné', 'Livraison ZIP', 'Délai 24-48h']],
             ['label' => 'Restauration Avancée',  'price' => 'dès 10€',   'desc' => 'Photo très endommagée (déchirures, dommages eau…)',      'features' => ['Tout ce qui précède', 'Reconstruction avancée', 'Corrections manuelles', 'Délai 48-72h'], 'featured' => true],
-            ['label' => 'Lot de photos',          'price' => 'Sur devis', 'desc' => 'À partir de 5 photos — tarif dégressif',               'features' => ['Tarif dégressif', 'Suivi personnalisé', 'Livraison groupée', 'Support prioritaire']],
+            ['label' => 'Lot de photos',          'price' => 'Sur devis', 'desc' => 'À partir de 50 photos — tarif dégressif',               'features' => ['Tarif dégressif', 'Suivi personnalisé', 'Livraison groupée', 'Support prioritaire']],
         ] as $plan)
         <div class="card-glass p-8 text-center {{ ($plan['featured'] ?? false) ? 'border-[#C9A84C]/50 relative' : '' }}">
             @if($plan['featured'] ?? false)

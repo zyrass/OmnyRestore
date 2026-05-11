@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI — Analyse IA des photos
+    |--------------------------------------------------------------------------
+    | Utilisé par App\Services\PhotoDamageAnalyzer pour classifier automatiquement
+    | le niveau de dommage (light/heavy) de chaque photo soumise.
+    |
+    | Obtenir une clé : https://platform.openai.com/api-keys
+    | Modèle recommandé : gpt-4o (vision supportée, meilleur rapport qualité/coût)
+    */
+    'openai' => [
+        'key'   => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o'),
+    ],
+
 ];
+

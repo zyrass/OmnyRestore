@@ -75,9 +75,12 @@ new #[Layout('layouts.guest')] class extends Component
             <x-input-label for="password" :value="__('Mot de passe')" />
             <x-text-input
                 wire:model="password" id="password" type="password" name="password"
-                placeholder="8 caractères minimum"
+                placeholder="12 car. min. · Maj · Chiffre · Symbole"
                 required autocomplete="new-password"
             />
+            <p class="text-[#7A6E5E] text-xs mt-1.5">
+                Recommandation CNIL : 12 caractères minimum avec majuscule, chiffre et symbole (ex: <span class="text-[#C9A84C]/70">MonPhoto2024!</span>)
+            </p>
             <x-input-error :messages="$errors->get('password')" class="mt-1.5" />
         </div>
 
