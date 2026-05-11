@@ -101,14 +101,49 @@ class extends Component
             'base_price_cents' => count($this->photos) * $pricePerPhoto,
         ]);
 
-        foreach ($this->photos as $photo) {
-            $order->addMedia($photo->getRealPath())
-                  ->usingFileName($photo->getClientOriginalName())
-                  ->withCustomProperties([
-                      'ai_level'      => $this->analysisResults[array_key_first($this->analysisResults)]['level'] ?? 'unknown',
-                      'ai_confidence' => $this->analysisResults[array_key_first($this->analysisResults)]['confidence'] ?? 0,
-                  ])
-                  ->toMediaCollection('originals');
+        // ── Copie des fichiers AVANT que Livewire les supprime ─────────────
+        // Les fichiers temporaires Livewire sont supprimés après chaque cycle.
+        // On les copie dans un dossier stable avant de les passer à Spatie.
+        $tmpDir = storage_path('app/tmp-uploads');
+        if (! is_dir($tmpDir)) {
+            mkdir($tmpDir, 0755, true);
+        }
+
+        foreach ($this->photos as $i => $photo) {
+            $src = $photo->getRealPath();
+
+            if (! $src || ! file_exists($src)) {
+                \Illuminate\Support\Facades\Log::warning("Photo {$i} introuvable, ignorée", [
+                    'order_id' => $order->id,
+                    'name'     => $photo->getClientOriginalName(),
+                ]);
+                continue;
+            }
+
+            $ext      = $photo->getClientOriginalExtension() ?: 'jpg';
+            $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $photo->getClientOriginalName());
+            $destPath = $tmpDir . '/' . uniqid("orig_{$i}_") . '.' . $ext;
+
+            copy($src, $destPath);
+
+            try {
+                $order->addMedia($destPath)
+                      ->usingFileName($safeName)
+                      ->withCustomProperties([
+                          'ai_level'      => $this->analysisResults[$i]['level'] ?? 'unknown',
+                          'ai_confidence' => $this->analysisResults[$i]['confidence'] ?? 0,
+                      ])
+                      ->preservingOriginal()
+                      ->toMediaCollection('originals');
+
+                @unlink($destPath);
+            } catch (\Throwable $e) {
+                @unlink($destPath);
+                \Illuminate\Support\Facades\Log::error("Upload photo originale échoué: {$e->getMessage()}", [
+                    'order_id' => $order->id,
+                    'file'     => $safeName,
+                ]);
+            }
         }
 
         $audit->orderCreated($order);
