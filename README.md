@@ -2,7 +2,7 @@
 
 # 🖼️ OmnyRestore
 
-**AI-powered vintage photograph restoration platform**
+**Plateforme SaaS de restauration de photographies vintage par IA**
 
 [![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
 [![Livewire](https://img.shields.io/badge/Livewire-3.x-4E56A6?style=for-the-badge&logo=livewire&logoColor=white)](https://livewire.laravel.com)
@@ -12,40 +12,41 @@
 [![Stripe](https://img.shields.io/badge/Stripe-Cashier-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
-[![PHP](https://img.shields.io/badge/PHP-8.3+-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
-[![Version](https://img.shields.io/badge/version-0.0.1-blue?style=flat-square)](CHANGELOG.md)
+[![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
+[![Version](https://img.shields.io/badge/version-0.4.1-blue?style=flat-square)](CHANGELOG.md)
 
 </div>
 
 ---
 
-## 📖 Table of Contents
+## 📖 Table des matières
 
-- [🎯 About the Project](#-about-the-project)
+- [🎯 À propos](#-à-propos)
 - [🏗️ Architecture](#️-architecture)
-- [🔄 Order Lifecycle](#-order-lifecycle)
-- [🛠️ Tech Stack](#️-tech-stack)
-- [🚀 Getting Started](#-getting-started)
+- [🔄 Cycle de vie d'une commande](#-cycle-de-vie-dune-commande)
+- [🛠️ Stack technique](#️-stack-technique)
+- [🚀 Installation](#-installation)
+- [👥 Comptes de test](#-comptes-de-test)
+- [📁 Structure du projet](#-structure-du-projet)
+- [🎫 Module Support (Tickets)](#-module-support-tickets)
+- [⚙️ Configuration upload](#️-configuration-upload)
+- [🔐 Sécurité & RGPD](#-sécurité--rgpd)
 - [🌿 Git Workflow](#-git-workflow)
-- [📁 Project Structure](#-project-structure)
-- [🔐 Security & GDPR](#-security--gdpr)
 - [🗺️ Roadmap](#️-roadmap)
-- [👤 Author](#-author)
+- [👤 Auteur](#-auteur)
 
 ---
 
-## 🎯 About the Project
+## 🎯 À propos
 
-**OmnyRestore** is a professional SaaS platform that allows clients to submit old or damaged photographs for AI-powered restoration. The workflow is:
+**OmnyRestore** est une plateforme SaaS professionnelle permettant à des clients de soumettre leurs photographies anciennes ou endommagées pour une restauration par IA. Le workflow est :
 
-1. **Client** uploads one or more degraded photos via the web interface
-2. **Admin** uses a structured AI prompt (ChatGPT / OpenAI API) to restore the images to 8K quality
-3. **Client** sees a watermarked preview of their restored photos
-4. **Client** pays via Stripe and downloads the high-resolution ZIP archive
+1. **Client** dépose 1 à 10 photos — l'IA analyse automatiquement l'état de dégradation et calcule le prix
+2. **Admin** prend en charge la commande, restaure les photos (ChatGPT / OpenAI) et les uploade
+3. **Client** visualise un aperçu filigranné de ses photos restaurées
+4. **Client** paie via Stripe et télécharge le ZIP haute résolution
 
-The platform is built on the **TALL stack** (Tailwind 4, Alpine.js 3, Laravel 12, Livewire 3) for maximum developer productivity with a single codebase.
-
-> **Business model**: The AI restoration takes only minutes, so the "pay-before-delivery" risk is eliminated. The watermarked preview creates a high emotional conversion trigger before payment.
+> **Modèle économique** : aperçu d'abord, paiement ensuite. Le filigrane crée un déclencheur émotionnel fort avant la conversion.
 
 ---
 
@@ -53,310 +54,433 @@ The platform is built on the **TALL stack** (Tailwind 4, Alpine.js 3, Laravel 12
 
 ```mermaid
 graph TB
-    subgraph PUBLIC["🌐 Public Zone"]
+    subgraph PUBLIC["🌐 Zone publique"]
         V[Landing Page<br/>Portfolio + CTA]
-        AUTH[Auth<br/>Register / Login]
+        AUTH[Authentification<br/>Inscription / Connexion]
     end
 
-    subgraph CLIENT["👤 Client Space — Auth Required"]
-        DC[Order Submission<br/>Photos + Description]
-        SUIVI[Order Tracking<br/>Real-time Status]
-        PAY[Payment Module<br/>Stripe Checkout]
-        DL[Download<br/>Signed ZIP URL]
+    subgraph CLIENT["👤 Espace client — Auth requise"]
+        DC[Soumission commande<br/>Photos + IA analyse]
+        SUIVI[Suivi commande<br/>Statut temps réel]
+        TICKET[Support<br/>Tickets & messagerie]
+        PAY[Paiement<br/>Stripe Checkout]
+        DL[Téléchargement<br/>ZIP signé]
     end
 
-    subgraph ADMIN["🔧 Back Office — Admin Role"]
-        DASH[Dashboard<br/>Order Queue]
-        GES[Status Management<br/>PENDING / IN_PROGRESS / DONE]
-        UPLOAD[Photo Upload<br/>AI-restored images]
-        ZIP_GEN[ZIP Generation<br/>Async Job]
+    subgraph ADMIN["🔧 Back Office — Rôle Admin"]
+        DASH[Dashboard<br/>KPIs + file d'attente]
+        GES[Gestion statuts<br/>PENDING → IN_PROGRESS → DONE]
+        UPLOAD[Upload photos<br/>Images restaurées par IA]
+        TICKETS_ADM[Tickets support<br/>Réponses + suivi]
+        ZIP_GEN[Génération ZIP<br/>Job asynchrone]
     end
 
     subgraph INFRA["⚙️ Infrastructure"]
         DB[(PostgreSQL 16)]
-        S3[(S3 / Storage)]
+        STORAGE[(Storage local<br/>ou S3)]
         REDIS[(Redis<br/>Queue + Cache)]
         STRIPE_API[Stripe API]
         AI[OpenAI API<br/>GPT-4o Vision]
-        MAIL[Resend<br/>Transactional]
+        MAIL[Laravel Mail<br/>Transactionnel]
     end
 
     V --> AUTH --> DC --> SUIVI --> PAY --> DL
+    SUIVI --> TICKET --> TICKETS_ADM
     DASH --> GES --> UPLOAD --> ZIP_GEN
 
     DC --> DB
-    DC --> S3
+    DC --> STORAGE
     GES --> DB
-    UPLOAD --> S3
+    UPLOAD --> STORAGE
     ZIP_GEN --> REDIS
     PAY --> STRIPE_API
-    UPLOAD --> AI
+    DC --> AI
     GES --> MAIL
-    ZIP_GEN --> S3
+    TICKET --> MAIL
 ```
 
 ---
 
-## 🔄 Order Lifecycle
+## 🔄 Cycle de vie d'une commande
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING : Client submits order + photos
-    PENDING --> IN_PROGRESS : Admin takes charge
-    PENDING --> CANCELLED : Admin or client cancels
-    IN_PROGRESS --> DONE : Admin uploads AI-restored photos
-    DONE --> PAID : Client pays via Stripe
-    PAID --> DOWNLOADED : Client downloads ZIP
+    [*] --> PENDING : Client soumet commande + photos
+    PENDING --> IN_PROGRESS : Admin prend en charge
+    PENDING --> CANCELLED : Annulation admin ou client
+    IN_PROGRESS --> DONE : Admin uploade les photos restaurées
+    DONE --> PAID : Client paie via Stripe
+    PAID --> DOWNLOADED : Client télécharge le ZIP
     DOWNLOADED --> [*]
 
     note right of PENDING
-        → Email notification to admin
-        → Dashboard alert
+        → Email notification admin
+        → Alerte dashboard
     end note
 
     note right of IN_PROGRESS
-        → Email notification to client
-        → Admin runs AI restoration prompt
+        → Email notification client
+        → Admin restaure via IA
     end note
 
     note right of DONE
-        → Watermarked preview shown to client
-        → Payment link sent via email
+        → Aperçu filigranné affiché
+        → Lien paiement envoyé par email
     end note
 
     note right of PAID
-        → ZIP generated asynchronously
-        → Signed URL valid 48h
+        → ZIP généré en asynchrone
+        → URL signée valide 48h
     end note
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Stack technique
 
-| Layer | Technology | Version | Why |
+| Couche | Technologie | Version | Raison |
 |---|---|---|---|
-| Backend Framework | Laravel | 12.x | Mature ecosystem, Cashier, native Livewire support |
-| UI Reactivity | Livewire | 3.x | Dynamic components without complex JS |
-| Lightweight JS | Alpine.js | 3.x | Modals, dropdowns, local state |
-| CSS Utility | Tailwind CSS | 4.x | Productivity, coherence, auto-purge |
-| Database | PostgreSQL | 16 | Robustness, FK constraints, native JSON |
-| File Storage | Laravel Storage + S3 | — | Storage / application separation |
-| Payment | Stripe via Laravel Cashier | — | Market standard, PCI-DSS compliant |
-| ZIP Compression | PHP ZipArchive | native | No critical third-party dependency |
-| Media Management | Spatie Media Library | 11.x | Upload, conversions, UUID, policies |
-| Authentication | Laravel Breeze (TALL) | — | Fast scaffolding, 2FA ready |
-| Queue / Jobs | Laravel Horizon (Redis) | — | ZIP generation, email, async tasks |
-| Email | Laravel Mail + Resend | — | Transactional, logs, high deliverability |
-| AI Restoration | OpenAI API (GPT-4o) | — | Photo restoration & colorization |
-| Testing | Pest PHP | 3.x | Concise syntax, full coverage |
+| Framework backend | Laravel | 12.x | Ecosystem mature, Cashier, support Livewire natif |
+| Réactivité UI | Livewire + Volt | 3.x | Composants dynamiques sans JS complexe |
+| JS léger | Alpine.js | 3.x | Modals, dropdowns, état local |
+| CSS utilitaire | Tailwind CSS | 4.x | Productivité, cohérence, auto-purge |
+| Base de données | PostgreSQL | 16 | Robustesse, contraintes FK, JSON natif |
+| Stockage fichiers | Spatie MediaLibrary + Local/S3 | 11.x | Upload, conversions, UUID, policies |
+| Paiement | Stripe via Laravel Cashier | — | Standard marché, PCI-DSS conforme |
+| Compression ZIP | PHP ZipArchive | natif | Sans dépendance critique tierce |
+| Authentification | Laravel Breeze (TALL) | — | Scaffolding rapide, 2FA ready |
+| Queue / Jobs | Laravel Horizon (Redis) | — | Génération ZIP, emails, tâches async |
+| Email | Laravel Mail | — | Transactionnel, logs, haute délivrabilité |
+| IA Restauration | OpenAI API (GPT-4o Vision) | — | Restauration & colorisation photo |
+| Tests | Pest PHP | 3.x | Syntaxe concise, couverture complète |
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Installation
 
-### Prerequisites
+### Prérequis
 
-- PHP 8.3+
+- PHP 8.2+
 - Composer 2.x
 - Node.js 20+ / npm 10+
 - PostgreSQL 16
 - Redis 7+
-- A Stripe account (test keys)
-- An OpenAI API key (for AI restoration)
+- Un compte Stripe (clés test)
+- Une clé API OpenAI (pour l'analyse IA)
 
 ### Installation
 
 ```bash
-# 1. Clone the repository
+# 1. Cloner le dépôt
 git clone git@github.com:zyrass/OmnyRestore.git
 cd OmnyRestore
 
-# 2. Install PHP dependencies
+# 2. Installer les dépendances PHP
 composer install
 
-# 3. Install Node dependencies
+# 3. Installer les dépendances Node
 npm install
 
-# 4. Copy and configure environment
+# 4. Copier et configurer l'environnement
 cp .env.example .env
 php artisan key:generate
 
-# 5. Configure your .env (see .env.example for all variables)
-# DB_CONNECTION, STRIPE_*, OPENAI_*, AWS_*, RESEND_*
+# 5. Configurer le .env
+# Minimum requis pour le développement local :
+# APP_URL=http://127.0.0.1:8001
+# DB_*, STRIPE_*, OPENAI_*, MEDIA_DISK=public
 
-# 6. Run database migrations with seeders
+# 6. Créer le lien symbolique pour le stockage public
+php artisan storage:link
+
+# 7. Exécuter les migrations avec les seeders
 php artisan migrate --seed
 
-# 7. Start the development servers
+# 8. Démarrer les serveurs de développement
 composer run dev
-# This runs: php artisan serve + npm run dev + php artisan queue:listen
+# Lance : php artisan serve --port=8001 + npm run dev + php artisan queue:listen
 ```
 
-### Default Admin Account (after seeding)
+### Variables d'environnement clés
+
+```env
+APP_URL=http://127.0.0.1:8001    # IMPORTANT : doit correspondre au port réel du serveur
+
+MEDIA_DISK=public                 # 'public' en local, 's3' en production
+
+# PostgreSQL
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=omnyrestore
+
+# OpenAI (analyse IA photos)
+OPENAI_API_KEY=sk-...
+
+# Stripe
+STRIPE_KEY=pk_test_...
+STRIPE_SECRET=sk_test_...
+```
+
+---
+
+## 👥 Comptes de test
+
+Après `php artisan migrate --seed` :
+
+| Rôle | Email | Mot de passe | Accès |
+|------|-------|--------------|-------|
+| **Admin** | `admin@omnyrestore.test` | `password` | `/admin/dashboard` |
+| Client | `client@omnyrestore.test` | `password` | `/client/orders` |
+| Client | `jean@omnyrestore.test` | `password` | `/client/orders` |
+| Client | `sophie@omnyrestore.test` | `password` | `/client/orders` |
+
+> **Note** : Pour tester admin et client simultanément, utilisez Chrome + une fenêtre **Incognito** (deux sessions distinctes).
+
+**Distinction visuelle admin dans la nav :**
+- Badge `[Admin]` en or à côté du nom
+- Avatar avec bordure 2px pleine or vs 1px client
+- Navigation différente : Dashboard / Commandes / Tickets
+
+---
+
+## 📁 Structure du projet
 
 ```
-Email:    admin@omnyrestore.test
-Password: password
+omnyrestore/
+├── app/
+│   ├── Console/Commands/
+│   │   ├── DebugMedia.php           # php artisan debug:media
+│   │   └── ListUsers.php            # php artisan debug:users
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── Admin/
+│   │   │   │   └── OrderController.php
+│   │   │   └── Webhook/
+│   │   │       └── StripeWebhookController.php
+│   │   └── Middleware/
+│   │       └── EnsureIsAdmin.php    # Contrôle d'accès par rôle
+│   ├── Models/
+│   │   ├── User.php                 # Billable, RGPD, soft delete
+│   │   ├── Order.php                # State machine, relations, media collections
+│   │   ├── OrderDelivery.php        # Gestion URL signée ZIP
+│   │   ├── SupportTicket.php        # Tickets support client
+│   │   ├── SupportTicketMessage.php # Messages du fil de conversation
+│   │   └── AuditLog.php             # Audit trail immuable
+│   ├── Jobs/
+│   │   └── GenerateOrderZipJob.php
+│   ├── Policies/
+│   │   └── OrderPolicy.php          # Prévention IDOR — vérification propriété
+│   ├── Services/
+│   │   ├── PhotoDamageAnalyzer.php  # Analyse IA niveau dégradation
+│   │   ├── AuditService.php         # Écriture logs audit centralisée
+│   │   └── ZipGeneratorService.php
+│   └── Mail/
+│       └── OrderPaidConfirmation.php
+├── resources/views/livewire/pages/
+│   ├── client/
+│   │   ├── orders/
+│   │   │   ├── create.blade.php     # Wizard upload + analyse IA
+│   │   │   ├── index.blade.php      # Historique commandes
+│   │   │   └── show.blade.php       # Détail + aperçu filigranné + paiement
+│   │   ├── tickets/
+│   │   │   ├── create.blade.php     # Création ticket support
+│   │   │   ├── index.blade.php      # Liste tickets client
+│   │   │   └── show.blade.php       # Fil de conversation
+│   │   └── profile.blade.php
+│   └── admin/
+│       ├── dashboard.blade.php      # KPIs + file d'attente
+│       ├── orders/
+│       │   ├── index.blade.php      # Liste commandes filtrables
+│       │   └── show.blade.php       # Gestion commande + upload photos
+│       └── tickets/
+│           ├── index.blade.php      # Liste tous les tickets (badge non-lus)
+│           └── show.blade.php       # Fil conversation + réponse admin
+├── routes/
+│   ├── web.php
+│   ├── client.php                   # Routes espace client (auth + verified)
+│   ├── admin.php                    # Routes admin (middleware: admin)
+│   └── webhook.php                  # Stripe webhook (sans CSRF)
+├── config/
+│   ├── livewire.php                 # Upload max 100Mo, disk local, tiff support
+│   └── media-library.php            # Disk dynamique via MEDIA_DISK env
+└── storage/
+    ├── app/public/                  # Fichiers media accessibles (symlink → public/storage)
+    └── app/tmp-uploads/             # Buffer temporaire pour uploads admin/client
 ```
+
+---
+
+## 🎫 Module Support (Tickets)
+
+### Flux client
+
+1. Client crée un ticket depuis `/client/tickets/create`
+   - Sélection optionnelle d'une commande liée (pré-remplie via `?order_id=xxx`)
+   - Priorité : Faible / Normale / Élevée / Urgent
+2. Client suit le fil de conversation sur `/client/tickets/{ticket}`
+3. Client peut clore son ticket (avec modal de confirmation)
+
+### Flux admin
+
+1. Admin voit tous les tickets sur `/admin/tickets` avec :
+   - Filtres par statut (Ouvert / En attente / Fermé)
+   - Badge or indiquant le nombre de tickets avec messages non lus
+2. Admin répond sur `/admin/tickets/{ticket}` :
+   - Passage automatique en `pending` à l'ouverture (pris connaissance)
+   - Passage en `open` quand le client répond (notifie l'admin)
+   - Actions : Répondre / Fermer / Rouvrir
+3. Sidebar : infos client + lien vers la commande liée
+
+### Statuts tickets
+
+| Statut | Déclencheur | Signification |
+|--------|-------------|---------------|
+| `open` | Création ou réponse client | En attente de réponse admin |
+| `pending` | Admin ouvre / répond | En attente de réponse client |
+| `closed` | Admin ou client clôture | Résolu |
+
+---
+
+## ⚙️ Configuration upload
+
+### Limites configurées
+
+| Niveau | Paramètre | Valeur |
+|--------|-----------|--------|
+| PHP `php.ini` | `upload_max_filesize` | **100 Mo** |
+| PHP `php.ini` | `post_max_size` | **120 Mo** |
+| Livewire | `temporary_file_upload.rules` | **`max:102400`** (100 Mo) |
+| Validation Laravel | `photos.*` / `restoredPhotos.*` | `max:51200` (50 Mo) |
+
+### Disks configurés
+
+| Usage | Disk | Chemin |
+|-------|------|--------|
+| Photos originales (client) | `public` | `storage/app/public/{id}/` |
+| Photos restaurées (admin) | `public` | `storage/app/public/{id}/` |
+| Temporaire upload Livewire | `local` | `storage/app/livewire-tmp/` |
+| Buffer stable pre-Spatie | `local` | `storage/app/tmp-uploads/` |
+
+> **En production** : changer `MEDIA_DISK=s3` dans `.env` et configurer `AWS_*` / Scaleway Object Storage.
+
+### Fix race condition Livewire + Spatie
+
+Les fichiers temporaires Livewire sont supprimés après chaque cycle de rendu. Pour éviter ce problème :
+
+```php
+// ❌ FAIL — le fichier est supprimé avant que Spatie le lise
+$order->addMedia($photo->getRealPath())->toMediaCollection('originals');
+
+// ✅ FIX — copie stable avant d'appeler Spatie
+$destPath = storage_path('app/tmp-uploads/') . uniqid() . '.jpg';
+copy($photo->getRealPath(), $destPath);
+$order->addMedia($destPath)->preservingOriginal()->toMediaCollection('originals');
+@unlink($destPath);
+```
+
+---
+
+## 🔐 Sécurité & RGPD
+
+### Couverture OWASP Top 10
+
+| Vecteur | Contre-mesure Laravel |
+|---|---|
+| Injection SQL | Eloquent ORM + Query Builder — pas de SQL brut |
+| XSS | Blade `{{ }}` auto-échappe toutes les sorties |
+| CSRF | Token CSRF sur tous les formulaires POST |
+| Upload malveillant | Validation MIME + extension + taille, stockage non-exécutable |
+| IDOR | `OrderPolicy` — vérification propriété systématique |
+| Secrets exposés | `.env` dans `.gitignore`, rotation régulière |
+| Rate Limiting | `throttle:60,1` sur routes auth, `throttle:10,1` sur uploads |
+
+### Conformité RGPD
+
+| Obligation | Implémentation technique |
+|---|---|
+| Consentement explicite | Checkbox obligatoire à l'inscription → `users.rgpd_consent_at` |
+| Droit d'accès | Export JSON de toutes les données via profil |
+| Droit à l'effacement | Soft delete + anonymisation + suppression fichiers via job planifié |
+| Portabilité | Export ZIP : données + métadonnées JSON |
+| Durée de conservation | Commandes : 5 ans (comptabilité). Photos : auto-supprimées 6 mois après livraison |
+| Sécurité | HTTPS, AES-256 au repos, IAM moindre privilège |
 
 ---
 
 ## 🌿 Git Workflow
 
-This project follows a strict Git branching strategy:
-
 ```
-main              ← Production-ready (merges only via PR from test)
-test              ← Default/integration branch (GitHub default)
-  └── feature/*  ← Feature development branches
-  └── fix/*      ← Bug fix branches
-  └── docs/*     ← Documentation branches
-  └── chore/*    ← Tooling, config, dependencies
+main              ← Production-ready (merges via PR depuis test uniquement)
+test              ← Branche par défaut / intégration (GitHub default)
+  └── feature/*  ← Développement de fonctionnalités
+  └── fix/*      ← Corrections de bugs
+  └── docs/*     ← Documentation
+  └── chore/*    ← Outils, config, dépendances
 ```
 
-### Commit Convention (Conventional Commits)
+### Convention de commits (Conventional Commits)
 
 ```bash
-git commit -m "feat(orders): add status machine with state transitions" \
-           -m "- Implement OrderStatus enum with PENDING/IN_PROGRESS/DONE/CANCELLED" \
-           -m "- Add state transition validation in Order model" \
-           -m "- Dispatch OrderStatusChanged event on each transition"
+git commit -m "feat(tickets): interface admin tickets support" \
+           -m "- Liste paginée avec filtres statut et badge non-lus" \
+           -m "- Fil de conversation avec réponse, fermeture, réouverture" \
+           -m "- Passage automatique pending/open selon l'auteur du dernier message"
 ```
 
-**Types**: `feat` | `fix` | `docs` | `chore` | `test` | `refactor` | `ci` | `style` | `perf`
+**Types** : `feat` | `fix` | `docs` | `chore` | `test` | `refactor` | `ci` | `style` | `perf`
 
-### Version Tags
+### Tags de version
 
 | Tag | Description |
 |-----|-------------|
-| `v0.1.0` | Laravel scaffold + Auth (Breeze TALL) |
-| `v0.2.0` | Database migrations + Models + Policies |
-| `v0.3.0` | Client module (Livewire components) |
-| `v0.4.0` | Admin back office (Livewire components) |
-| `v0.5.0` | Stripe payment + ZIP delivery job |
-| `v1.0.0` | **MVP — PR test → main** |
-
----
-
-## 📁 Project Structure
-
-```
-omnyrestore/
-├── app/
-│   ├── Http/
-│   │   ├── Controllers/
-│   │   │   ├── Client/              # Client-facing controllers
-│   │   │   │   ├── OrderController.php
-│   │   │   │   └── OrderDownloadController.php
-│   │   │   ├── Admin/               # Admin back-office controllers
-│   │   │   │   ├── OrderController.php
-│   │   │   │   └── DashboardController.php
-│   │   │   └── Webhook/             # External webhook handlers
-│   │   │       └── StripeWebhookController.php
-│   │   └── Middleware/
-│   │       └── EnsureIsAdmin.php    # Role-based access control
-│   ├── Livewire/
-│   │   ├── Client/                  # Client-facing Livewire components
-│   │   │   ├── OrderCreateForm.php  # Multi-file upload wizard
-│   │   │   ├── OrderList.php        # Order history with real-time status
-│   │   │   ├── OrderDetail.php      # Order detail + watermarked preview
-│   │   │   └── ProfileSettings.php  # GDPR: data export + account deletion
-│   │   └── Admin/                   # Admin back-office Livewire components
-│   │       ├── AdminDashboard.php   # KPIs + pending order queue
-│   │       ├── AdminOrderList.php   # Order list with filters + CSV export
-│   │       ├── AdminOrderManage.php # Order management + status change
-│   │       └── AdminPhotoUpload.php # Bulk upload of AI-restored photos
-│   ├── Models/
-│   │   ├── User.php                 # Billable trait, GDPR fields, soft delete
-│   │   ├── Order.php                # State machine, relations, scopes
-│   │   ├── OrderDelivery.php        # ZIP signed URL management
-│   │   └── AuditLog.php             # Immutable audit trail
-│   ├── Jobs/
-│   │   ├── GenerateOrderZipJob.php       # Async ZIP creation from S3 media
-│   │   ├── GenerateSignedDownloadUrlJob.php # Pre-signed S3 URL (TTL 48h)
-│   │   └── CleanupExpiredMediaJob.php    # GDPR: auto-delete after 6 months
-│   ├── Policies/
-│   │   ├── OrderPolicy.php          # IDOR prevention — ownership check
-│   │   └── FilePolicy.php           # ZIP access — payment verified
-│   ├── Services/
-│   │   ├── ZipGeneratorService.php  # ZipArchive wrapper
-│   │   ├── SignedUrlService.php     # S3 presigned URL factory
-│   │   └── AuditService.php         # Centralized audit log writer
-│   └── Notifications/
-│       ├── OrderCreatedAdmin.php
-│       ├── OrderStatusChanged.php
-│       └── OrderReadyForPayment.php
-├── database/migrations/
-├── docs/
-│   ├── architecture.mdx             # Full technical documentation with diagrams
-│   └── api-flows.mdx                # Sequence diagrams for all business flows
-├── .github/
-│   ├── PULL_REQUEST_TEMPLATE.md
-│   └── ISSUE_TEMPLATE/
-│       ├── bug_report.md
-│       └── feature_request.md
-└── routes/
-    ├── web.php
-    ├── client.php                   # Client-space routes (auth + verified)
-    ├── admin.php                    # Admin routes (role:admin middleware)
-    └── webhook.php                  # Stripe webhook (no CSRF)
-```
-
----
-
-## 🔐 Security & GDPR
-
-### OWASP Top 10 Coverage
-
-| Vector | Laravel Countermeasure |
-|---|---|
-| SQL Injection | Eloquent ORM + Query Builder — no raw SQL |
-| XSS | Blade `{{ }}` auto-escapes all output |
-| CSRF | CSRF token on all POST forms |
-| Malicious Upload | MIME type + extension + size validation, S3 non-executable storage |
-| IDOR | `OrderPolicy` — systematic ownership check on every request |
-| Exposed Secrets | `.env` in `.gitignore`, regular key rotation |
-| Rate Limiting | `throttle:60,1` on auth routes, `throttle:10,1` on uploads |
-
-### GDPR Compliance
-
-| Obligation | Technical Implementation |
-|---|---|
-| Explicit consent | Mandatory checkbox on registration → `users.rgpd_consent_at` |
-| Right to access | JSON export of all user data via `ProfileSettings` |
-| Right to erasure | Soft delete + field anonymization + S3 deletion via scheduled job |
-| Data portability | ZIP export: data + JSON metadata |
-| Retention period | Orders: 5 years (accounting). Photos: auto-deleted 6 months after delivery |
-| Security | HTTPS, S3 AES-256 at-rest, IAM least-privilege |
+| `v0.1.0` | Scaffold Laravel + Auth (Breeze TALL) |
+| `v0.2.0` | Migrations PostgreSQL + Models + Policies |
+| `v0.3.0` | Module client (commandes, suivi, téléchargement) |
+| `v0.4.0` | Back office admin (gestion commandes, upload photos) |
+| `v0.4.1` | **Module tickets support + fixes upload + nav contextuelle** |
+| `v0.5.0` | Stripe Cashier + livraison ZIP async |
+| `v1.0.0` | **MVP — Prêt pour production** |
+| `v1.1.0` | Système d'aperçu filigranné automatique (Intervention Image) |
+| `v1.2.0` | Intégration API OpenAI (restauration auto) |
+| `v2.0.0` | Multi-prestataires + messagerie avancée |
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] `v0.0.1` — Architectural documentation
-- [ ] `v0.1.0` — Laravel scaffold + Breeze TALL auth
-- [ ] `v0.2.0` — PostgreSQL migrations + Eloquent models
-- [ ] `v0.3.0` — Client module (order submission, tracking, download)
-- [ ] `v0.4.0` — Admin back office (order management, photo upload)
-- [ ] `v0.5.0` — Stripe Cashier + async ZIP delivery
-- [ ] `v1.0.0` — **MVP — Production ready**
-- [ ] `v1.1.0` — Watermarked preview system
-- [ ] `v1.2.0` — OpenAI API integration (auto-restoration)
-- [ ] `v2.0.0` — Multi-provider support + messaging
+- [x] `v0.0.1` — Documentation architecturale
+- [x] `v0.1.0` — Scaffold Laravel + Breeze TALL auth
+- [x] `v0.2.0` — Migrations PostgreSQL + Models Eloquent
+- [x] `v0.3.0` — Module client (soumission, suivi, aperçu)
+- [x] `v0.4.0` — Back office admin (gestion commandes, upload)
+- [x] `v0.4.1` — **Module tickets support + fixes critiques**
+  - [x] Interface admin tickets (liste + conversation + réponse)
+  - [x] Interface client tickets (création + fil + clôture)
+  - [x] Fix race condition Livewire + Spatie MediaLibrary (uploads)
+  - [x] Fix APP_URL port + symlink storage Windows Junction
+  - [x] Limites upload PHP/Livewire portées à 100 Mo
+  - [x] Modal de confirmation custom Alpine.js (remplace `wire:confirm`)
+  - [x] Navigation contextuelle admin/client avec badge rôle
+  - [x] Aperçu photos restaurées côté client (collection retouched + watermark CSS)
+- [ ] `v0.5.0` — Stripe Cashier + livraison ZIP async
+- [ ] `v1.0.0` — **MVP — Prêt pour production**
+- [ ] `v1.1.0` — Aperçu filigranné automatique (Intervention Image / GD)
+- [ ] `v1.2.0` — Intégration API OpenAI (restauration automatique)
+- [ ] `v2.0.0` — Multi-prestataires + messagerie avancée
 
 ---
 
-## 👤 Author
+## 👤 Auteur
 
-**Alain Guillon** — OmnyVia  
-📧 [contact@omnyvia.fr](mailto:contact@omnyvia.fr)  
+**Alain Guillon** — OmnyVia
+📧 [contact@omnyvia.fr](mailto:contact@omnyvia.fr)
 🐙 [@zyrass](https://github.com/zyrass)
 
 ---
 
 <div align="center">
 
-*Built with ❤️ by OmnyVia — Restoring memories, one pixel at a time.*
+*Construit avec ❤️ par OmnyVia — Restaurer les souvenirs, un pixel à la fois.*
 
 </div>
