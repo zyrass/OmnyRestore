@@ -16,6 +16,7 @@
     <p class="!mb-1"><strong>Raison sociale :</strong> OmnyVia</p>
     <p class="!mb-1"><strong>Service :</strong> OmnyRestore</p>
     <p class="!mb-1"><strong>Statut :</strong> Auto-entrepreneur / Entrepreneur individuel</p>
+    <p class="!mb-1"><strong>Adresse :</strong> Disponible sur demande écrite à <a href="mailto:contact@omnyrestore.fr">contact@omnyrestore.fr</a> <em class="text-xs">(domiciliation commerciale en cours)</em></p>
     <p class="!mb-1"><strong>Email de contact :</strong> <a href="mailto:contact@omnyrestore.fr">contact@omnyrestore.fr</a></p>
     <p class="!mb-0"><strong>Site web :</strong> <a href="https://omnyrestore.fr">https://omnyrestore.fr</a></p>
 </div>
