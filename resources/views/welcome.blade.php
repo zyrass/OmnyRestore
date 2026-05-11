@@ -86,8 +86,17 @@
             <span class="text-[#F5F0E8]">qu'après avoir vu l'aperçu.</span>
         </p>
 
-        {{-- CTA buttons --}}
+        {{-- CTA buttons — auth-aware --}}
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+            @auth
+            <a href="{{ route('client.orders.create') }}" class="btn-gold glow-gold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Déposer mes photos
+            </a>
+            <a href="{{ route('client.orders.index') }}" class="btn-outline">
+                Mes commandes
+            </a>
+            @else
             <a href="{{ route('register') }}" class="btn-gold glow-gold">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 Déposer mes photos
@@ -95,6 +104,7 @@
             <a href="#how" class="btn-outline">
                 Voir comment ça marche
             </a>
+            @endauth
         </div>
 
         {{-- Trust indicators --}}
@@ -235,8 +245,12 @@
                 </li>
                 @endforeach
             </ul>
+            @auth
+            <a href="{{ route('client.orders.create') }}" class="{{ ($plan['featured'] ?? false) ? 'btn-gold w-full justify-center' : 'btn-outline w-full justify-center' }}">
+            @else
             <a href="{{ route('register') }}" class="{{ ($plan['featured'] ?? false) ? 'btn-gold w-full justify-center' : 'btn-outline w-full justify-center' }}">
-                Commencer
+            @endauth
+                @auth Nouvelle commande @else Commencer @endauth
             </a>
         </div>
         @endforeach
@@ -250,10 +264,17 @@
         <h2 class="text-4xl md:text-5xl font-bold text-[#F5F0E8] mb-6">
             Prêt à redonner vie<br>à vos souvenirs ?
         </h2>
+        @auth
+        <p class="text-[#7A6E5E] mb-10">Déposez vos prochaines photos directement depuis votre espace client.</p>
+        <a href="{{ route('client.orders.create') }}" class="btn-gold glow-gold text-base px-12 py-5">
+            Nouvelle commande
+        </a>
+        @else
         <p class="text-[#7A6E5E] mb-10">Créez votre compte gratuitement. Pas d'abonnement, pas d'engagement.</p>
         <a href="{{ route('register') }}" class="btn-gold glow-gold text-base px-12 py-5">
             Commencer — c'est gratuit
         </a>
+        @endauth
     </div>
 </section>
 

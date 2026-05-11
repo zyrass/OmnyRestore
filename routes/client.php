@@ -53,6 +53,19 @@ Route::middleware(['auth', 'verified'])->prefix('client')->name('client.')->grou
     \Livewire\Volt\Volt::route('/profile', 'pages.client.profile')
         ->name('profile');
 
+    // ─── Support Tickets ──────────────────────────────────────────────────
+    // GET  /client/tickets         → Liste des tickets
+    \Livewire\Volt\Volt::route('/tickets', 'pages.client.tickets.index')
+        ->name('tickets.index');
+
+    // GET  /client/tickets/create  → Nouveau ticket (avec sélection commande)
+    \Livewire\Volt\Volt::route('/tickets/create', 'pages.client.tickets.create')
+        ->name('tickets.create');
+
+    // GET  /client/tickets/{ticket} → Fil de conversation
+    \Livewire\Volt\Volt::route('/tickets/{ticket}', 'pages.client.tickets.show')
+        ->name('tickets.show');
+
 });
 
 

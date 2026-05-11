@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Jobs\GenerateOrderZipJob;
 use App\Mail\OrderPaidConfirmation;
 use App\Mail\OrderReadyForPayment;
 use App\Models\Order;
@@ -51,9 +52,11 @@ class OrderObserver
             'DONE' => Mail::to($userEmail, $userName)
                           ->queue(new OrderReadyForPayment($order)),
 
-            // Stripe a confirmé le paiement → envoyer le lien de téléchargement
-            'PAID' => Mail::to($userEmail, $userName)
-                          ->queue(new OrderPaidConfirmation($order)),
+            // Stripe a confirmé le paiement → email + génération ZIP
+            'PAID' => function () use ($order, $userEmail, $userName) {
+                Mail::to($userEmail, $userName)->queue(new OrderPaidConfirmation($order));
+                GenerateOrderZipJob::dispatch($order)->onQueue('default');
+            },
 
             // Pas d'email pour les autres transitions
             default => null,
