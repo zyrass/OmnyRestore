@@ -3,10 +3,11 @@
 namespace App\Services;
 
 use App\Models\Order;
+use GuzzleHttp\Client as GuzzleClient;
 use Illuminate\Support\Facades\Log;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
-use OpenAI\Laravel\Facades\OpenAI;
+use OpenAI\Client as OpenAIClient;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -69,6 +70,28 @@ PROMPT;
     private const TARGET_HEIGHT = 4320;
 
     /**
+     * Crée un client OpenAI avec un Guzzle configuré pour SSL (fix Windows cURL error 60).
+     *
+     * La façade OpenAI est contournée car le service provider du package
+     * re-register son binding APRÈS AppServiceProvider et ignore notre override.
+     * On construit le client directement avec le cacert.pem local.
+     */
+    private function getClient(): OpenAIClient
+    {
+        $caCert  = storage_path('cacert.pem');
+        $guzzle  = new GuzzleClient([
+            'verify'  => file_exists($caCert) ? $caCert : true,
+            'timeout' => (int) config('openai.request_timeout', 120),
+        ]);
+
+        return \OpenAI::factory()
+            ->withApiKey(config('openai.api_key'))
+            ->withOrganization(config('openai.organization'))
+            ->withHttpClient($guzzle)
+            ->make();
+    }
+
+    /**
      * Restaure une photo via GPT-4o + DALL-E 3 + upscale 8K.
      *
      * @param Media $media L'objet média Spatie (photo originale)
@@ -121,7 +144,7 @@ PROMPT;
         $base64       = base64_encode($imageContent);
         $mimeType     = $media->mime_type ?: 'image/jpeg';
 
-        $response = OpenAI::chat()->create([
+        $response = $this->getClient()->chat()->create([
             'model'     => 'gpt-4o',
             'max_tokens' => 1000,
             'messages'  => [
@@ -208,7 +231,7 @@ PROMPT;
      */
     private function generateWithDalle3(string $prompt): string
     {
-        $response = OpenAI::images()->create([
+        $response = $this->getClient()->images()->create([
             'model'           => 'dall-e-3',
             'prompt'          => $prompt,
             'n'               => 1,
