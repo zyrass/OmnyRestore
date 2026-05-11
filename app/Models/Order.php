@@ -108,7 +108,12 @@ class Order extends Model implements HasMedia
         'amount_ttc',
         'status',
         'payment_status',
+        'payment_intent_id',
         'admin_notes',
+        'paid_at',
+        'delivered_at',
+        'zip_path',
+        'zip_expires_at',
     ];
 
     /**
@@ -125,6 +130,7 @@ class Order extends Model implements HasMedia
             'total_price_cents' => 'integer',
             'paid_at'           => 'datetime',
             'delivered_at'      => 'datetime',
+            'zip_expires_at'    => 'datetime',
             'photo_count'       => 'integer',
         ];
     }
