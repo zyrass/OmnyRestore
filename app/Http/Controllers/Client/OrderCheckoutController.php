@@ -30,7 +30,8 @@ class OrderCheckoutController extends Controller
     public function checkout(Request $request, Order $order): RedirectResponse
     {
         // Protection IDOR : seul le propriétaire peut payer
-        $this->authorize('view', $order);
+        abort_if($order->user_id !== $request->user()->id, 403, 'Accès non autorisé.');
+
 
         // Seules les commandes DONE peuvent être payées
         if ($order->status !== 'DONE') {

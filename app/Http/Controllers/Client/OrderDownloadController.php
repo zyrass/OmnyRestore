@@ -48,24 +48,27 @@ class OrderDownloadController extends Controller
      */
     public function download(Request $request, Order $order): RedirectResponse
     {
-        // Gate check: throws 403 if user doesn't own the order or hasn't paid
-        // This calls OrderPolicy::download($user, $order)
-        $this->authorize('download', $order);
+        // 1. Vérification ownership (IDOR prevention)
+        abort_if($order->user_id !== $request->user()->id, 403, 'Accès non autorisé.');
 
+        // 2. Vérification paiement — seules les commandes payées permettent le téléchargement
+        abort_if($order->payment_status !== 'paid', 403, 'Cette commande n\'a pas encore été payée.');
+
+        // 3. Vérification existence du ZIP
         $delivery = $order->delivery;
+        abort_if(! $delivery || ! $delivery->zip_path, 404, 'Archive non disponible — génération en cours.');
 
-        // Generate or refresh the presigned URL (cached for 48h, auto-renewed when expired)
+        // Générer ou rafraîchir l'URL signée (cache 48h, auto-renouvellement)
         $downloadUrl = $this->signedUrlService->getOrGenerate($delivery);
 
-        // Record the download in the audit log (GDPR compliance)
+        // Log audit RGPD
         $this->auditService->downloadInitiated($order);
 
-        // Increment download counter and update last_downloaded_at
+        // Incrémenter le compteur de téléchargements
         $delivery->recordDownload();
 
-        // Redirect the client to the S3 presigned URL.
-        // The actual file download happens between the client and S3 — no Laravel proxy.
-        // This keeps our server load minimal even for large files.
+        // Redirection 302 vers l'URL signée
+        // Le fichier est servi directement par S3 (ou PHP en local) — pas de proxy Laravel
         return redirect()->away($downloadUrl);
     }
 }
