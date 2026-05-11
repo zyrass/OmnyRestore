@@ -1,25 +1,23 @@
 <?php
 /**
- * Client — Formulaire de création de commande
+ * Client — Formulaire de création de commande avec analyse IA
  * Route: GET /client/orders/create
- * Middleware: auth, verified
  *
- * Permet au client de soumettre ses photos pour restauration.
- * Les photos sont uploadées via Livewire (withFileUploads) vers le stockage temporaire,
- * puis déplacées vers S3 après validation.
- *
- * Flow:
- *   1. Client sélectionne 1-10 photos (JPEG, PNG, TIFF, max 20MB chacune)
- *   2. Client précise le type de dommage (détermine le tarif estimé)
- *   3. Client ajoute des instructions optionnelles
- *   4. Soumission → création Order (PENDING) + upload médias → redirection vers show
+ * Flow amélioré :
+ *   1. Client sélectionne 1-N photos (jusqu'à 10)
+ *   2. Après sélection → analyse IA automatique (GPT-4o Vision)
+ *   3. L'IA détermine le niveau de dommage et affiche son verdict + prix
+ *   4. Le client peut consulter le verdict mais PAS changer le prix
+ *      (évite la fraude : choisir "standard" pour une photo très abîmée)
+ *   5. Le client peut ajouter des instructions optionnelles
+ *   6. Soumission → création Order (PENDING) + upload médias
  */
 
 use App\Models\Order;
 use App\Services\AuditService;
+use App\Services\PhotoDamageAnalyzer;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
-use Livewire\Attributes\Validate;
 use Livewire\Volt\Component;
 use Livewire\WithFileUploads;
 
@@ -30,48 +28,90 @@ class extends Component
 {
     use WithFileUploads;
 
-    #[Validate(['photos.*' => 'required|file|mimes:jpg,jpeg,png,tiff,tif|max:20480'])]
     public array $photos = [];
 
-    #[Validate('required|in:light,heavy')]
+    /** Résultats d'analyse IA par index de photo */
+    public array $analysisResults = [];
+
+    /** true quand l'analyse est en cours */
+    public bool $analyzing = false;
+
+    /** true quand l'analyse est terminée */
+    public bool $analysisComplete = false;
+
+    /** Niveau de dommage global déterminé par l'IA (worst-case parmi toutes les photos) */
     public string $damage_level = 'light';
 
-    #[Validate('nullable|string|max:1000')]
+    /** Instructions optionnelles du client */
     public ?string $instructions = null;
 
     /**
-     * Soumet la commande.
-     * Crée l'enregistrement Order, attache les médias via Spatie Media Library,
-     * puis redirige vers la page de détail.
+     * Déclenché automatiquement quand les photos changent (wire:model.live).
+     * Lance l'analyse IA pour chaque photo uploadée.
+     */
+    public function updatedPhotos(): void
+    {
+        if (empty($this->photos)) {
+            $this->reset(['analysisResults', 'analyzing', 'analysisComplete', 'damage_level']);
+            return;
+        }
+
+        $this->analyzing       = true;
+        $this->analysisComplete = false;
+        $this->analysisResults  = [];
+
+        $analyzer = app(PhotoDamageAnalyzer::class);
+        $worstLevel = 'light';
+
+        foreach ($this->photos as $i => $photo) {
+            $result = $analyzer->analyze($photo);
+            $this->analysisResults[$i] = $result;
+
+            // Worst-case : si au moins une photo est "heavy", tout le lot est "heavy"
+            if ($result['level'] === 'heavy') {
+                $worstLevel = 'heavy';
+            }
+        }
+
+        $this->damage_level     = $worstLevel;
+        $this->analyzing        = false;
+        $this->analysisComplete = true;
+    }
+
+    /**
+     * Valide et soumet la commande.
      */
     public function submit(AuditService $audit): void
     {
-        $this->validate();
-
-        // Créer la commande
-        $order = Order::create([
-            'user_id'           => auth()->id(),
-            'status'            => 'PENDING',
-            'photo_count'       => count($this->photos),
-            'damage_level'      => $this->damage_level,
-            'instructions'      => $this->instructions,
-            // Prix estimé (definitif fixé par l'admin)
-            'base_price_cents'  => $this->damage_level === 'light'
-                ? count($this->photos) * 100   // 1€/photo
-                : count($this->photos) * 1000, // 10€/photo
+        $this->validate([
+            'photos'       => ['required', 'array', 'min:1', 'max:10'],
+            'photos.*'     => ['required', 'file', 'mimes:jpg,jpeg,png,tiff,tif', 'max:20480'],
+            'instructions' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        // Attacher les photos originales via Spatie Media Library
+        // Le damage_level est déterminé par l'IA — non modifiable par le client
+        $pricePerPhoto = PhotoDamageAnalyzer::PRICES[$this->damage_level];
+
+        $order = Order::create([
+            'user_id'          => auth()->id(),
+            'status'           => 'PENDING',
+            'photo_count'      => count($this->photos),
+            'damage_level'     => $this->damage_level,
+            'instructions'     => $this->instructions,
+            'base_price_cents' => count($this->photos) * $pricePerPhoto,
+        ]);
+
         foreach ($this->photos as $photo) {
             $order->addMedia($photo->getRealPath())
                   ->usingFileName($photo->getClientOriginalName())
+                  ->withCustomProperties([
+                      'ai_level'      => $this->analysisResults[array_key_first($this->analysisResults)]['level'] ?? 'unknown',
+                      'ai_confidence' => $this->analysisResults[array_key_first($this->analysisResults)]['confidence'] ?? 0,
+                  ])
                   ->toMediaCollection('originals');
         }
 
-        // Log d'audit
         $audit->orderCreated($order);
-
-        // Rediriger vers la page de détail
         $this->redirect(route('client.orders.show', $order), navigate: true);
     }
 }; ?>
@@ -84,7 +124,7 @@ class extends Component
         </a>
         <div>
             <h1 class="text-2xl font-bold text-[#F5F0E8]">Nouvelle commande</h1>
-            <p class="text-[#7A6E5E] text-sm mt-1">Déposez vos photos — vous verrez l'aperçu avant de payer</p>
+            <p class="text-[#7A6E5E] text-sm mt-1">Déposez vos photos — notre IA analyse automatiquement l'état avant de vous afficher le prix</p>
         </div>
     </div>
 
@@ -94,152 +134,184 @@ class extends Component
             {{-- ── Colonne principale ── --}}
             <div class="lg:col-span-2 space-y-6">
 
-                {{-- Upload zone --}}
+                {{-- Zone upload --}}
                 <div class="card-glass p-6">
-                    <h2 class="text-[#F5F0E8] font-semibold mb-1">Vos photos</h2>
+                    <h2 class="text-[#F5F0E8] font-semibold mb-1">Vos photos à restaurer</h2>
                     <p class="text-[#7A6E5E] text-xs mb-5">JPEG, PNG ou TIFF — 20 Mo max par photo — jusqu'à 10 photos</p>
 
-                    {{-- Zone de dépôt --}}
                     <label for="photos-input"
-                           class="block border-2 border-dashed border-[#C9A84C]/20 hover:border-[#C9A84C]/50
-                                  rounded-sm p-10 text-center cursor-pointer transition-all duration-300
-                                  hover:bg-[#C9A84C]/3"
+                           class="block border-2 border-dashed border-[#C9A84C]/20 hover:border-[#C9A84C]/50 rounded-sm p-10 text-center cursor-pointer transition-all duration-300 hover:bg-[#C9A84C]/3"
                            x-data="{ dragging: false }"
-                           @dragover.prevent="dragging = true"
-                           @dragleave="dragging = false"
-                           @drop.prevent="dragging = false"
+                           @dragover.prevent="dragging = true" @dragleave="dragging = false" @drop.prevent="dragging = false"
                            :class="dragging ? 'border-[#C9A84C]/70 bg-[#C9A84C]/5' : ''">
-
                         <svg class="w-12 h-12 text-[#C9A84C]/30 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
                         </svg>
                         <p class="text-[#F5F0E8] text-sm font-medium mb-1">Glissez vos photos ici</p>
                         <p class="text-[#7A6E5E] text-xs">ou <span class="text-[#C9A84C] underline">cliquez pour sélectionner</span></p>
-
-                        <input id="photos-input" type="file" wire:model="photos" multiple accept=".jpg,.jpeg,.png,.tiff,.tif" class="hidden">
+                        <input id="photos-input" type="file" wire:model.live="photos" multiple accept=".jpg,.jpeg,.png,.tiff,.tif" class="hidden">
                     </label>
 
-                    {{-- Erreurs upload --}}
                     @error('photos.*') <p class="text-red-400 text-xs mt-2">{{ $message }}</p> @enderror
 
-                    {{-- Aperçu des photos sélectionnées --}}
-                    @if (count($photos) > 0)
-                    <div class="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-3">
-                        @foreach ($photos as $i => $photo)
-                        <div class="relative group aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/15">
-                            <img src="{{ $photo->temporaryUrl() }}" alt="Photo {{ $i + 1 }}"
-                                 class="w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <span class="text-white text-xs">{{ round($photo->getSize() / 1024 / 1024, 1) }} Mo</span>
-                            </div>
-                        </div>
-                        @endforeach
-                    </div>
-                    <p class="text-[#C9A84C] text-xs mt-3">{{ count($photos) }} photo{{ count($photos) > 1 ? 's' : '' }} sélectionnée{{ count($photos) > 1 ? 's' : '' }}</p>
-                    @endif
-
-                    {{-- Loading indicator --}}
-                    <div wire:loading wire:target="photos" class="mt-3 flex items-center gap-2 text-[#7A6E5E] text-xs">
-                        <svg class="animate-spin w-4 h-4 text-[#C9A84C]" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                        </svg>
+                    {{-- Loading upload --}}
+                    <div wire:loading wire:target="photos" class="mt-4 flex items-center gap-2 text-[#7A6E5E] text-sm">
+                        <svg class="animate-spin w-4 h-4 text-[#C9A84C]" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                         Chargement des photos…
                     </div>
+
+                    {{-- Grille photos + résultats IA --}}
+                    @if (count($photos) > 0)
+                    <div class="mt-5 space-y-3">
+
+                        {{-- Banner analyse en cours --}}
+                        @if ($analyzing)
+                        <div class="flex items-center gap-3 bg-[#C9A84C]/10 border border-[#C9A84C]/25 rounded-sm px-4 py-3">
+                            <svg class="animate-spin w-4 h-4 text-[#C9A84C] shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            <div>
+                                <p class="text-[#C9A84C] text-sm font-medium">Analyse IA en cours…</p>
+                                <p class="text-[#7A6E5E] text-xs">Notre algorithme examine l'état de chaque photo pour définir le tarif exact</p>
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Grille des photos --}}
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                            @foreach ($photos as $i => $photo)
+                            <div class="relative group">
+                                {{-- Miniature --}}
+                                <div class="aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/15">
+                                    <img src="{{ $photo->temporaryUrl() }}" alt="Photo {{ $i + 1 }}" class="w-full h-full object-cover">
+                                </div>
+
+                                {{-- Badge résultat IA --}}
+                                @if (isset($analysisResults[$i]))
+                                @php $result = $analysisResults[$i]; @endphp
+                                <div class="mt-1.5 px-2 py-1 rounded-sm text-center
+                                    {{ $result['level'] === 'heavy'
+                                        ? 'bg-orange-950/60 border border-orange-500/30'
+                                        : 'bg-emerald-950/60 border border-emerald-500/30' }}">
+                                    <p class="text-xs font-semibold {{ $result['level'] === 'heavy' ? 'text-orange-400' : 'text-emerald-400' }}">
+                                        {{ $result['level'] === 'heavy' ? '⚠ Avancée · 10€' : '✓ Standard · 1€' }}
+                                    </p>
+                                    <p class="text-[10px] text-[#7A6E5E] mt-0.5 leading-tight">{{ $result['reason'] }}</p>
+                                    {{-- Barre de confiance --}}
+                                    <div class="mt-1 h-1 bg-[#1A1510] rounded-full overflow-hidden">
+                                        <div class="h-full rounded-full transition-all duration-500
+                                            {{ $result['level'] === 'heavy' ? 'bg-orange-400' : 'bg-emerald-400' }}"
+                                             style="width: {{ $result['confidence'] }}%">
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-[#7A6E5E] mt-0.5">Confiance : {{ $result['confidence'] }}%
+                                        @if(!$result['ai_used']) <span class="text-yellow-500">⚡ heuristique</span> @endif
+                                    </p>
+                                </div>
+                                @elseif ($analyzing)
+                                <div class="mt-1.5 px-2 py-1 bg-[#1A1510] rounded-sm border border-[#C9A84C]/15 text-center">
+                                    <svg class="animate-spin w-3 h-3 text-[#C9A84C] mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                </div>
+                                @endif
+                            </div>
+                            @endforeach
+                        </div>
+
+                        {{-- Verdict global IA --}}
+                        @if ($analysisComplete)
+                        <div class="flex items-start gap-3 p-4 rounded-sm border
+                            {{ $damage_level === 'heavy'
+                                ? 'bg-orange-950/30 border-orange-500/30'
+                                : 'bg-emerald-950/30 border-emerald-500/30' }}">
+                            @if ($damage_level === 'heavy')
+                            <svg class="w-5 h-5 text-orange-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            <div>
+                                <p class="text-orange-400 font-semibold text-sm">Restauration Avancée requise</p>
+                                <p class="text-[#7A6E5E] text-xs mt-0.5">L'IA a détecté des dommages importants sur au moins une photo. Le tarif appliqué sera de <strong class="text-orange-400">10€ / photo</strong>.</p>
+                            </div>
+                            @else
+                            <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <div>
+                                <p class="text-emerald-400 font-semibold text-sm">Restauration Standard applicable</p>
+                                <p class="text-[#7A6E5E] text-xs mt-0.5">L'IA a évalué vos photos comme étant dans un état modéré. Le tarif appliqué sera de <strong class="text-emerald-400">1€ / photo</strong>.</p>
+                            </div>
+                            @endif
+                        </div>
+
+                        {{-- Note transparence --}}
+                        <div class="flex items-start gap-2 text-[#7A6E5E] text-xs">
+                            <svg class="w-3.5 h-3.5 text-[#C9A84C] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Le tarif est défini automatiquement par analyse IA pour garantir l'équité. Notre équipe peut réviser le prix après examen manuel si vous contestez le verdict.</span>
+                        </div>
+                        @endif
+                    </div>
+                    @endif
                 </div>
 
                 {{-- Instructions optionnelles --}}
                 <div class="card-glass p-6">
                     <h2 class="text-[#F5F0E8] font-semibold mb-1">Instructions (optionnel)</h2>
-                    <p class="text-[#7A6E5E] text-xs mb-4">Précisez des détails importants : zones à préserver, personnes particulières, etc.</p>
-                    <textarea wire:model="instructions" id="instructions"
-                              rows="4"
-                              placeholder="Ex : Photo de mariage 1967. La robe de mariée doit être blanche. Préserver les visages à gauche..."
+                    <p class="text-[#7A6E5E] text-xs mb-4">Zones à préserver, contexte de la photo, personnes importantes…</p>
+                    <textarea wire:model="instructions" id="instructions" rows="4"
+                              placeholder="Ex : Photo de mariage 1967. La robe de mariée doit être blanche. Préserver les visages à gauche…"
                               class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-sm rounded-sm px-4 py-3
                                      placeholder-[#7A6E5E]/50 resize-none
-                                     focus:outline-none focus:border-[#C9A84C]/60 focus:ring-1 focus:ring-[#C9A84C]/30
-                                     transition-all duration-200">
+                                     focus:outline-none focus:border-[#C9A84C]/60 focus:ring-1 focus:ring-[#C9A84C]/30 transition-all duration-200">
                     </textarea>
                     <x-input-error :messages="$errors->get('instructions')" class="mt-1.5" />
-                    <p class="text-[#7A6E5E] text-xs mt-2 text-right" wire:ignore>
-                        <span x-text="(document.getElementById('instructions')?.value?.length ?? 0) + '/1000'">0/1000</span>
-                    </p>
                 </div>
-
             </div>
 
-            {{-- ── Colonne récap ── --}}
+            {{-- ── Sidebar récap ── --}}
             <div class="space-y-6">
 
-                {{-- Type de dommage --}}
-                <div class="card-glass p-6">
-                    <h2 class="text-[#F5F0E8] font-semibold mb-4">Type de dommage</h2>
-
-                    <div class="space-y-3">
-                        {{-- Standard --}}
-                        <label class="flex items-start gap-3 p-4 rounded-sm border cursor-pointer transition-all
-                                      {{ $damage_level === 'light' ? 'border-[#C9A84C]/50 bg-[#C9A84C]/8' : 'border-[#C9A84C]/15 hover:border-[#C9A84C]/30' }}">
-                            <input type="radio" wire:model.live="damage_level" value="light" class="mt-0.5 text-[#C9A84C] border-[#C9A84C]/40 bg-[#0D0B08] focus:ring-[#C9A84C]/30 focus:ring-offset-[#0D0B08]">
-                            <div class="flex-1">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[#F5F0E8] text-sm font-medium">Restauration Standard</span>
-                                    <span class="text-[#C9A84C] text-sm font-bold">1 € / photo</span>
-                                </div>
-                                <p class="text-[#7A6E5E] text-xs mt-1">Jaunissement, poussière, légères rayures — état correct</p>
-                            </div>
-                        </label>
-
-                        {{-- Avancée --}}
-                        <label class="flex items-start gap-3 p-4 rounded-sm border cursor-pointer transition-all
-                                      {{ $damage_level === 'heavy' ? 'border-[#C9A84C]/50 bg-[#C9A84C]/8' : 'border-[#C9A84C]/15 hover:border-[#C9A84C]/30' }}">
-                            <input type="radio" wire:model.live="damage_level" value="heavy" class="mt-0.5 text-[#C9A84C] border-[#C9A84C]/40 bg-[#0D0B08] focus:ring-[#C9A84C]/30 focus:ring-offset-[#0D0B08]">
-                            <div class="flex-1">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[#F5F0E8] text-sm font-medium">Restauration Avancée</span>
-                                    <span class="text-[#C9A84C] text-sm font-bold">10 € / photo</span>
-                                </div>
-                                <p class="text-[#7A6E5E] text-xs mt-1">Déchirures, dommages eau, pliures — très endommagée</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                {{-- Récapitulatif --}}
+                {{-- Récapitulatif IA --}}
                 <div class="card-glass p-6">
                     <h2 class="text-[#F5F0E8] font-semibold mb-4">Récapitulatif</h2>
-
                     <div class="space-y-3 text-sm">
                         <div class="flex justify-between">
                             <span class="text-[#7A6E5E]">Photos</span>
-                            <span class="text-[#F5F0E8]">{{ count($photos) }}</span>
+                            <span class="text-[#F5F0E8]">{{ count($photos) > 0 ? count($photos) : '—' }}</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-[#7A6E5E]">Type</span>
-                            <span class="text-[#F5F0E8]">{{ $damage_level === 'light' ? 'Standard' : 'Avancée' }}</span>
+                        <div class="flex justify-between items-start">
+                            <span class="text-[#7A6E5E]">Tarif/photo</span>
+                            <span class="text-right">
+                                @if ($analysisComplete)
+                                    <span class="{{ $damage_level === 'heavy' ? 'text-orange-400' : 'text-emerald-400' }} font-semibold">
+                                        {{ $damage_level === 'heavy' ? '10,00 €' : '1,00 €' }}
+                                    </span><br>
+                                    <span class="text-[10px] text-[#7A6E5E]">défini par IA</span>
+                                @elseif ($analyzing)
+                                    <svg class="animate-spin w-3.5 h-3.5 text-[#C9A84C] inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                @else
+                                    <span class="text-[#7A6E5E] text-xs">après analyse</span>
+                                @endif
+                            </span>
                         </div>
                         <div class="border-t border-[#C9A84C]/10 pt-3 flex justify-between">
-                            <span class="text-[#7A6E5E]">Estimation HT</span>
-                            <span class="text-[#C9A84C] font-bold">
-                                {{ count($photos) > 0
-                                    ? number_format(count($photos) * ($damage_level === 'light' ? 1 : 10), 0, ',', '') . ' €'
-                                    : '—' }}
+                            <span class="text-[#7A6E5E]">Total estimé</span>
+                            <span class="text-[#C9A84C] font-bold text-lg">
+                                @if ($analysisComplete && count($photos) > 0)
+                                    {{ number_format(count($photos) * ($damage_level === 'heavy' ? 10 : 1), 0, ',', '') }} €
+                                @else
+                                    —
+                                @endif
                             </span>
                         </div>
                     </div>
 
-                    <div class="mt-4 bg-[#C9A84C]/8 border border-[#C9A84C]/20 rounded-sm p-3">
+                    <div class="mt-5 bg-[#C9A84C]/8 border border-[#C9A84C]/20 rounded-sm p-3">
                         <p class="text-[#C9A84C] text-xs leading-relaxed">
                             <strong>Aperçu d'abord, paiement ensuite.</strong><br>
-                            Vous ne serez débité qu'après avoir validé l'aperçu.
+                            Vous validez le résultat avant d'être débité.
                         </p>
                     </div>
                 </div>
 
-                {{-- Bouton de soumission --}}
+                {{-- Bouton submit --}}
                 <button type="submit"
                         wire:loading.attr="disabled"
-                        class="btn-gold w-full justify-center {{ count($photos) === 0 ? 'opacity-50 cursor-not-allowed' : '' }}"
-                        {{ count($photos) === 0 ? 'disabled' : '' }}>
+                        {{ (count($photos) === 0 || !$analysisComplete || $analyzing) ? 'disabled' : '' }}
+                        class="btn-gold w-full justify-center
+                               {{ (count($photos) === 0 || !$analysisComplete || $analyzing) ? 'opacity-40 cursor-not-allowed' : '' }}">
                     <span wire:loading.remove wire:target="submit">
                         <svg class="w-4 h-4 inline -mt-0.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                         Envoyer pour restauration
@@ -249,6 +321,10 @@ class extends Component
                         Envoi en cours…
                     </span>
                 </button>
+
+                @if (count($photos) > 0 && !$analysisComplete && !$analyzing)
+                <p class="text-[#7A6E5E] text-xs text-center">⏳ En attente de l'analyse IA pour activer le bouton</p>
+                @endif
 
             </div>
         </div>

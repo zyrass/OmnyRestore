@@ -73,7 +73,7 @@
             <td><strong>Lot de photos</strong></td>
             <td>Sur devis</td>
             <td>Sur devis</td>
-            <td>À partir de 5 photos — tarif dégressif</td>
+            <td>À partir de 50 photos — tarif dégressif</td>
         </tr>
     </tbody>
 </table>
