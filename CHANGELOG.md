@@ -1,32 +1,140 @@
 # Changelog
 
-All notable changes to **OmnyRestore** will be documented in this file.
+Tous les changements notables d'**OmnyRestore** sont documentés ici.
 
-This project adheres to [Semantic Versioning](https://semver.org/) and
-[Keep a Changelog](https://keepachangelog.com/en/1.0.0/) conventions.
+Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventions [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
 ## [Unreleased]
 
-### Added
-- GitHub PR template and issue templates (bug, feature)
-- Professional README with architecture diagrams (Mermaid)
-- Technical documentation in `docs/architecture.mdx`
-- CHANGELOG.md following Keep a Changelog conventions
-- `.gitignore` tailored for Laravel + Node + IDE environments
+> Prochaines étapes : intégration Stripe Cashier, génération ZIP asynchrone, watermark automatique via Intervention Image.
+
+---
+
+## [0.4.1] — 2026-05-12
+
+### Ajouté
+- **Module tickets support côté admin** (`/admin/tickets`) :
+  - Liste paginée avec filtres par statut (Ouvert / En attente / Fermé)
+  - Badge or dans la nav indiquant le nombre de tickets non lus (nouveaux messages clients)
+  - Vue conversation (`/admin/tickets/{ticket}`) : fil chronologique, réponse, fermer / rouvrir
+  - Passage automatique `open → pending` à l'ouverture par l'admin, `pending → open` à la réponse client
+  - Sidebar : infos client + lien vers commande liée
+- **Module tickets support côté client** (`/client/tickets`) :
+  - Formulaire de création avec pré-sélection de commande via `?order_id=xxx`
+  - Fil de conversation avec métadonnées (date, auteur, équipe OmnyRestore)
+  - Action clore / rouvrir ticket
+- **Routes admin tickets** : `GET /admin/tickets` + `GET /admin/tickets/{ticket}`
+- **Navigation contextuelle** selon le rôle :
+  - Admin : Dashboard / Commandes / Tickets (avec badge non-lus)
+  - Client : Mes commandes / + Nouvelle commande / Support
+- **Badge rôle Admin** dans la barre de navigation : badge `[Admin]` en or + avatar avec bordure 2px pleine
+- **Modal de confirmation custom Alpine.js** (remplace `wire:confirm` navigateur) :
+  - `window.omnyConfirm({title, message, confirmLabel, danger})` → `Promise`
+  - `Alpine.store('confirmModal')` disponible globalement
+  - Design dark/gold cohérent avec le thème : backdrop blur, bandeau top, icône contextuelle
+  - Appliqué sur : admin tickets (Fermer/Rouvrir ×3) + client tickets (Clore)
+- **Commandes Artisan de diagnostic** :
+  - `php artisan debug:media` — vérifie URLs, paths, disk, symlink, fichiers présents
+  - `php artisan debug:users` — liste tous les utilisateurs avec leur rôle
+- **Barre de progression Livewire** en couleur or `#C9A84C` (cohérence thème)
+- **Support TIFF** dans les `preview_mimes` Livewire
+
+### Corrigé
+- **Race condition Livewire + Spatie MediaLibrary** sur les uploads client ET admin :
+  - Les fichiers tmp Livewire étaient supprimés avant que `addMedia()` puisse les lire
+  - Fix : copie explicite dans `storage/app/tmp-uploads/` avant `addMedia()`, nettoyage post-upload
+  - Appliqué sur : `client/orders/create.blade.php` + `admin/orders/show.blade.php`
+- **APP_URL port incorrect** : `http://127.0.0.1:8000` → `http://127.0.0.1:8001`
+  - Spatie générait des URLs pointant vers le mauvais port → images broken
+- **Aperçu photos restaurées côté client** : cherchait la collection `watermarked` (vide)
+  - Fix : fallback `watermarked → retouched` avec watermark CSS (gradient diagonal + texte overlay)
+- **Limites d'upload insuffisantes** — silençaient les échecs :
+  - PHP `upload_max_filesize` : 2 Mo → **100 Mo**
+  - PHP `post_max_size` : 8 Mo → **120 Mo**
+  - Livewire `temporary_file_upload.rules` : `max:12288` → **`max:102400`** (100 Mo)
+  - Livewire `disk` : `null` → `local` (explicite)
+- **Crash `MethodNotFoundException`** dans la liste admin : `wire:click="$navigate()"` n'existe pas en Livewire, remplacé par `onclick="window.location='...'"` natif
+- **Erreur PostgreSQL** `HAVING "u" > 0` sur alias de sous-requête (badge tickets nav) : remplacé par `whereHas()` (génère un `WHERE EXISTS`)
+- **Navigation admin `$navigate`** : remplacé par `onclick` JavaScript natif (Livewire ne supporte pas `$navigate` dans `wire:click`)
+- **Disk Spatie hardcodé `s3`** → lecture dynamique via `config('media-library.disk_name')` et `MEDIA_DISK=public` dans `.env`
+- **`analysisResults[array_key_first()]`** utilisé pour toutes les photos → chaque photo utilise maintenant son propre index `$i`
+
+### Modifié
+- `config/livewire.php` : publié et configuré (limites upload, disk local, max_upload_time 10 min, tiff support)
+- `resources/views/layouts/app.blade.php` : navigation contextuelle admin/client + modal confirmation global + badge rôle
+
+---
+
+## [0.4.0] — 2026-05-11
+
+### Ajouté
+- **Back office admin** complet :
+  - Dashboard KPIs (commandes PENDING / IN_PROGRESS / DONE, chiffre du mois)
+  - Liste commandes avec filtres statut et pagination
+  - Vue détail commande : photos originales, upload retouchées, notes internes, prix, historique audit
+  - Prise en charge (PENDING → IN_PROGRESS) avec notification email client
+- **Module media** via Spatie MediaLibrary :
+  - Collections `originals` (photos client) et `retouched` (photos admin restaurées)
+  - Configuration disk via `MEDIA_DISK` env
+- **Middleware `EnsureIsAdmin`** pour les routes `/admin/*`
+- **Audit trail** : événements `ORDER_CREATED`, `ORDER_STATUS_CHANGED` loggués
+- **Notifications email** : prise en charge commande (client), confirmation paiement
+
+---
+
+## [0.3.0] — 2026-05-11
+
+### Ajouté
+- **Module client** complet :
+  - Formulaire création commande avec analyse IA (GPT-4o Vision) et verdict prix
+  - Liste commandes avec statuts et badges
+  - Vue détail : état spinner (PENDING/IN_PROGRESS), aperçu filigranné (DONE), bouton paiement
+  - Profil client avec informations et gestion compte
+- **Analyse IA photos** via `PhotoDamageAnalyzer` : classification `light` / `heavy`, prix 1€ / 10€
+- **Routing client** : `client.orders.*`, `client.profile`, `client.tickets.*`
+- **Policy `OrderPolicy`** : prévention IDOR, vérification propriété sur chaque requête
+
+---
+
+## [0.2.0] — 2026-05-11
+
+### Ajouté
+- Migrations PostgreSQL : `users`, `orders`, `order_deliveries`, `audit_logs`, `media`, `support_tickets`, `support_ticket_messages`
+- Modèles Eloquent avec relations, scopes, et commentaires PHPDoc
+- Seeders : utilisateurs de test (1 admin + 4 clients), commandes exemple
+- `SupportTicket` + `SupportTicketMessage` : structure tickets support
+
+---
+
+## [0.1.0] — 2026-05-11
+
+### Ajouté
+- Scaffold Laravel 12 avec Breeze TALL (Tailwind 4 / Alpine.js 3 / Livewire 3 / Volt)
+- Configuration PostgreSQL 16 + Redis
+- Layout `app.blade.php` dark theme (#0D0B08 / #C9A84C) avec Google Fonts Inter + Playfair Display
+- Landing page publique avec CTA, portfolio, tarifs, FAQ
+- Authentification complète : inscription (avec consentement RGPD), connexion, déconnexion, email vérifié
+- Structure routes : `web.php` (public) + `client.php` + `admin.php` + `webhook.php`
 
 ---
 
 ## [0.0.1] — 2026-05-11
 
-### Added
-- Initial architectural documentation (`omnyrestore_architecture.md`)
-- Git repository initialization and GitHub remote setup
-- Branch strategy: `main` (production) + `test` (default/integration)
+### Ajouté
+- Documentation architecturale initiale (`omnyrestore_architecture.md`)
+- Initialisation dépôt Git et remote GitHub
+- Stratégie branches : `main` (production) + `test` (intégration par défaut)
+- README.md professionnel avec badges, diagrammes Mermaid, instructions installation
 
 ---
 
-<!-- Links -->
-[Unreleased]: https://github.com/zyrass/OmnyRestore/compare/v0.0.1...HEAD
+<!-- Liens -->
+[Unreleased]: https://github.com/zyrass/OmnyRestore/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/zyrass/OmnyRestore/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/zyrass/OmnyRestore/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/zyrass/OmnyRestore/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/zyrass/OmnyRestore/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/zyrass/OmnyRestore/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/zyrass/OmnyRestore/releases/tag/v0.0.1
