@@ -25,44 +25,34 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth', 'verified'])->prefix('client')->name('client.')->group(function () {
 
     // ─── Orders ───────────────────────────────────────────────────────────
+    // Volt::route() active le cycle de vie complet du composant Livewire/Volt.
 
-    // List all orders for the authenticated client
     // GET /client/orders
-    Route::get('/orders', function () {
-        // Handled by Livewire component OrderList
-        return view('livewire.pages.client.orders.index');
-    })->name('orders.index');
+    \Livewire\Volt\Volt::route('/orders', 'pages.client.orders.index')
+        ->name('orders.index');
 
-    // Show the form to create a new order
     // GET /client/orders/create
-    Route::get('/orders/create', function () {
-        return view('livewire.pages.client.orders.create');
-    })->name('orders.create');
+    \Livewire\Volt\Volt::route('/orders/create', 'pages.client.orders.create')
+        ->name('orders.create');
 
-    // Show a specific order (detail + watermarked preview)
-    // GET /client/orders/{order}
-    Route::get('/orders/{order}', function () {
-        return view('livewire.pages.client.orders.show');
-    })->name('orders.show');
+    // GET /client/orders/{order} — Route Model Binding → Order::find($id)
+    \Livewire\Volt\Volt::route('/orders/{order}', 'pages.client.orders.show')
+        ->name('orders.show');
 
-    // Initiate Stripe Checkout for an order
-    // POST /client/orders/{order}/checkout
+    // POST /client/orders/{order}/checkout → Stripe Checkout
     Route::post('/orders/{order}/checkout',
         \App\Http\Controllers\Client\OrderCheckoutController::class . '@checkout'
     )->name('orders.checkout');
 
-    // Secure download: verify payment → generate presigned URL → redirect to S3
-    // GET /client/orders/{order}/download
+    // GET /client/orders/{order}/download → S3 presigned URL
     Route::get('/orders/{order}/download', [OrderDownloadController::class, 'download'])
          ->name('orders.download');
 
-    // ─── Profile / GDPR ───────────────────────────────────────────────────
-
-    // Profile settings (GDPR: data export, account deletion)
+    // ─── Profile / RGPD ───────────────────────────────────────────────────
     // GET /client/profile
-    Route::get('/profile', function () {
-        return view('profile');
-    })->name('profile');
+    \Livewire\Volt\Volt::route('/profile', 'pages.client.profile')
+        ->name('profile');
 
 });
+
 
