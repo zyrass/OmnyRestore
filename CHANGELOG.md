@@ -8,7 +8,48 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ## [Unreleased]
 
-> Prochaines étapes : intégration Stripe Cashier, génération ZIP asynchrone, watermark automatique via Intervention Image.
+> Prochaines étapes : watermark automatique (Intervention Image), intégration OpenAI auto, conformité RGPD complète.
+
+---
+
+## [0.5.0] — 2026-05-12
+
+### Ajouté
+- **Intégration Stripe Checkout** — flux de paiement complet :
+  - `OrderCheckoutController` : crée une Stripe Checkout Session avec métadonnées `order_id`
+  - Redirection vers la page Stripe hébergée (locale `fr`, mode `payment`)
+  - `success_url` → `/payment/success` + `cancel_url` → commande (annulation propre)
+  - Montant calculé depuis `order.total_price_cents` (TTC)
+- **Webhook Stripe** (`POST /webhook/stripe`) opérationnel :
+  - Vérification signature HMAC (`STRIPE_WEBHOOK_SECRET`) avant tout traitement
+  - `checkout.session.completed` → marque commande `PAID` + dispatch `GenerateOrderZipJob`
+  - `payment_intent.payment_failed` → log de l'échec pour suivi admin
+  - Idempotence : skip si la commande est déjà `PAID`
+  - Email `OrderPaidConfirmation` envoyé via queue au client après paiement
+- **`GenerateOrderZipJob`** (queue async, 3 retries, timeout 300s) :
+  - Collecte les fichiers de la collection `retouched` (Spatie)
+  - Crée un ZIP dans `storage/app/orders/zips/` avec README.txt lisible
+  - Met à jour `order.zip_path` et passe le statut à `DELIVERED`
+- **Téléchargement ZIP client** (`GET /client/orders/{order}/download`) :
+  - Vérifie ownership via `OrderPolicy::download`
+  - Vérifie `payment_status === 'paid'`
+  - Génère / rafraîchit URL signée (48h)
+- **Route stream local** (`GET /client/orders/download/stream/{delivery}`) :
+  - Pour environnement de développement sans S3
+  - URL Laravel signée temporaire (48h) → `response()->download()`
+  - Vérification ownership + signature avant de servir le fichier
+- **`SignedUrlService`** mis à jour :
+  - Disk `local` : URL Laravel signée via `URL::temporarySignedRoute()`
+  - Disk `s3` : URL AWS pré-signée (inchangé)
+  - Cache URL sur `OrderDelivery` pour éviter les appels S3 répétés
+- **Migrations Cashier** publiées : `subscriptions`, `subscription_items` (avec `meter_id`, `meter_event_name`)
+- **Pages paiement** : `/payment/success` (animée, con confirmation + lien mes commandes) + `/payment/cancel`
+- **Route Cashier native** : `POST /stripe/webhook` + `GET /stripe/payment/{id}` (Cashier built-in)
+
+### Modifié
+- `app/Http/Controllers/Webhook/StripeWebhookController.php` : ajout dispatch job ZIP + mail confirmation
+- `app/Services/SignedUrlService.php` : support disk local via URL signée Laravel
+- `routes/client.php` : route stream local + imports `OrderDelivery` + `Storage`
 
 ---
 
