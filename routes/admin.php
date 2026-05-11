@@ -1,57 +1,34 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Livewire\Volt\Volt;
 
 /**
  * Admin Routes — OmnyRestore
  *
- * Back-office routes for administrators only.
- *
- * Middleware stack:
- *   - auth    → Must be logged in
- *   - verified → Email must be verified
- *   - admin   → Must have role = 'admin' (EnsureIsAdmin middleware alias)
- *
- * All admin routes are prefixed with /admin and named with admin.*
- * This makes it trivial to restrict in middleware and generate URLs.
- *
- * Route Model Binding is used throughout: {order} → Order::find($id)
- * The admin middleware's before() in OrderPolicy allows admins to access any order.
+ * Back-office accessible uniquement aux utilisateurs avec role='admin'.
+ * Stack middleware: auth → verified → admin (EnsureIsAdmin)
  */
 
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
 
     // ─── Dashboard ────────────────────────────────────────────────────────
-
-    // Admin dashboard: KPIs + pending order queue
-    // GET /admin/dashboard
-    Route::get('/dashboard', function () {
-        return view('livewire.pages.admin.dashboard');
-    })->name('dashboard');
+    // GET /admin/dashboard — KPIs + file d'attente des commandes PENDING
+    Volt::route('/dashboard', 'pages.admin.dashboard')
+        ->name('dashboard');
 
     // ─── Order Management ─────────────────────────────────────────────────
+    // GET /admin/orders — Liste toutes les commandes (filtrables)
+    Volt::route('/orders', 'pages.admin.orders.index')
+        ->name('orders.index');
 
-    // List all orders (all statuses, filterable)
-    // GET /admin/orders
-    Route::get('/orders', function () {
-        return view('livewire.pages.admin.orders.index');
-    })->name('orders.index');
+    // GET /admin/orders/{order} — Détail + actions admin (prise en charge, upload, prix)
+    Volt::route('/orders/{order}', 'pages.admin.orders.show')
+        ->name('orders.show');
 
-    // Show and manage a specific order
-    // GET /admin/orders/{order}
-    Route::get('/orders/{order}', function () {
-        return view('livewire.pages.admin.orders.show');
-    })->name('orders.show');
-
-    // Update order status (AJAX/Livewire PATCH)
-    // PATCH /admin/orders/{order}/status
+    // PATCH /admin/orders/{order}/status — Transition de statut (via Livewire actions)
     Route::patch('/orders/{order}/status',
         \App\Http\Controllers\Admin\OrderController::class . '@updateStatus'
     )->name('orders.status');
-
-    // ─── Horizon Dashboard (Queue Monitoring) ─────────────────────────────
-    // Laravel Horizon provides a real-time dashboard for queue monitoring.
-    // It's already registered by HorizonServiceProvider with its own auth gate.
-    // Access: /horizon (protected by HorizonServiceProvider::gate())
 
 });
