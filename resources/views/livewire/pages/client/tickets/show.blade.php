@@ -81,7 +81,12 @@ class extends Component
         </div>
 
         @if (!$ticket->isClosed())
-        <button wire:click="closeTicket" wire:confirm="Confirmer la fermeture du ticket ?"
+        <button @click="omnyConfirm({
+                    title: 'Clore ce ticket ?',
+                    message: 'Vous ne pourrez plus répondre. Contactez-nous si le problème persiste.',
+                    confirmLabel: 'Clore le ticket',
+                    danger: false
+                }).then(() => $wire.closeTicket())"
                 class="text-xs text-[#7A6E5E] border border-[#7A6E5E]/25 hover:border-[#7A6E5E]/60 px-3 py-1.5 rounded-sm transition-all">
             Clore le ticket
         </button>

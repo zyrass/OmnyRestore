@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{{-- OmnyRestore App Layout --}}
 <html lang="fr">
 <head>
     <meta charset="utf-8">
@@ -11,7 +12,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-[#0D0B08] text-[#F5F0E8]" x-data>
+<body class="min-h-screen bg-[#0D0B08] text-[#F5F0E8]" x-data x-on:omny:confirm.window="$store.confirmModal.open($event.detail)">
 
 {{-- ========== TOP NAV ========== --}}
 <header class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
@@ -121,6 +122,122 @@
     {{ $slot }}
 </main>
 
+{{-- ═══ Modal de confirmation global ══════════════════════════════════ --}}
+<div x-data
+     x-show="$store.confirmModal.show"
+     x-transition.opacity
+     style="display:none;"
+     class="fixed inset-0 z-[200] flex items-center justify-center p-4"
+     aria-modal="true">
+
+    {{-- Backdrop --}}
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"
+         @click="$store.confirmModal.cancel()"></div>
+
+    {{-- Boîte de dialogue --}}
+    <div x-show="$store.confirmModal.show"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 scale-95"
+         x-transition:enter-end="opacity-100 scale-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 scale-100"
+         x-transition:leave-end="opacity-0 scale-95"
+         class="relative w-full max-w-md bg-[#141008] border border-[#C9A84C]/20 rounded-sm shadow-2xl overflow-hidden">
+
+        {{-- Bandeau top --}}
+        <div class="h-0.5 w-full"
+             :style="{ background: $store.confirmModal.danger
+                ? 'linear-gradient(to right, #ef4444, #dc2626)'
+                : 'linear-gradient(to right, #C9A84C, #E8C97A)' }">
+        </div>
+
+        <div class="p-6">
+            {{-- Icône --}}
+            <div class="flex items-center gap-4 mb-5">
+                <div class="shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
+                     :style="{ background: $store.confirmModal.danger ? 'rgba(239,68,68,0.12)' : 'rgba(201,168,76,0.12)',
+                               border: $store.confirmModal.danger ? '1px solid rgba(239,68,68,0.3)' : '1px solid rgba(201,168,76,0.3)' }">
+                    <template x-if="$store.confirmModal.danger">
+                        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </template>
+                    <template x-if="!$store.confirmModal.danger">
+                        <svg class="w-6 h-6 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </template>
+                </div>
+                <div>
+                    <h3 class="text-[#F5F0E8] font-semibold text-base" x-text="$store.confirmModal.title"></h3>
+                    <p class="text-[#7A6E5E] text-sm mt-0.5" x-text="$store.confirmModal.message"></p>
+                </div>
+            </div>
+
+            {{-- Boutons --}}
+            <div class="flex items-center justify-end gap-3">
+                <button @click="$store.confirmModal.cancel()"
+                        class="px-4 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/25 rounded-sm hover:border-[#7A6E5E]/60 hover:text-[#F5F0E8] transition-all">
+                    Annuler
+                </button>
+                <button @click="$store.confirmModal.confirm()"
+                        :style="$store.confirmModal.danger
+                            ? 'background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);color:#f87171;'
+                            : 'background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:#C9A84C;'"
+                        class="px-5 py-2 text-sm font-medium rounded-sm hover:opacity-80 transition-all"
+                        x-text="$store.confirmModal.confirmLabel">
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @livewireScripts
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.store('confirmModal', {
+        show: false,
+        title: '',
+        message: '',
+        confirmLabel: 'Confirmer',
+        danger: false,
+        _resolve: null,
+
+        open(detail) {
+            this.title        = detail.title        || 'Confirmation';
+            this.message      = detail.message      || 'Êtes-vous sûr ?';
+            this.confirmLabel = detail.confirmLabel || 'Confirmer';
+            this.danger       = detail.danger       !== undefined ? detail.danger : true;
+            this._resolve     = detail.callback     || null;
+            this.show = true;
+        },
+
+        confirm() {
+            this.show = false;
+            if (typeof this._resolve === 'function') this._resolve();
+            this._resolve = null;
+        },
+
+        cancel() {
+            this.show = false;
+            this._resolve = null;
+        }
+    });
+});
+
+/**
+ * Helper global : omnyConfirm({title, message, confirmLabel, danger}) → Promise<void>
+ * Usage dans Blade/Alpine :
+ *   @click="omnyConfirm({title:'Clore ?', message:'...', danger:true}).then(() => $wire.closeTicket())"
+ */
+window.omnyConfirm = function(options) {
+    return new Promise((resolve) => {
+        window.dispatchEvent(new CustomEvent('omny:confirm', {
+            detail: { ...options, callback: resolve }
+        }));
+    });
+};
+</script>
 </body>
 </html>
