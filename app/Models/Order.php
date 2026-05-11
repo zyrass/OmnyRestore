@@ -73,6 +73,8 @@ class Order extends Model implements HasMedia
         'PENDING',
         'IN_PROGRESS',
         'DONE',
+        'PAID',
+        'DELIVERED',
         'CANCELLED',
     ];
 
@@ -97,9 +99,15 @@ class Order extends Model implements HasMedia
         'reference',
         'description',
         'photo_count',
+        'damage_level',
+        'instructions',
+        'base_price_cents',
+        'total_price_cents',
         'amount_ht',
         'tva_rate',
         'amount_ttc',
+        'status',
+        'payment_status',
         'admin_notes',
     ];
 
@@ -110,12 +118,14 @@ class Order extends Model implements HasMedia
     protected function casts(): array
     {
         return [
-            'amount_ht'    => 'decimal:2',
-            'tva_rate'     => 'decimal:2',
-            'amount_ttc'   => 'decimal:2',
-            'paid_at'      => 'datetime',
-            'delivered_at' => 'datetime',
-            'photo_count'  => 'integer',
+            'amount_ht'         => 'decimal:2',
+            'tva_rate'          => 'decimal:2',
+            'amount_ttc'        => 'decimal:2',
+            'base_price_cents'  => 'integer',
+            'total_price_cents' => 'integer',
+            'paid_at'           => 'datetime',
+            'delivered_at'      => 'datetime',
+            'photo_count'       => 'integer',
         ];
     }
 
