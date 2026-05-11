@@ -2,130 +2,128 @@
 
 namespace App\Http\Controllers\Webhook;
 
-use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Services\AuditService;
-use App\Jobs\GenerateSignedDownloadUrlJob;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Laravel\Cashier\Http\Controllers\WebhookController as CashierWebhookController;
+use Illuminate\Support\Facades\Log;
+use Stripe\Event;
+use Stripe\Exception\SignatureVerificationException;
+use Stripe\Stripe;
+use Stripe\Webhook;
 
 /**
- * Controller: StripeWebhookController
+ * StripeWebhookController — Reçoit et traite les événements Stripe
  *
- * Handles incoming webhook events from Stripe.
- * This is the ONLY place where payment status is updated in our database.
+ * Route: POST /webhook/stripe (CSRF exempt — vérifié par signature HMAC)
  *
- * Security (CRITICAL):
- *   Stripe sends webhooks to a public endpoint WITHOUT authentication.
- *   Anyone could send a fake POST to /webhook/stripe claiming a payment succeeded.
- *   To prevent this, we MUST verify the HMAC-SHA256 signature on every request.
+ * Événements traités :
+ *   checkout.session.completed → marque la commande comme PAID
+ *   payment_intent.payment_failed → log l'échec (notification admin future)
  *
- *   Laravel Cashier handles this automatically when you extend CashierWebhookController.
- *   The STRIPE_WEBHOOK_SECRET in .env is used to verify the signature.
- *   If verification fails → Cashier returns 401/403 before our code runs.
+ * Sécurité :
+ *   La signature Stripe (STRIPE_WEBHOOK_SECRET) est vérifiée AVANT tout traitement.
+ *   Un webhook sans signature valide retourne 400 immédiatement.
+ *   Idempotence : on vérifie que payment_status !== 'paid' avant de traiter.
  *
- * CSRF Exemption:
- *   Stripe cannot provide a CSRF token. The webhook route must be excluded
- *   from CSRF protection in bootstrap/app.php:
- *     $middleware->validateCsrfTokens(except: ['/webhook/stripe']);
- *
- * Route: POST /webhook/stripe
- *   Middleware: CSRF excluded only — no auth/verified (Stripe is the caller)
- *
- * Testing webhooks locally:
- *   stripe listen --forward-to localhost:8000/webhook/stripe
- *   stripe trigger payment_intent.succeeded
- *
- * @see https://laravel.com/docs/billing#handling-stripe-webhooks
+ * @see https://stripe.com/docs/webhooks
+ * @see https://stripe.com/docs/api/events/types
  */
-class StripeWebhookController extends CashierWebhookController
+class StripeWebhookController
 {
+    public function __construct(private readonly AuditService $audit) {}
+
     /**
-     * Handle a successful payment intent.
-     *
-     * Triggered by Stripe event: payment_intent.succeeded
-     * This fires when a Stripe Checkout Session payment is confirmed.
-     *
-     * What we do here:
-     *   1. Find the order by payment_intent_id
-     *   2. Mark it as paid (updates payment_status + paid_at)
-     *   3. Generate a presigned download URL (async job)
-     *   4. Write to audit log
-     *
-     * @param array $payload The full Stripe event payload (already verified by Cashier)
+     * Point d'entrée unique pour tous les webhooks Stripe.
+     * Stripe envoie chaque événement en JSON via POST.
      */
-    public function handlePaymentIntentSucceeded(array $payload): Response
+    public function handleWebhook(Request $request): Response
     {
-        $paymentIntentId = $payload['data']['object']['id'];
-        $amountReceived  = $payload['data']['object']['amount_received']; // In cents
+        $payload   = $request->getContent();
+        $sigHeader = $request->header('Stripe-Signature');
+        $secret    = config('cashier.webhook.secret') ?: env('STRIPE_WEBHOOK_SECRET');
 
-        // Find the order with this Stripe PaymentIntent ID
-        $order = Order::where('payment_intent_id', $paymentIntentId)->first();
-
-        if (! $order) {
-            // Stripe can send events for test payments or other platform orders
-            // Log and return 200 (Stripe will retry on non-2xx response)
-            logger()->warning('StripeWebhook: payment_intent.succeeded — no matching order', [
-                'payment_intent_id' => $paymentIntentId,
-            ]);
-            return $this->successMethod();
+        // ── Vérification de la signature HMAC ──────────────────────────────
+        try {
+            Stripe::setApiKey(config('cashier.secret') ?: env('STRIPE_SECRET'));
+            $event = Webhook::constructEvent($payload, $sigHeader, $secret);
+        } catch (\UnexpectedValueException $e) {
+            Log::warning('Stripe webhook: invalid payload', ['error' => $e->getMessage()]);
+            return response('Invalid payload', 400);
+        } catch (SignatureVerificationException $e) {
+            Log::warning('Stripe webhook: invalid signature', ['error' => $e->getMessage()]);
+            return response('Invalid signature', 400);
         }
 
-        // Idempotency check: don't process the same payment twice
-        // (Stripe may retry webhook delivery on network issues)
-        if ($order->payment_status === 'paid') {
-            logger()->info('StripeWebhook: payment_intent.succeeded — already processed (idempotent)', [
-                'order_reference' => $order->reference,
-            ]);
-            return $this->successMethod();
-        }
+        Log::info("Stripe webhook received: {$event->type}", ['event_id' => $event->id]);
 
-        // Mark the order as paid
-        $order->markAsPaid($paymentIntentId);
+        // ── Dispatch selon le type d'événement ─────────────────────────────
+        match ($event->type) {
+            'checkout.session.completed'    => $this->handleCheckoutCompleted($event),
+            'payment_intent.payment_failed' => $this->handlePaymentFailed($event),
+            default => null, // Ignorer silencieusement les autres types
+        };
 
-        // Dispatch job to generate presigned download URL and send email
-        GenerateSignedDownloadUrlJob::dispatch($order);
-
-        // Write to audit log (no user_id — this is a system/Stripe event)
-        app(AuditService::class)->paymentSucceeded($order, $paymentIntentId, $amountReceived);
-
-        logger()->info('StripeWebhook: payment_intent.succeeded — order marked as paid', [
-            'order_reference'   => $order->reference,
-            'payment_intent_id' => $paymentIntentId,
-            'amount_cents'      => $amountReceived,
-        ]);
-
-        // Return 200 to tell Stripe the webhook was processed successfully.
-        // If we return non-200, Stripe will retry for up to 72 hours.
-        return $this->successMethod();
+        // Toujours retourner 200 pour que Stripe ne réessaie pas
+        return response('Webhook handled', 200);
     }
 
     /**
-     * Handle a failed payment intent.
+     * checkout.session.completed
      *
-     * Triggered by Stripe event: payment_intent.payment_failed
-     * The client's card was declined or 3DS authentication failed.
+     * Déclenché quand le client finalise le paiement sur la page Stripe.
+     * Cherche la commande via les métadonnées et la marque PAID.
      */
-    public function handlePaymentIntentPaymentFailed(array $payload): Response
+    private function handleCheckoutCompleted(Event $event): void
     {
-        $paymentIntentId = $payload['data']['object']['id'];
+        $session = $event->data->object;
 
-        $order = Order::where('payment_intent_id', $paymentIntentId)->first();
-
-        if ($order) {
-            $order->payment_status = 'failed';
-            $order->save();
-
-            // TODO: Notify client via email that their payment failed
-            // $order->user->notify(new PaymentFailed($order));
-
-            logger()->warning('StripeWebhook: payment_intent.payment_failed', [
-                'order_reference'   => $order->reference,
-                'payment_intent_id' => $paymentIntentId,
-            ]);
+        // Récupérer l'order_id depuis les métadonnées de la session Stripe
+        $orderId = $session->metadata->order_id ?? null;
+        if (! $orderId) {
+            Log::error('Stripe webhook: checkout.session.completed missing order_id metadata');
+            return;
         }
 
-        return $this->successMethod();
+        $order = Order::find($orderId);
+        if (! $order) {
+            Log::error("Stripe webhook: Order not found for id={$orderId}");
+            return;
+        }
+
+        // Idempotence : ne pas marquer PAID deux fois (Stripe peut renvoyer)
+        if ($order->payment_status === 'paid') {
+            Log::info("Stripe webhook: Order {$order->reference} already paid — skipping");
+            return;
+        }
+
+        // Marquer la commande comme payée
+        $order->update([
+            'status'         => 'PAID',
+            'payment_status' => 'paid',
+            'paid_at'        => now(),
+        ]);
+
+        $this->audit->orderStatusChanged($order, 'DONE', 'PAID');
+
+        Log::info("Stripe webhook: Order {$order->reference} marked as PAID");
+        // L'OrderObserver envoie automatiquement OrderPaidConfirmation via mail queue
+    }
+
+    /**
+     * payment_intent.payment_failed
+     *
+     * Le client a tenté de payer mais sa carte a été refusée.
+     * On log l'événement pour suivi admin — pas de changement de statut.
+     */
+    private function handlePaymentFailed(Event $event): void
+    {
+        $intent  = $event->data->object;
+        $orderId = $intent->metadata->order_id ?? 'unknown';
+
+        Log::warning("Stripe webhook: payment failed for order={$orderId}", [
+            'failure_message' => $intent->last_payment_error?->message ?? 'Unknown',
+            'failure_code'    => $intent->last_payment_error?->code ?? 'unknown',
+        ]);
     }
 }

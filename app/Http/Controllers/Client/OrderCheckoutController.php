@@ -6,60 +6,82 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Stripe\Checkout\Session;
+use Stripe\Stripe;
 
 /**
- * Controller: OrderCheckoutController (Client)
+ * OrderCheckoutController — Initie le paiement Stripe Checkout
  *
- * Initiates a Stripe Checkout Session for an order.
+ * Flow complet :
+ *   1. Client clique "Payer" sur /client/orders/{order}
+ *   2. Ce controller crée une Session Stripe Checkout (server-side)
+ *   3. Client est redirigé vers la page Stripe hébergée
+ *   4. Après paiement → Stripe redirige vers /payment/success
+ *   5. Stripe envoie un webhook checkout.session.completed
+ *   6. StripeWebhookController confirme et marque la commande PAID
  *
- * Flow:
- *   1. Client clicks "Payer" on the order detail page
- *   2. Laravel creates a Stripe Checkout Session (server-side)
- *   3. Client is redirected to Stripe's hosted payment page
- *   4. After payment: Stripe redirects to /payment/success or /payment/cancel
- *   5. Stripe webhook (payment_intent.succeeded) confirms and marks order as paid
- *
- * Note: Payment confirmation NEVER relies on the success redirect URL.
- * Only the webhook is authoritative. The success page just shows a friendly message.
+ * IMPORTANT: La page /payment/success n'est qu'une confirmation visuelle.
+ * La source de vérité est TOUJOURS le webhook Stripe (jamais le redirect).
  *
  * @see App\Http\Controllers\Webhook\StripeWebhookController
- * @see https://stripe.com/docs/checkout/quickstart
- *
- * TODO Phase 2: Implement full Stripe Checkout Session creation
  */
 class OrderCheckoutController extends Controller
 {
-    /**
-     * Create a Stripe Checkout Session and redirect the client to it.
-     *
-     * Authorization: OrderPolicy handles IDOR prevention.
-     * Only the order owner can initiate payment, and only for DONE orders.
-     *
-     * @param Request $request
-     * @param Order   $order Route model binding
-     * @return RedirectResponse Redirect to Stripe Checkout (external) or back with error
-     */
     public function checkout(Request $request, Order $order): RedirectResponse
     {
-        // Verify the user owns this order and it's in a payable state
+        // Protection IDOR : seul le propriétaire peut payer
         $this->authorize('view', $order);
 
-        // Safety check: only allow checkout for DONE orders awaiting payment
-        if (! $order->awaitingPayment()) {
+        // Seules les commandes DONE peuvent être payées
+        if ($order->status !== 'DONE') {
             return back()->with('error', 'Cette commande n\'est pas disponible au paiement.');
         }
 
-        // TODO Phase 2: Create Stripe Checkout Session
-        // $session = $order->user->checkout([
-        //     ['price_data' => [...], 'quantity' => 1],
-        // ], [
-        //     'success_url' => route('payment.success') . '?session_id={CHECKOUT_SESSION_ID}',
-        //     'cancel_url'  => route('payment.cancel'),
-        //     'metadata'    => ['order_id' => $order->id],
-        // ]);
-        // return redirect($session->url);
+        // Vérifier que Stripe est configuré
+        $stripeKey = config('cashier.secret') ?: env('STRIPE_SECRET');
+        if (! $stripeKey) {
+            return back()->with('error', 'Le paiement en ligne n\'est pas encore configuré. Contactez-nous.');
+        }
 
-        // Placeholder until Stripe is configured
-        return back()->with('info', 'Paiement Stripe — implémentation Phase 2.');
+        try {
+            Stripe::setApiKey($stripeKey);
+
+            $amountCents = $order->total_price_cents ?? $order->base_price_cents ?? 0;
+            $label       = "Restauration photographique — {$order->reference}";
+            $label      .= " ({$order->photo_count} photo" . ($order->photo_count > 1 ? 's' : '') . ')';
+
+            $session = Session::create([
+                'mode'         => 'payment',
+                'currency'     => 'eur',
+                'line_items'   => [[
+                    'price_data' => [
+                        'currency'     => 'eur',
+                        'unit_amount'  => $amountCents,
+                        'product_data' => [
+                            'name'        => $label,
+                            'description' => "Restauration {$order->damage_level} — OmnyRestore",
+                        ],
+                    ],
+                    'quantity' => 1,
+                ]],
+                'success_url'  => route('payment.success') . '?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url'   => route('client.orders.show', $order),
+                'metadata'     => [
+                    'order_id'   => $order->id,
+                    'order_ref'  => $order->reference,
+                    'user_id'    => $order->user_id,
+                ],
+                'customer_email' => $order->user->email,
+                'locale'         => 'fr',
+            ]);
+
+            // Sauvegarder le session ID pour le retrouver dans le webhook
+            $order->update(['payment_intent_id' => $session->payment_intent ?? $session->id]);
+
+            return redirect($session->url);
+
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            return back()->with('error', 'Erreur Stripe : ' . $e->getMessage());
+        }
     }
 }
