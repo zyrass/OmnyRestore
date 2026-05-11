@@ -31,4 +31,13 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         \App\Http\Controllers\Admin\OrderController::class . '@updateStatus'
     )->name('orders.status');
 
+    // ─── Support Tickets ──────────────────────────────────────────────────
+    // GET /admin/tickets — Liste tous les tickets (filtrables par statut)
+    Volt::route('/tickets', 'pages.admin.tickets.index')
+        ->name('tickets.index');
+
+    // GET /admin/tickets/{ticket} — Fil de conversation + réponse admin
+    Volt::route('/tickets/{ticket}', 'pages.admin.tickets.show')
+        ->name('tickets.show');
+
 });

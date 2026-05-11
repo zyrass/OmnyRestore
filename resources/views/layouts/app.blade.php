@@ -25,6 +25,28 @@
         </a>
 
         <nav class="hidden md:flex items-center gap-1">
+            @if (Auth::user()->role === 'admin')
+            {{-- ── Nav Admin ── --}}
+            <a href="{{ route('admin.dashboard') }}" wire:navigate
+               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.dashboard') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                Dashboard
+            </a>
+            <a href="{{ route('admin.orders.index') }}" wire:navigate
+               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.orders.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                Commandes
+            </a>
+            <a href="{{ route('admin.tickets.index') }}" wire:navigate
+               class="px-4 py-2 text-sm rounded-sm transition-colors relative {{ request()->routeIs('admin.tickets.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                Tickets
+                @php $unread = \App\Models\SupportTicket::withCount(['messages as u' => fn($q) => $q->where('is_admin', false)->where('is_read', false)])->having('u', '>', 0)->count(); @endphp
+                @if ($unread > 0)
+                <span class="absolute -top-1 -right-1 w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
+                    {{ $unread > 9 ? '9+' : $unread }}
+                </span>
+                @endif
+            </a>
+            @else
+            {{-- ── Nav Client ── --}}
             <a href="{{ route('client.orders.index') }}" wire:navigate
                class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('client.orders.index') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                 Mes commandes
@@ -33,6 +55,11 @@
                class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('client.orders.create') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                 + Nouvelle commande
             </a>
+            <a href="{{ route('client.tickets.index') }}" wire:navigate
+               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('client.tickets.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                Support
+            </a>
+            @endif
         </nav>
 
         <div class="flex items-center gap-4" x-data="{ open: false }">
@@ -43,12 +70,20 @@
                     {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                 </button>
                 <div x-show="open" @click.outside="open = false" x-transition
-                     class="absolute right-0 top-10 w-48 bg-[#1A1510] border border-[#C9A84C]/15 rounded-sm shadow-xl py-1 z-50">
+                     class="absolute right-0 top-10 w-52 bg-[#1A1510] border border-[#C9A84C]/15 rounded-sm shadow-xl py-1 z-50">
+                    @if (Auth::user()->role === 'admin')
+                    <a href="{{ route('admin.dashboard') }}" wire:navigate
+                       class="flex items-center gap-3 px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#F5F0E8] hover:bg-[#C9A84C]/5 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                        Dashboard admin
+                    </a>
+                    @else
                     <a href="{{ route('client.profile') }}" wire:navigate
                        class="flex items-center gap-3 px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#F5F0E8] hover:bg-[#C9A84C]/5 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                         Mon profil
                     </a>
+                    @endif
                     <div class="border-t border-[#C9A84C]/10 my-1"></div>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
