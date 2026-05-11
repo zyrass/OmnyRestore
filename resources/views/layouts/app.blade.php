@@ -38,7 +38,11 @@
             <a href="{{ route('admin.tickets.index') }}" wire:navigate
                class="px-4 py-2 text-sm rounded-sm transition-colors relative {{ request()->routeIs('admin.tickets.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                 Tickets
-                @php $unread = \App\Models\SupportTicket::withCount(['messages as u' => fn($q) => $q->where('is_admin', false)->where('is_read', false)])->having('u', '>', 0)->count(); @endphp
+                @php
+                    $unread = \App\Models\SupportTicket::whereHas('messages', fn($q) =>
+                        $q->where('is_admin', false)->where('is_read', false)
+                    )->count();
+                @endphp
                 @if ($unread > 0)
                 <span class="absolute -top-1 -right-1 w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
                     {{ $unread > 9 ? '9+' : $unread }}
