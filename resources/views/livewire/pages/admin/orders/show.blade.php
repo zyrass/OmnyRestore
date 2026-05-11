@@ -525,8 +525,8 @@ class extends Component
 
             {{-- Annulation --}}
             @if (in_array($order->status, ['PENDING', 'IN_PROGRESS']))
-            <div class="card-glass p-5 border-red-500/15" x-data="{ open: false }">
-                <button @click="open = !open" class="w-full flex items-center justify-between text-red-400 text-xs hover:text-red-300 transition-colors">
+            <div class="card-glass p-5 border-red-500/15" x-data="{ open: false, confirmCancel: false }">
+                <button @click="open = !open; confirmCancel = false" class="w-full flex items-center justify-between text-red-400 text-xs hover:text-red-300 transition-colors">
                     <span class="font-medium">Annuler la commande</span>
                     <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
@@ -535,11 +535,37 @@ class extends Component
                               class="w-full bg-[#1A1510] border border-red-500/20 text-[#F5F0E8] text-xs rounded-sm px-3 py-2 placeholder-[#7A6E5E]/50 resize-none focus:outline-none focus:border-red-500/50 transition-all mb-2">
                     </textarea>
                     @error('cancelReason') <p class="text-red-400 text-xs mb-2">{{ $message }}</p> @enderror
-                    <button wire:click="cancelOrder"
-                            wire:confirm="Confirmer l'annulation ? Cette action est irréversible."
+
+                    {{-- Bouton → ouvre confirmation inline --}}
+                    <button type="button"
+                            @click="confirmCancel = true"
+                            x-show="!confirmCancel"
                             class="w-full py-2 text-xs bg-red-900/30 text-red-400 border border-red-500/30 hover:bg-red-900/50 rounded-sm transition-all">
                         Confirmer l'annulation
                     </button>
+
+                    {{-- Confirmation inline custom --}}
+                    <div x-show="confirmCancel" x-transition
+                         class="mt-3 p-4 bg-red-900/10 border border-red-500/20 rounded-sm">
+                        <p class="text-red-400 text-xs font-medium mb-1">⚠️ Cette action est irréversible.</p>
+                        <p class="text-[#7A6E5E] text-xs mb-4">La commande sera annulée et le client sera notifié.</p>
+                        <div class="flex gap-2">
+                            <button type="button"
+                                    @click="confirmCancel = false"
+                                    class="flex-1 py-1.5 text-xs text-[#7A6E5E] hover:text-[#F5F0E8] border border-[#2A2520] hover:border-[#3A3028] rounded-sm transition-all">
+                                Retour
+                            </button>
+                            <button wire:click="cancelOrder"
+                                    wire:loading.attr="disabled"
+                                    class="flex-1 py-1.5 text-xs bg-red-700/40 hover:bg-red-700/60 text-red-300 border border-red-500/40 rounded-sm transition-all flex items-center justify-center gap-1">
+                                <span wire:loading.remove wire:target="cancelOrder">🗑️ Oui, annuler</span>
+                                <span wire:loading wire:target="cancelOrder" class="flex items-center gap-1">
+                                    <svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                    Annulation...
+                                </span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             @endif
