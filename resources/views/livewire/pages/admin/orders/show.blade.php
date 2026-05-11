@@ -68,49 +68,65 @@ class extends Component
             'finalPrice'       => ['required', 'numeric', 'min:0.5'],
         ]);
 
-        // Fixer le prix final
+        // Fixer le prix final et les notes
         $this->order->update([
             'total_price_cents' => (int) round((float) $this->finalPrice * 100),
             'admin_notes'       => $this->adminNotes ?: null,
         ]);
 
-        // Uploader chaque photo restaurée dans la collection Spatie 'retouched'
+        // Copier les fichiers temporaires Livewire AVANT qu'ils soient supprimés
+        // (Livewire nettoie ses tmp après chaque requête Livewire)
+        $tmpCopies = [];
+        foreach ($this->restoredPhotos as $idx => $photo) {
+            $src = $photo->getRealPath();
+            if (! $src || ! file_exists($src)) {
+                session()->flash('error', "Fichier introuvable : {$photo->getClientOriginalName()}. Réessayez.");
+                return;
+            }
+            // Copier dans un répertoire stable sous storage/app
+            $destDir = storage_path('app/tmp-admin-uploads');
+            if (! is_dir($destDir)) {
+                mkdir($destDir, 0755, true);
+            }
+            $ext      = $photo->getClientOriginalExtension();
+            $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $photo->getClientOriginalName());
+            $destPath = $destDir . '/' . uniqid("restore_{$idx}_") . '.' . $ext;
+            copy($src, $destPath);
+            $tmpCopies[] = ['path' => $destPath, 'name' => 'restored_' . $safeName];
+        }
+
+        // Passer les copies stables à Spatie MediaLibrary
         $uploaded = 0;
-        foreach ($this->restoredPhotos as $photo) {
+        foreach ($tmpCopies as $tmp) {
             try {
-                // Les fichiers Livewire temporaires: on passe par store() d'abord
-                $realPath = $photo->getRealPath();
-
-                if (! $realPath || ! file_exists($realPath)) {
-                    // Fallback : stocker sur le disk temporaire puis récupérer le path
-                    $tmpPath = $photo->store('livewire-tmp', 'local');
-                    $realPath = storage_path('app/' . $tmpPath);
-                }
-
                 $this->order
-                    ->addMedia($realPath)
-                    ->usingFileName('restored_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $photo->getClientOriginalName()))
+                    ->addMedia($tmp['path'])          // path stable, pas encore supprimé
+                    ->usingFileName($tmp['name'])
                     ->withCustomProperties(['uploaded_by_admin' => true])
+                    ->preservingOriginal()            // ne pas supprimer le fichier source
                     ->toMediaCollection('retouched');
 
+                unlink($tmp['path']); // nettoyage manuel après succès
                 $uploaded++;
             } catch (\Throwable $e) {
+                @unlink($tmp['path']);
                 \Illuminate\Support\Facades\Log::error("Admin upload failed: {$e->getMessage()}", [
                     'order_id' => $this->order->id,
-                    'file'     => $photo->getClientOriginalName(),
+                    'file'     => $tmp['name'],
+                    'trace'    => $e->getTraceAsString(),
                 ]);
-                session()->flash('error', "Erreur upload : {$photo->getClientOriginalName()} — {$e->getMessage()}");
+                session()->flash('error', "Erreur upload {$tmp['name']} : {$e->getMessage()}");
                 return;
             }
         }
 
-        // Transition de statut (déclenche email client via Observer)
+        // Transition de statut → déclenche OrderObserver → email client
         $previous = $this->order->status;
         $this->order->markAsDone();
         $audit->orderStatusChanged($this->order, $previous, 'DONE');
 
         $this->restoredPhotos = [];
-        session()->flash('success', "{$uploaded} photo(s) uploadée(s) — commande DONE. Email client envoyé.");
+        session()->flash('success', "{$uploaded} photo(s) restaurée(s) uploadée(s). Client notifié par email.");
         $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
     }
 

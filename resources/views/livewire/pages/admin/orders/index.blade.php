@@ -140,7 +140,9 @@ class extends Component
                     ];
                     $labels = ['PENDING' => 'En attente', 'IN_PROGRESS' => 'En cours', 'DONE' => 'Prêt', 'PAID' => 'Payé ✓', 'DELIVERED' => 'Livré', 'CANCELLED' => 'Annulé'];
                 @endphp
-                <tr class="hover:bg-[#C9A84C]/3 transition-colors cursor-pointer" wire:click="$navigate('{{ route('admin.orders.show', $order) }}')">
+                <tr class="hover:bg-[#C9A84C]/3 transition-colors cursor-pointer"
+                    onclick="window.location='{{ route('admin.orders.show', $order) }}'"
+                    style="cursor:pointer;">
                     <td class="px-5 py-3.5"><span class="font-mono text-[#C9A84C] text-xs">{{ $order->reference }}</span></td>
                     <td class="px-5 py-3.5">
                         <p class="text-[#F5F0E8] text-xs">{{ $order->user->name }}</p>
