@@ -8,7 +8,26 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ## [Unreleased]
 
-> Prochaines étapes : watermark automatique (Intervention Image), intégration OpenAI auto, conformité RGPD complète.
+> Prochaines étapes : intégration OpenAI auto, conformité RGPD complète, MVP production.
+
+---
+
+## [0.6.0] — 2026-05-12
+
+### Ajouté
+- **Watermark automatique (Intervention Image v3 + PHP GD)** :
+  - `GenerateWatermarkJob` : lecture + redimensionnement 1200px + filigrane diagonal tuilé "OmnyRestore" (Inter Bold, blanc 18%) + export JPEG 75%
+  - Collection `watermarked` (Spatie) alimentée automatiquement — plus de `singleFile()` (1 image watermarked par photo retouchée)
+  - Listener `GenerateWatermarkOnRetouchedUpload` : écoute `MediaHasBeenAddedEvent` → dispatch automatique sur upload admin dans `retouched`
+  - Commande `php artisan watermarks:regenerate [--order=REF] [--sync]` pour régénérer en masse ou commande par commande
+  - Font Inter Bold bundlée dans `storage/app/fonts/watermark.ttf`
+- **Activation extension GD** dans `php.ini` (PHP 8.2.6 local)
+- **`intervention/image-laravel` v1.5** (`intervention/image` v3.11 — compatible PHP 8.2)
+
+### Modifié
+- `app/Models/Order::registerMediaCollections()` : retire `singleFile()` de la collection `watermarked`
+- `app/Providers/AppServiceProvider` : enregistrement `Event::listen(MediaHasBeenAddedEvent, GenerateWatermarkOnRetouchedUpload)`
+- Vue client `orders/show.blade.php` : utilise les vrais fichiers watermarked serveur — CSS overlay uniquement en fallback si job pas encore tourné
 
 ---
 

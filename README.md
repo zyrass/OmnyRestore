@@ -13,7 +13,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
-[![Version](https://img.shields.io/badge/version-0.5.1-blue?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.6.0-blue?style=flat-square)](CHANGELOG.md)
 
 </div>
 
@@ -478,6 +478,12 @@ git commit -m "feat(tickets): interface admin tickets support" \
   - [x] Download controller simplifié (suppression `OrderDelivery` intermédiaire)
   - [x] Return type `BinaryFileResponse` corrigé
   - [x] Config Stripe TEST + Mailtrap opérationnels
+- [x] `v0.6.0` — **Watermark automatique (Intervention Image)**
+  - [x] `GenerateWatermarkJob` : Intervention Image v3, GD, resize 1200px, filigrane diagonal
+  - [x] Listener Spatie `MediaHasBeenAddedEvent` → dispatch auto sur upload admin
+  - [x] Artisan `watermarks:regenerate [--order] [--sync]`
+  - [x] Font Inter Bold bundlée dans `storage/app/fonts/`
+  - [x] Vue client : vraies images watermarked + fallback CSS
 - [ ] `v1.0.0` — **MVP — Prêt pour production**
 - [ ] `v1.1.0` — Aperçu filigranné automatique (Intervention Image / GD)
 - [ ] `v1.2.0` — Intégration API OpenAI (restauration automatique)
