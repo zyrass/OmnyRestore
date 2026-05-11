@@ -26,7 +26,7 @@ class OrderDownloadController extends Controller
         private readonly AuditService $auditService
     ) {}
 
-    public function download(Request $request, Order $order): RedirectResponse|\Illuminate\Http\Response
+    public function download(Request $request, Order $order): \Symfony\Component\HttpFoundation\Response
     {
         // 1. Vérification ownership (IDOR prevention)
         abort_if($order->user_id !== $request->user()->id, 403, 'Accès non autorisé.');
