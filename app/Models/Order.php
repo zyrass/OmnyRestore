@@ -175,26 +175,25 @@ class Order extends Model implements HasMedia
      */
     public function registerMediaCollections(): void
     {
+        // Le disk est configuré via .env → MEDIA_DISK (défaut: 'public' en local, 's3' en prod)
+        // Cela évite de forcer 's3' en développement où AWS n'est pas configuré.
+        $disk = config('media-library.disk_name', config('filesystems.default', 'public'));
+
         // ─── Originals ────────────────────────────────────────────────────
-        // Photos uploaded by the client — the source material for restoration.
-        // Stored on S3 'originals' prefix. Preserved for 6 months after delivery.
         $this->addMediaCollection('originals')
-             ->useDisk('s3')        // Always store originals on S3
+             ->useDisk($disk)
              ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/tiff', 'image/webp']);
 
         // ─── Retouched ────────────────────────────────────────────────────
-        // AI-restored photos uploaded by admin.
-        // These are the high-resolution deliverables (8K output).
+        // Photos restaurées uploadées par l'admin (haute résolution).
         $this->addMediaCollection('retouched')
-             ->useDisk('s3');
+             ->useDisk($disk);
 
         // ─── Watermarked Preview ──────────────────────────────────────────
-        // Low-resolution version with "OmnyRestore" watermark overlay.
-        // Shown to the client BEFORE payment to trigger the purchase decision.
-        // Auto-generated from 'retouched' collection by a Spatie conversion.
+        // Aperçu basse résolution filigrané, montré avant paiement.
         $this->addMediaCollection('watermarked')
-             ->useDisk('s3')
-             ->singleFile(); // Only one watermarked preview per order
+             ->useDisk($disk)
+             ->singleFile();
     }
 
     // =========================================================================

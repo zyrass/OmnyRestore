@@ -74,11 +74,34 @@ class extends Component
             'admin_notes'       => $this->adminNotes ?: null,
         ]);
 
-        // Uploader les photos restaurées dans la collection Spatie
+        // Uploader chaque photo restaurée dans la collection Spatie 'retouched'
+        $uploaded = 0;
         foreach ($this->restoredPhotos as $photo) {
-            $this->order->addMedia($photo->getRealPath())
-                ->usingFileName('restored_' . $photo->getClientOriginalName())
-                ->toMediaCollection('retouched');
+            try {
+                // Les fichiers Livewire temporaires: on passe par store() d'abord
+                $realPath = $photo->getRealPath();
+
+                if (! $realPath || ! file_exists($realPath)) {
+                    // Fallback : stocker sur le disk temporaire puis récupérer le path
+                    $tmpPath = $photo->store('livewire-tmp', 'local');
+                    $realPath = storage_path('app/' . $tmpPath);
+                }
+
+                $this->order
+                    ->addMedia($realPath)
+                    ->usingFileName('restored_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $photo->getClientOriginalName()))
+                    ->withCustomProperties(['uploaded_by_admin' => true])
+                    ->toMediaCollection('retouched');
+
+                $uploaded++;
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error("Admin upload failed: {$e->getMessage()}", [
+                    'order_id' => $this->order->id,
+                    'file'     => $photo->getClientOriginalName(),
+                ]);
+                session()->flash('error', "Erreur upload : {$photo->getClientOriginalName()} — {$e->getMessage()}");
+                return;
+            }
         }
 
         // Transition de statut (déclenche email client via Observer)
@@ -87,7 +110,7 @@ class extends Component
         $audit->orderStatusChanged($this->order, $previous, 'DONE');
 
         $this->restoredPhotos = [];
-        session()->flash('success', 'Photos uploadées — commande marquée DONE. Email client envoyé.');
+        session()->flash('success', "{$uploaded} photo(s) uploadée(s) — commande DONE. Email client envoyé.");
         $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
     }
 
@@ -118,6 +141,20 @@ class extends Component
 }; ?>
 
 <div>
+    {{-- Messages flash --}}
+    @if (session('success'))
+    <div class="mb-6 flex items-center gap-3 bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 text-sm px-4 py-3 rounded-sm">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        {{ session('success') }}
+    </div>
+    @endif
+    @if (session('error'))
+    <div class="mb-6 flex items-center gap-3 bg-red-900/30 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-sm">
+        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        {{ session('error') }}
+    </div>
+    @endif
+
     {{-- En-tête --}}
     <div class="flex items-center gap-4 mb-8">
         <a href="{{ route('admin.orders.index') }}" wire:navigate class="text-[#7A6E5E] hover:text-[#C9A84C] transition-colors">
