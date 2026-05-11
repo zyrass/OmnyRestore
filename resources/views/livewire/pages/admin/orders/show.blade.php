@@ -40,6 +40,9 @@ class extends Component
     /** Raison d'annulation */
     public string $cancelReason = '';
 
+    /** Confirmé par le modal avant lancement de la restauration IA */
+    public bool $aiConfirmOpen = false;
+
     public function mount(Order $order): void
     {
         $this->order      = $order->load(['user', 'media', 'delivery', 'auditLogs']);
@@ -56,6 +59,38 @@ class extends Component
         $this->order->startProcessing();
         $audit->orderStatusChanged($this->order, $previous, 'IN_PROGRESS');
         session()->flash('success', 'Commande prise en charge — statut : En cours');
+        $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
+    }
+
+    /**
+     * Lance la restauration IA automatique (dispatch du job en queue).
+     * Appelé via Livewire après confirmation dans le modal custom.
+     */
+    public function launchAiRestoration(): void
+    {
+        if (! config('openai.api_key')) {
+            session()->flash('error', 'Clé API OpenAI non configurée (OPENAI_API_KEY manquante dans .env).');
+            $this->aiConfirmOpen = false;
+            return;
+        }
+
+        if (! in_array($this->order->status, ['PENDING', 'IN_PROGRESS'])) {
+            session()->flash('error', 'La restauration IA n\'est possible que sur une commande PENDING ou IN_PROGRESS.');
+            $this->aiConfirmOpen = false;
+            return;
+        }
+
+        $originalCount = $this->order->getMedia('originals')->count();
+        if ($originalCount === 0) {
+            session()->flash('error', 'Aucune photo originale trouvée sur cette commande.');
+            $this->aiConfirmOpen = false;
+            return;
+        }
+
+        \App\Jobs\AutoRestoreOrderPhotosJob::dispatch($this->order);
+
+        $this->aiConfirmOpen = false;
+        session()->flash('success', "🤖 Restauration IA lancée pour {$originalCount} photo(s) — résultats disponibles dans quelques minutes.");
         $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
     }
 
@@ -314,16 +349,61 @@ class extends Component
                         </div>
                     </div>
 
-                    {{-- Bouton de lancement --}}
-                    <form action="{{ route('admin.orders.auto-restore', $order) }}" method="POST">
-                        @csrf
-                        <button type="submit"
-                                onclick="return confirm('Lancer la restauration IA pour {{ $aiOriginalCount }} photo(s) ? Cette opération consomme des crédits OpenAI.')"
-                                class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 hover:border-purple-500/50 text-purple-300 hover:text-purple-200 rounded-sm transition-all text-sm font-medium">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                            🤖 Lancer la restauration IA automatique
-                        </button>
-                    </form>
+                    {{-- Bouton de lancement → ouvre modal custom --}}
+                    <button type="button"
+                            wire:click="$set('aiConfirmOpen', true)"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 hover:border-purple-500/50 text-purple-300 hover:text-purple-200 rounded-sm transition-all text-sm font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        🤖 Lancer la restauration IA automatique
+                    </button>
+
+                    {{-- Modal de confirmation custom --}}
+                    @if ($aiConfirmOpen)
+                    <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+                         style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);">
+                        <div class="w-full max-w-md bg-[#1C1812] border border-purple-500/30 rounded-sm shadow-2xl p-6"
+                             x-data x-trap="true">
+                            <div class="flex items-start gap-4 mb-5">
+                                <div class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-[#F5F0E8] font-semibold mb-1">Confirmer la restauration IA</h3>
+                                    <p class="text-[#7A6E5E] text-sm">
+                                        Lancer la restauration automatique pour
+                                        <strong class="text-purple-300">{{ $aiOriginalCount }} photo{{ $aiOriginalCount > 1 ? 's' : '' }}</strong> ?<br>
+                                        Cette opération consomme ~<strong class="text-[#C9A84C]">{{ number_format($aiOriginalCount * 0.06, 2) }}$</strong> de crédits OpenAI.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="p-3 bg-purple-500/5 border border-purple-500/10 rounded-sm mb-5">
+                                <p class="text-[#7A6E5E] text-xs">
+                                    Pipeline : 👁️ GPT-4o Vision → ✨ DALL-E 3 HD → 🔍 Upscale 8K<br>
+                                    Les photos restaurées apparaissent automatiquement une fois le job terminé.
+                                </p>
+                            </div>
+                            <div class="flex gap-3 justify-end">
+                                <button type="button"
+                                        wire:click="$set('aiConfirmOpen', false)"
+                                        class="px-4 py-2 text-sm text-[#7A6E5E] hover:text-[#F5F0E8] border border-[#2A2520] hover:border-[#3A3028] rounded-sm transition-all">
+                                    Annuler
+                                </button>
+                                <button type="button"
+                                        wire:click="launchAiRestoration"
+                                        wire:loading.attr="disabled"
+                                        class="px-5 py-2 text-sm bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-300 hover:text-purple-100 rounded-sm transition-all flex items-center gap-2">
+                                    <span wire:loading.remove wire:target="launchAiRestoration">
+                                        🤖 Oui, lancer la restauration
+                                    </span>
+                                    <span wire:loading wire:target="launchAiRestoration" class="flex items-center gap-2">
+                                        <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                        Lancement...
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                 </div>
             </div>
             @endif

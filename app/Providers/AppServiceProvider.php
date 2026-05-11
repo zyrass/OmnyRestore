@@ -12,7 +12,27 @@ use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    public function register(): void
+    {
+        // ── OpenAI Client — SSL Certificate Fix (Windows / cURL error 60) ──
+        // PHP sur Windows n'a pas de CA bundle par défaut.
+        // On surcharge le binding OpenAI\Client pour lui passer un client
+        // Guzzle configuré avec notre cacert.pem local.
+        // Le fichier vient de https://curl.se/ca/cacert.pem (storage/cacert.pem)
+        $this->app->singleton(\OpenAI\Client::class, function () {
+            $caCert   = storage_path('cacert.pem');
+            $guzzle   = new \GuzzleHttp\Client([
+                'verify'  => file_exists($caCert) ? $caCert : true,
+                'timeout' => (int) config('openai.request_timeout', 60),
+            ]);
+
+            return \OpenAI::factory()
+                ->withApiKey(config('openai.api_key'))
+                ->withOrganization(config('openai.organization'))
+                ->withHttpClient($guzzle)
+                ->make();
+        });
+    }
 
     /**
      * Bootstrap application services.
