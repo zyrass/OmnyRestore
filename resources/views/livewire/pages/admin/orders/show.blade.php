@@ -299,9 +299,10 @@ class extends Component
 
                     {{-- Détection de colorisation depuis la description --}}
                     @php
-                        $descText = strtolower(($order->description ?? '') . ' ' . ($order->instructions ?? ''));
-                        $wantsColor = str_contains($descText, 'coloris') || str_contains($descText, 'en couleur') || str_contains($descText, 'ajouter les couleurs');
-                        $wantsBW = str_contains($descText, 'noir et blanc') || str_contains($descText, 'n&b') || str_contains($descText, 'monochrome');
+                        $descText        = strtolower(($order->description ?? '') . ' ' . ($order->instructions ?? ''));
+                        $wantsColor      = str_contains($descText, 'coloris') || str_contains($descText, 'en couleur') || str_contains($descText, 'ajouter les couleurs');
+                        $wantsBW         = str_contains($descText, 'noir et blanc') || str_contains($descText, 'n&b') || str_contains($descText, 'monochrome');
+                        $aiOriginalCount = $order->getMedia('originals')->count();
                     @endphp
                     @if ($wantsColor)
                     <div class="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-900/20 border border-amber-500/20 rounded-sm">
@@ -320,8 +321,8 @@ class extends Component
                         <svg class="w-4 h-4 text-[#7A6E5E] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <div>
                             <p class="text-[#7A6E5E] text-xs">
-                                Coût estimé : <span class="text-[#C9A84C] font-medium">~{{ number_format($order->getMedia('originals')->count() * 0.06, 2) }}$</span>
-                                ({{ $order->getMedia('originals')->count() }} photo{{ $order->getMedia('originals')->count() > 1 ? 's' : '' }} × ~$0.06)
+                                Coût estimé : <span class="text-[#C9A84C] font-medium">~{{ number_format($aiOriginalCount * 0.06, 2) }}$</span>
+                                ({{ $aiOriginalCount }} photo{{ $aiOriginalCount > 1 ? 's' : '' }} × ~$0.06)
                             </p>
                             <p class="text-[#7A6E5E] text-[10px] mt-0.5">Les résultats apparaîtront automatiquement dans "Photos retouchées" une fois le traitement terminé.</p>
                         </div>
@@ -331,7 +332,7 @@ class extends Component
                     <form action="{{ route('admin.orders.auto-restore', $order) }}" method="POST">
                         @csrf
                         <button type="submit"
-                                onclick="return confirm('Lancer la restauration IA pour {{ $order->getMedia(\'originals\')->count() }} photo(s) ? Cette opération consomme des crédits OpenAI.')"
+                                onclick="return confirm('Lancer la restauration IA pour {{ $aiOriginalCount }} photo(s) ? Cette opération consomme des crédits OpenAI.')"
                                 class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 hover:border-purple-500/50 text-purple-300 hover:text-purple-200 rounded-sm transition-all text-sm font-medium">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                             🤖 Lancer la restauration IA automatique
