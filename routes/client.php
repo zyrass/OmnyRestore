@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Client\OrderDownloadController;
+use App\Models\OrderDelivery;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Client Routes — OmnyRestore
@@ -44,9 +46,25 @@ Route::middleware(['auth', 'verified'])->prefix('client')->name('client.')->grou
         \App\Http\Controllers\Client\OrderCheckoutController::class . '@checkout'
     )->name('orders.checkout');
 
-    // GET /client/orders/{order}/download → S3 presigned URL
+    // GET /client/orders/{order}/download → S3 presigned URL (ou Laravel signed URL local)
     Route::get('/orders/{order}/download', [OrderDownloadController::class, 'download'])
          ->name('orders.download');
+
+    // GET /client/orders/download/stream/{delivery} → Stream local ZIP (dev only, URL signée)
+    Route::get('/orders/download/stream/{delivery}', function (\Illuminate\Http\Request $request, OrderDelivery $delivery) {
+        // Vérification signature + auth (la signed URL garantit l'authenticité)
+        abort_unless($request->hasValidSignature(), 403);
+        abort_unless(
+            $delivery->order->user_id === $request->user()->id,
+            403
+        );
+        $path = storage_path('app/' . $delivery->zip_path);
+        abort_unless(file_exists($path), 404, 'Archive introuvable.');
+        return response()->download($path, basename($path), [
+            'Content-Type' => 'application/zip',
+        ]);
+    })->name('orders.download.stream')->middleware(['auth', 'verified']);
+
 
     // ─── Profile / RGPD ───────────────────────────────────────────────────
     // GET /client/profile

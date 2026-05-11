@@ -77,26 +77,28 @@ class SignedUrlService
         $path    = $delivery->zip_path;
         $expiry  = now()->addHours(self::TTL_HOURS);
 
+        // ── Disk local (développement) ──────────────────────────────────────
+        // En local, pas d'URL S3 pré-signée. On retourne une URL Laravel signée
+        // qui pointe vers la route de téléchargement direct.
+        if ($disk === 'local') {
+            return \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                'client.orders.download.stream',
+                $expiry,
+                ['delivery' => $delivery->id]
+            );
+        }
+
+        // ── Disk S3 (production) ────────────────────────────────────────────
         try {
-            // Storage::disk('s3')->temporaryUrl() generates a pre-signed GET URL.
-            // The file is NOT downloaded by Laravel — S3 serves it directly to the client.
-            // Additional headers force download dialog in browser (not inline display).
             $url = Storage::disk($disk)->temporaryUrl(
                 $path,
                 $expiry,
                 [
-                    // Force browser to download rather than display
                     'ResponseContentDisposition' => 'attachment; filename="' . basename($path) . '"',
-                    // Explicit content type for ZIP archives
                     'ResponseContentType' => 'application/zip',
                 ]
             );
         } catch (\Exception $e) {
-            // Local disk does not support temporaryUrl() — use direct path for local dev
-            if ($disk === 'local') {
-                return Storage::disk('local')->url($path);
-            }
-
             throw new \RuntimeException(
                 "Failed to generate pre-signed URL for delivery {$delivery->id}: " . $e->getMessage()
             );

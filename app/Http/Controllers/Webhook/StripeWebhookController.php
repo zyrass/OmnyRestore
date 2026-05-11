@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Webhook;
 
+use App\Jobs\GenerateOrderZipJob;
+use App\Mail\OrderPaidConfirmation;
 use App\Models\Order;
 use App\Services\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Stripe\Event;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\Stripe;
@@ -106,9 +109,25 @@ class StripeWebhookController
 
         $this->audit->orderStatusChanged($order, 'DONE', 'PAID');
 
-        Log::info("Stripe webhook: Order {$order->reference} marked as PAID");
-        // L'OrderObserver envoie automatiquement OrderPaidConfirmation via mail queue
+        // ── Déclencher la génération du ZIP en background ──────────────────
+        // Le job créera le ZIP depuis la collection 'retouched' et mettra à
+        // jour order.zip_path + status = DELIVERED quand terminé.
+        GenerateOrderZipJob::dispatch($order)->onQueue('default');
+
+        // ── Notifier le client par email ───────────────────────────────────
+        // Email : "Paiement confirmé — téléchargez vos photos"
+        try {
+            Mail::to($order->user->email)->queue(new OrderPaidConfirmation($order));
+        } catch (\Throwable $e) {
+            // On ne bloque pas le webhook si l'email échoue
+            Log::error("Webhook: mail confirmation échoué pour {$order->reference}", [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        Log::info("Stripe webhook: Order {$order->reference} PAID — ZIP job dispatched + email queued");
     }
+
 
     /**
      * payment_intent.payment_failed
