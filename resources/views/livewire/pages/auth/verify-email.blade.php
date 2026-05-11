@@ -1,6 +1,5 @@
 <?php
 
-use App\Livewire\Actions\Logout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
@@ -8,51 +7,51 @@ use Livewire\Volt\Component;
 
 new #[Layout('layouts.guest')] class extends Component
 {
-    /**
-     * Send an email verification notification to the user.
-     */
     public function sendVerification(): void
     {
         if (Auth::user()->hasVerifiedEmail()) {
-            $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
-
+            $this->redirectIntended(default: route('client.orders.index', absolute: false), navigate: true);
             return;
         }
 
         Auth::user()->sendEmailVerificationNotification();
-
-        Session::flash('status', 'verification-link-sent');
+        Session::flash('status', 'Un nouveau lien de vérification a été envoyé à votre adresse email.');
     }
 
-    /**
-     * Log the current user out of the application.
-     */
-    public function logout(Logout $logout): void
+    public function logout(): void
     {
-        $logout();
-
+        Auth::guard('web')->logout();
+        Session::invalidate();
+        Session::regenerateToken();
         $this->redirect('/', navigate: true);
     }
 }; ?>
 
 <div>
-    <div class="mb-4 text-sm text-gray-600">
-        {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
+    <div class="mb-8">
+        <div class="w-14 h-14 border border-[#C9A84C]/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-6 h-6 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-[#F5F0E8] mb-2 text-center">Vérifiez votre email</h1>
+        <p class="text-[#7A6E5E] text-sm text-center leading-relaxed">
+            Un lien de vérification a été envoyé à votre adresse email.
+            Cliquez sur ce lien pour activer votre compte.
+        </p>
     </div>
 
-    @if (session('status') == 'verification-link-sent')
-        <div class="mb-4 font-medium text-sm text-green-600">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
-        </div>
-    @endif
+    <x-auth-session-status class="mb-6" :status="session('status')" />
 
-    <div class="mt-4 flex items-center justify-between">
-        <x-primary-button wire:click="sendVerification">
-            {{ __('Resend Verification Email') }}
+    <form wire:submit="sendVerification">
+        <x-primary-button>
+            Renvoyer le lien de vérification
         </x-primary-button>
+    </form>
 
-        <button wire:click="logout" type="submit" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-            {{ __('Log Out') }}
+    <div class="mt-4 text-center">
+        <button wire:click="logout" class="text-[#7A6E5E] text-sm hover:text-[#C9A84C] transition-colors">
+            Se déconnecter
         </button>
     </div>
 </div>

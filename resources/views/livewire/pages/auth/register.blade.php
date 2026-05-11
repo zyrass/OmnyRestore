@@ -14,75 +14,116 @@ new #[Layout('layouts.guest')] class extends Component
     public string $email = '';
     public string $password = '';
     public string $password_confirmation = '';
+    public bool $rgpd_consent = false;
 
-    /**
-     * Handle an incoming registration request.
-     */
     public function register(): void
     {
         $validated = $this->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
+            'name'                  => ['required', 'string', 'max:255'],
+            'email'                 => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'password'              => ['required', 'string', 'confirmed', Rules\Password::defaults()],
+            'rgpd_consent'          => ['accepted'],
+        ], [
+            'rgpd_consent.accepted' => 'Vous devez accepter la politique de confidentialité pour créer un compte.',
         ]);
 
-        $validated['password'] = Hash::make($validated['password']);
+        $validated['password']      = Hash::make($validated['password']);
+        $validated['rgpd_consent_at'] = now();
+        unset($validated['rgpd_consent']);
 
         event(new Registered($user = User::create($validated)));
 
         Auth::login($user);
 
-        $this->redirect(route('dashboard', absolute: false), navigate: true);
+        $this->redirect(route('client.orders.index', absolute: false), navigate: true);
     }
 }; ?>
 
 <div>
-    <form wire:submit="register">
-        <!-- Name -->
+    {{-- Page title --}}
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-[#F5F0E8] mb-1">Créer un compte</h1>
+        <p class="text-[#7A6E5E] text-sm">Déposez vos premières photos à restaurer</p>
+    </div>
+
+    <form wire:submit="register" class="space-y-5">
+
+        {{-- Nom --}}
         <div>
-            <x-input-label for="name" :value="__('Name')" />
-            <x-text-input wire:model="name" id="name" class="block mt-1 w-full" type="text" name="name" required autofocus autocomplete="name" />
-            <x-input-error :messages="$errors->get('name')" class="mt-2" />
+            <x-input-label for="name" :value="__('Prénom et nom')" />
+            <x-text-input
+                wire:model="name" id="name" type="text" name="name"
+                placeholder="Marie Dupont"
+                required autofocus autocomplete="name"
+            />
+            <x-input-error :messages="$errors->get('name')" class="mt-1.5" />
         </div>
 
-        <!-- Email Address -->
-        <div class="mt-4">
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input wire:model="email" id="email" class="block mt-1 w-full" type="email" name="email" required autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        {{-- Email --}}
+        <div>
+            <x-input-label for="email" :value="__('Adresse email')" />
+            <x-text-input
+                wire:model="email" id="email" type="email" name="email"
+                placeholder="vous@exemple.fr"
+                required autocomplete="username"
+            />
+            <x-input-error :messages="$errors->get('email')" class="mt-1.5" />
         </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input wire:model="password" id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        {{-- Password --}}
+        <div>
+            <x-input-label for="password" :value="__('Mot de passe')" />
+            <x-text-input
+                wire:model="password" id="password" type="password" name="password"
+                placeholder="8 caractères minimum"
+                required autocomplete="new-password"
+            />
+            <x-input-error :messages="$errors->get('password')" class="mt-1.5" />
         </div>
 
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-
-            <x-text-input wire:model="password_confirmation" id="password_confirmation" class="block mt-1 w-full"
-                            type="password"
-                            name="password_confirmation" required autocomplete="new-password" />
-
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+        {{-- Confirm Password --}}
+        <div>
+            <x-input-label for="password_confirmation" :value="__('Confirmer le mot de passe')" />
+            <x-text-input
+                wire:model="password_confirmation" id="password_confirmation" type="password"
+                name="password_confirmation"
+                placeholder="Répéter le mot de passe"
+                required autocomplete="new-password"
+            />
+            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1.5" />
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}" wire:navigate>
-                {{ __('Already registered?') }}
-            </a>
+        {{-- RGPD Consent --}}
+        <div class="bg-[#1A1510] border border-[#C9A84C]/15 rounded-sm p-4">
+            <label for="rgpd_consent" class="flex items-start gap-3 cursor-pointer">
+                <input wire:model="rgpd_consent" id="rgpd_consent" type="checkbox" name="rgpd_consent"
+                       class="mt-0.5 w-4 h-4 rounded-sm border border-[#C9A84C]/30 bg-[#0D0B08] text-[#C9A84C]
+                              checked:bg-[#C9A84C] focus:ring-[#C9A84C]/30 focus:ring-offset-[#0D0B08] shrink-0">
+                <span class="text-[#7A6E5E] text-xs leading-relaxed">
+                    J'accepte la
+                    <a href="{{ route('legal.privacy') }}" wire:navigate target="_blank" class="text-[#C9A84C] hover:text-[#E8C97A] transition-colors underline">politique de confidentialité</a>
+                    et les
+                    <a href="{{ route('legal.cgv') }}" wire:navigate target="_blank" class="text-[#C9A84C] hover:text-[#E8C97A] transition-colors underline">conditions générales de vente</a>.
+                    Mes photos seront supprimées 6 mois après livraison.
+                </span>
+            </label>
+            <x-input-error :messages="$errors->get('rgpd_consent')" class="mt-2" />
+        </div>
 
-            <x-primary-button class="ms-4">
-                {{ __('Register') }}
+        {{-- Submit --}}
+        <div class="pt-1">
+            <x-primary-button>
+                Créer mon compte
             </x-primary-button>
         </div>
+
     </form>
+
+    {{-- Login link --}}
+    <p class="mt-6 text-center text-sm text-[#7A6E5E]">
+        Déjà un compte ?
+        <a href="{{ route('login') }}" wire:navigate class="text-[#C9A84C] hover:text-[#E8C97A] transition-colors font-medium ml-1">
+            Se connecter
+        </a>
+    </p>
 </div>
