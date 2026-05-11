@@ -3,147 +3,180 @@
 namespace App\Jobs;
 
 use App\Models\Order;
-use App\Models\OrderDelivery;
-use App\Notifications\OrderReadyForPayment;
-use App\Services\AuditService;
-use App\Services\SignedUrlService;
-use App\Services\ZipGeneratorService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use ZipArchive;
 
 /**
  * Job: GenerateOrderZipJob
  *
- * Asynchronously generates the ZIP archive for a completed order.
- * This job runs in the background queue (Redis + Horizon) after admin marks order DONE.
+ * Crée une archive ZIP des photos restaurées pour une commande payée.
+ * Déclenché automatiquement par l'OrderObserver quand le statut passe à PAID.
  *
- * Why async?
- *   Generating a ZIP from multiple 8K photos can take 30-120 seconds and use
- *   several hundred MB of memory. Running this synchronously would:
- *     - Cause a browser timeout (504 Gateway Timeout after 30s)
- *     - Block the admin's HTTP request
- *   By dispatching to a queue, the admin gets instant feedback while the job
- *   runs on a dedicated worker process.
+ * Flow :
+ *   1. Récupère toutes les médias 'retouched' de la commande
+ *   2. Télécharge chaque fichier depuis le disk configuré (local ou S3)
+ *   3. Crée un ZIP en mémoire / disque temporaire
+ *   4. Sauvegarde le ZIP dans Storage::disk('local') → storage/app/orders/zips/
+ *   5. Met à jour la commande avec le chemin du ZIP et le statut DELIVERED
  *
- * Dispatch example (in Livewire AdminOrderManage component):
- *   GenerateOrderZipJob::dispatch($order)
- *       ->onQueue('zip-generation')  // Dedicated queue for resource-intensive jobs
- *       ->delay(now()->addSeconds(5)); // Small delay to ensure media is fully uploaded
+ * Securité :
+ *   - Le ZIP est stocké en dehors du dossier public (non accessible directement)
+ *   - Le téléchargement est servi via OrderDownloadController avec une URL signée
+ *   - Le ZIP est supprimé automatiquement après 90 jours (via cleanup job futur)
  *
- * Failure handling:
- *   - $tries = 3: The job retries up to 3 times on failure
- *   - $backoff: Progressive delay between retries (exponential backoff)
- *   - failed(): Called when all retries are exhausted — notifies admin
+ * Retry : 3 tentatives avec backoff de 60s entre chaque
  *
- * @see App\Services\ZipGeneratorService
- * @see https://laravel.com/docs/queues
+ * @see App\Http\Controllers\Client\OrderDownloadController
+ * @see App\Observers\OrderObserver
  */
 class GenerateOrderZipJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /**
-     * Maximum number of attempts before marking as failed.
-     * 3 attempts allows recovery from transient S3 or memory errors.
-     */
+    /** Nombre max de tentatives si le job échoue */
     public int $tries = 3;
 
-    /**
-     * Progressive backoff delays between retries (in seconds).
-     * Attempt 1 fails → wait 30s → Attempt 2
-     * Attempt 2 fails → wait 60s → Attempt 3
-     */
-    public array $backoff = [30, 60];
+    /** Délai entre les tentatives (secondes) */
+    public int $backoff = 60;
+
+    /** Timeout maximum pour ce job (secondes) — les ZIPs peuvent être lourds */
+    public int $timeout = 300;
+
+    public function __construct(public readonly Order $order) {}
 
     /**
-     * Maximum execution time in seconds before the job is considered timed out.
-     * 10 minutes is generous for large photo batches (up to ~20 photos).
+     * Point d'entrée du job — exécuté par le worker de queue
      */
-    public int $timeout = 600;
+    public function handle(): void
+    {
+        $order = $this->order->fresh()->load('media');
 
-    /**
-     * Create a new job instance.
-     *
-     * The Order model is automatically serialized/deserialized by SerializesModels.
-     * This means the full model is not stored in the queue — only the ID.
-     * Laravel re-fetches the Order from the DB when the job runs.
-     *
-     * @param Order $order The completed order to generate a ZIP for
-     */
-    public function __construct(
-        public readonly Order $order
-    ) {}
+        Log::info("GenerateOrderZipJob: starting for order {$order->reference}", [
+            'order_id' => $order->id,
+        ]);
 
-    /**
-     * Execute the job.
-     *
-     * Laravel injects services from the container automatically via method injection.
-     *
-     * @param ZipGeneratorService $zipGenerator Handles the ZipArchive + S3 upload
-     * @param SignedUrlService    $signedUrl    Generates the presigned download URL
-     * @param AuditService       $audit        Records the completion in audit logs
-     */
-    public function handle(
-        ZipGeneratorService $zipGenerator,
-        SignedUrlService    $signedUrl,
-        AuditService        $audit
-    ): void {
-        // Re-fetch order to get latest state (may have changed since job was queued)
-        $order = $this->order->fresh();
+        // Vérifier qu'il y a des photos restaurées à zipper
+        $retouchedMedia = $order->getMedia('retouched');
 
-        // Safety check: only process DONE orders
-        if ($order->status !== 'DONE') {
-            // Log and silently skip — don't throw (would trigger retry for a non-error)
-            logger()->warning("GenerateOrderZipJob skipped: order {$order->reference} is not DONE", [
-                'order_id' => $order->id,
-                'status'   => $order->status,
-            ]);
+        if ($retouchedMedia->isEmpty()) {
+            Log::warning("GenerateOrderZipJob: no retouched media found for {$order->reference}");
             return;
         }
 
-        logger()->info("GenerateOrderZipJob started for order {$order->reference}", [
-            'order_id'    => $order->id,
-            'photo_count' => $order->photo_count,
+        // ── Préparer le chemin du ZIP ──────────────────────────────────────
+        $zipDir      = storage_path('app/orders/zips');
+        $zipFilename = "omnyrestore_{$order->reference}_" . now()->format('Ymd_His') . '.zip';
+        $zipPath     = "{$zipDir}/{$zipFilename}";
+
+        // Créer le répertoire si nécessaire
+        if (! is_dir($zipDir)) {
+            mkdir($zipDir, 0755, true);
+        }
+
+        // ── Créer le ZIP ───────────────────────────────────────────────────
+        $zip = new ZipArchive();
+
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            throw new \RuntimeException("Impossible de créer le ZIP : {$zipPath}");
+        }
+
+        // Ajouter un fichier README dans le ZIP
+        $readmeContent = $this->buildReadme($order);
+        $zip->addFromString('README.txt', $readmeContent);
+
+        // Ajouter chaque photo restaurée
+        $addedCount = 0;
+        foreach ($retouchedMedia as $media) {
+            try {
+                // Récupérer le contenu depuis le disk Spatie (local ou S3)
+                $contents = file_get_contents($media->getPath());
+                if ($contents === false) {
+                    Log::warning("GenerateOrderZipJob: cannot read {$media->file_name}");
+                    continue;
+                }
+
+                // Nom propre sans le préfixe "restored_"
+                $filename = ltrim(str_replace('restored_', '', $media->file_name), '_');
+
+                $zip->addFromString("photos/{$filename}", $contents);
+                $addedCount++;
+
+            } catch (\Throwable $e) {
+                Log::warning("GenerateOrderZipJob: error adding {$media->file_name}", [
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        $zip->close();
+
+        if ($addedCount === 0) {
+            unlink($zipPath);
+            throw new \RuntimeException("Aucune photo n'a pu être ajoutée au ZIP pour {$order->reference}");
+        }
+
+        Log::info("GenerateOrderZipJob: ZIP created with {$addedCount} photos", [
+            'zip_path' => $zipPath,
+            'size'     => number_format(filesize($zipPath) / 1024 / 1024, 2) . ' MB',
         ]);
 
-        // ─── Step 1: Generate the ZIP file ────────────────────────────────
-        $delivery = $zipGenerator->generate($order);
-
-        // ─── Step 2: Generate the initial presigned download URL ──────────
-        $signedUrl->generate($delivery);
-
-        // ─── Step 3: Notify the client that their order is ready ─────────
-        // The notification includes the payment link (Stripe Checkout URL)
-        $order->user->notify(new OrderReadyForPayment($order));
-
-        logger()->info("GenerateOrderZipJob completed for order {$order->reference}", [
-            'order_id'  => $order->id,
-            'zip_path'  => $delivery->zip_path,
-            'zip_size'  => $delivery->zip_size,
+        // ── Mettre à jour la commande ──────────────────────────────────────
+        $order->update([
+            'zip_path'      => "orders/zips/{$zipFilename}",
+            'zip_expires_at' => now()->addDays(90),
+            'status'        => 'DELIVERED',
+            'delivered_at'  => now(),
         ]);
+
+        Log::info("GenerateOrderZipJob: order {$order->reference} marked DELIVERED");
     }
 
     /**
-     * Handle a job failure.
-     *
-     * Called when all retry attempts are exhausted.
-     * Notifies the admin that ZIP generation failed for manual intervention.
-     *
-     * @param \Throwable $exception The exception that caused the failure
+     * Gestion des échecs définitifs (après toutes les tentatives)
      */
     public function failed(\Throwable $exception): void
     {
-        logger()->error("GenerateOrderZipJob FAILED for order {$this->order->reference}", [
-            'order_id'  => $this->order->id,
-            'error'     => $exception->getMessage(),
-            'trace'     => $exception->getTraceAsString(),
+        Log::error("GenerateOrderZipJob: FAILED for order {$this->order->reference}", [
+            'error'    => $exception->getMessage(),
+            'order_id' => $this->order->id,
         ]);
 
-        // TODO Phase 2: Notify admin via Slack/email about the failure
-        // Notification::route('mail', config('mail.admin_address'))
-        //     ->notify(new ZipGenerationFailed($this->order, $exception));
+        // TODO: Notification admin en cas d'échec critique
+    }
+
+    /**
+     * Génère un fichier README.txt lisible pour le client
+     */
+    private function buildReadme(Order $order): string
+    {
+        return <<<TXT
+╔══════════════════════════════════════════════════════════════╗
+║              OmnyRestore — Restauration photographique       ║
+╚══════════════════════════════════════════════════════════════╝
+
+Commande   : {$order->reference}
+Photos     : {$order->photo_count} photo(s) restaurée(s)
+Niveau     : {$order->damage_level}
+Date       : {$order->delivered_at?->format('d/m/Y à H:i')}
+
+──────────────────────────────────────────────────────────────
+
+Vos photos se trouvent dans le dossier "photos/" de cette archive.
+
+Conseils de conservation :
+  • Sauvegardez vos photos sur un support externe (disque dur, clé USB)
+  • Faites une copie sur un service cloud personnel (iCloud, Google Photos...)
+  • Ce lien de téléchargement expire dans 90 jours
+
+Contact : contact@omnyrestore.fr
+
+Merci pour votre confiance — OmnyRestore
+TXT;
     }
 }
