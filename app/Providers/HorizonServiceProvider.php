@@ -15,22 +15,27 @@ class HorizonServiceProvider extends HorizonApplicationServiceProvider
     {
         parent::boot();
 
-        // Horizon::routeSmsNotificationsTo('15556667777');
-        // Horizon::routeMailNotificationsTo('example@example.com');
-        // Horizon::routeSlackNotificationsTo('slack-webhook-url', '#channel');
+        // Configure Horizon alert notifications (Phase 2 — uncomment and configure):
+        // Horizon::routeMailNotificationsTo('admin@omnyrestore.fr');
+        // Horizon::routeSlackNotificationsTo(env('HORIZON_SLACK_WEBHOOK'), '#ops');
     }
 
     /**
      * Register the Horizon gate.
      *
-     * This gate determines who can access Horizon in non-local environments.
+     * Controls who can access the /horizon dashboard.
+     * In local environment: always accessible (no auth required in development).
+     * In staging/production: restricted to users with role = 'admin'.
+     *
+     * Security note: This gate runs on top of web auth middleware.
+     * The user must ALSO be authenticated via the standard auth system.
      */
     protected function gate(): void
     {
-        Gate::define('viewHorizon', function ($user = null) {
-            return in_array(optional($user)->email, [
-                //
-            ]);
+        Gate::define('viewHorizon', function ($user = null): bool {
+            // Allow access only to users with the 'admin' role.
+            // $user may be null if accessed unauthenticated — deny in that case.
+            return $user !== null && $user->isAdmin();
         });
     }
 }

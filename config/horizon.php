@@ -1,44 +1,22 @@
 <?php
 
-use Illuminate\Support\Str;
-
 return [
-
-    /*
-    |--------------------------------------------------------------------------
-    | Horizon Name
-    |--------------------------------------------------------------------------
-    |
-    | This name appears in notifications and in the Horizon UI. Unique names
-    | can be useful while running multiple instances of Horizon within an
-    | application, allowing you to identify the Horizon you're viewing.
-    |
-    */
-
-    'name' => env('HORIZON_NAME'),
 
     /*
     |--------------------------------------------------------------------------
     | Horizon Domain
     |--------------------------------------------------------------------------
-    |
-    | This is the subdomain where Horizon will be accessible from. If this
-    | setting is null, Horizon will reside under the same domain as the
-    | application. Otherwise, this value will serve as the subdomain.
-    |
+    | By default, Horizon will be available under the /horizon URI. Change
+    | this to restrict Horizon to a specific domain.
     */
 
-    'domain' => env('HORIZON_DOMAIN'),
+    'domain' => env('HORIZON_DOMAIN', null),
 
     /*
     |--------------------------------------------------------------------------
     | Horizon Path
     |--------------------------------------------------------------------------
-    |
-    | This is the URI path where Horizon will be accessible from. Feel free
-    | to change this path to anything you like. Note that the URI will not
-    | affect the paths of its internal API that aren't exposed to users.
-    |
+    | The URI path where Horizon will be available from.
     */
 
     'path' => env('HORIZON_PATH', 'horizon'),
@@ -47,11 +25,7 @@ return [
     |--------------------------------------------------------------------------
     | Horizon Redis Connection
     |--------------------------------------------------------------------------
-    |
-    | This is the name of the Redis connection where Horizon will store the
-    | meta information required for it to function. It includes the list
-    | of supervisors, failed jobs, job metrics, and other information.
-    |
+    | The Redis connection to use for the Horizon queues and metrics storage.
     */
 
     'use' => 'default',
@@ -60,27 +34,19 @@ return [
     |--------------------------------------------------------------------------
     | Horizon Redis Prefix
     |--------------------------------------------------------------------------
-    |
-    | This prefix will be used when storing all Horizon data in Redis. You
-    | may modify the prefix when you are running multiple installations
-    | of Horizon on the same server so that they don't have problems.
-    |
+    | The prefix added to all Horizon keys stored in Redis.
+    | Prevents collisions if multiple apps share the same Redis instance.
     */
 
-    'prefix' => env(
-        'HORIZON_PREFIX',
-        Str::slug(env('APP_NAME', 'laravel'), '_').'_horizon:'
-    ),
+    'prefix' => env('HORIZON_PREFIX', 'omnyrestore_horizon:'),
 
     /*
     |--------------------------------------------------------------------------
     | Horizon Route Middleware
     |--------------------------------------------------------------------------
-    |
-    | These middleware will get attached onto each Horizon route, giving you
-    | the chance to add your own middleware to this list or change any of
-    | the existing middleware. Or, you can simply stick with this list.
-    |
+    | Horizon will use these middleware for the Horizon dashboard routes.
+    | By default, the HorizonServiceProvider restricts access to authenticated
+    | admin users via the 'viewHorizon' Gate.
     */
 
     'middleware' => ['web'],
@@ -89,11 +55,9 @@ return [
     |--------------------------------------------------------------------------
     | Queue Wait Time Thresholds
     |--------------------------------------------------------------------------
-    |
-    | This option allows you to configure when the LongWaitDetected event
-    | will be fired. Every connection / queue combination may have its
-    | own, unique threshold (in seconds) before this event is fired.
-    |
+    | Send alert if any queue's wait time exceeds this number of seconds.
+    | Useful for detecting worker saturation on high-volume periods.
+    | Note: Alerting requires Horizon + Slack notification configuration.
     */
 
     'waits' => [
@@ -104,70 +68,26 @@ return [
     |--------------------------------------------------------------------------
     | Job Trimming Times
     |--------------------------------------------------------------------------
-    |
-    | Here you can configure for how long (in minutes) you desire Horizon to
-    | persist the recent and failed jobs. Typically, recent jobs are kept
-    | for one hour while all failed jobs are stored for an entire week.
-    |
+    | How long (in minutes) to keep historical job records in Redis.
+    | Recent: completed successfully in the last N minutes
+    | Pending: currently in the queue
+    | Failed:  retained for inspection before manual retry
     */
 
     'trim' => [
-        'recent' => 60,
-        'pending' => 60,
-        'completed' => 60,
-        'recent_failed' => 10080,
-        'failed' => 10080,
-        'monitored' => 10080,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Silenced Jobs
-    |--------------------------------------------------------------------------
-    |
-    | Silencing a job will instruct Horizon to not place the job in the list
-    | of completed jobs within the Horizon dashboard. This setting may be
-    | used to fully remove any noisy jobs from the completed jobs list.
-    |
-    */
-
-    'silenced' => [
-        // App\Jobs\ExampleJob::class,
-    ],
-
-    'silenced_tags' => [
-        // 'notifications',
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Metrics
-    |--------------------------------------------------------------------------
-    |
-    | Here you can configure how many snapshots should be kept to display in
-    | the metrics graph. This will get used in combination with Horizon's
-    | `horizon:snapshot` schedule to define how long to retain metrics.
-    |
-    */
-
-    'metrics' => [
-        'trim_snapshots' => [
-            'job' => 24,
-            'queue' => 24,
-        ],
+        'recent'         => 60,      // 1 hour
+        'pending'        => 60,
+        'recent_failed'  => 10080,   // 7 days — time to investigate and retry
+        'failed'         => 10080,
+        'monitored'      => 10080,
     ],
 
     /*
     |--------------------------------------------------------------------------
     | Fast Termination
     |--------------------------------------------------------------------------
-    |
-    | When this option is enabled, Horizon's "terminate" command will not
-    | wait on all of the workers to terminate unless the --wait option
-    | is provided. Fast termination can shorten deployment delay by
-    | allowing a new instance of Horizon to start while the last
-    | instance will continue to terminate each of its workers.
-    |
+    | When set to false, Horizon gracefully waits for the current job to
+    | finish before terminating. Recommended for long-running jobs.
     */
 
     'fast_termination' => false,
@@ -176,79 +96,88 @@ return [
     |--------------------------------------------------------------------------
     | Memory Limit (MB)
     |--------------------------------------------------------------------------
-    |
-    | This value describes the maximum amount of memory the Horizon master
-    | supervisor may consume before it is terminated and restarted. For
-    | configuring these limits on your workers, see the next section.
-    |
+    | Maximum memory a single worker process can use before Horizon restarts it.
+    | Set higher for ZIP generation (large photo batches can use ~400MB).
     */
 
-    'memory_limit' => 64,
+    'memory_limit' => 512,
 
     /*
     |--------------------------------------------------------------------------
-    | Queue Worker Configuration
+    | Queue Worker Supervisor Configuration
     |--------------------------------------------------------------------------
+    | Supervisors manage groups of queue workers.
+    | We define separate supervisors per queue to control resource allocation.
     |
-    | Here you may define the queue worker settings used by your application
-    | in all environments. These supervisors and settings handle all your
-    | queued jobs and will be provisioned by Horizon during deployment.
+    | Queues (by priority):
+    |   default        → General purpose (emails, notifications)
+    |   zip-generation → CPU/memory intensive (ZIP creation) — fewer workers
     |
+    | Balancing strategies:
+    |   'simple'   → Fixed worker count (predictable resources)
+    |   'auto'     → Auto-scales workers based on queue depth
+    |   'false'    → No balancing (use minProcesses exactly)
     */
 
     'defaults' => [
         'supervisor-1' => [
-            'connection' => 'redis',
-            'queue' => ['default'],
-            'balance' => 'auto',
+            'connection'   => 'redis',
+            'queue'        => ['default'],
+            'balance'      => 'auto',
             'autoScalingStrategy' => 'time',
-            'maxProcesses' => 1,
-            'maxTime' => 0,
-            'maxJobs' => 0,
-            'memory' => 128,
-            'tries' => 1,
-            'timeout' => 60,
-            'nice' => 0,
+            'maxProcesses' => 10,
+            'maxTime'      => 0,
+            'maxJobs'      => 0,
+            'memory'       => 256,
+            'tries'        => 1,
+            'timeout'      => 60,
+            'nice'         => 0,
         ],
     ],
 
     'environments' => [
+
         'production' => [
-            'supervisor-1' => [
-                'maxProcesses' => 10,
-                'balanceMaxShift' => 1,
-                'balanceCooldown' => 3,
+            // General purpose workers: emails, notifications, signed URLs
+            'supervisor-default' => [
+                'connection'   => 'redis',
+                'queue'        => ['default'],
+                'balance'      => 'auto',
+                'maxProcesses' => 5,
+                'minProcesses' => 1,
+                'memory'       => 256,
+                'tries'        => 3,
+                'timeout'      => 90,
+                'nice'         => 0,
+            ],
+
+            // ZIP generation: resource-intensive, fewer concurrent workers
+            'supervisor-zip' => [
+                'connection'   => 'redis',
+                'queue'        => ['zip-generation'],
+                'balance'      => 'simple',
+                'maxProcesses' => 2,  // Limit to 2 concurrent ZIP jobs (memory protection)
+                'minProcesses' => 1,
+                'memory'       => 512,
+                'tries'        => 3,
+                'timeout'      => 600, // 10 minutes max per ZIP job
+                'nice'         => 10,  // Lower priority than web requests
             ],
         ],
 
         'local' => [
             'supervisor-1' => [
+                'connection'   => 'redis',
+                'queue'        => ['default', 'zip-generation'],
+                'balance'      => 'simple',
                 'maxProcesses' => 3,
+                'minProcesses' => 1,
+                'memory'       => 512,
+                'tries'        => 1,
+                'timeout'      => 600,
+                'nice'         => 0,
             ],
         ],
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | File Watcher Configuration
-    |--------------------------------------------------------------------------
-    |
-    | The following list of directories and files will be watched when using
-    | the `horizon:listen` command. Whenever any directories or files are
-    | changed, Horizon will automatically restart to apply all changes.
-    |
-    */
-
-    'watch' => [
-        'app',
-        'bootstrap',
-        'config/**/*.php',
-        'database/**/*.php',
-        'public/**/*.php',
-        'resources/**/*.php',
-        'routes',
-        'composer.lock',
-        'composer.json',
-        '.env',
-    ],
 ];
