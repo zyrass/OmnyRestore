@@ -76,6 +76,41 @@ class extends Component
     }
 
     /**
+     * Client supprime définitivement une photo restaurée (irréversible).
+     * La photo doit être préalablement retirée (is_rejected) pour activer ce droit.
+     * On s'assure qu'il reste au moins 1 photo active avant de supprimer.
+     */
+    public function deletePhoto(int $mediaId): void
+    {
+        abort_if($this->order->user_id !== auth()->id(), 403);
+        abort_if($this->order->status !== 'DONE', 403);
+
+        $media = $this->order->getMedia('retouched')->firstWhere('id', $mediaId);
+        abort_if(! $media, 404);
+        abort_if(! $media->getCustomProperty('is_rejected', false), 403, 'Retirez la photo avant de la supprimer.');
+
+        // Garde-fou : au moins 1 photo active doit rester dans la commande
+        $activeCount = $this->order->getMedia('retouched')
+            ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
+            ->count();
+
+        if ($activeCount === 0 && $this->order->getMedia('retouched')->count() === 1) {
+            session()->flash('error', 'Vous ne pouvez pas supprimer la dernière photo de la commande.');
+            return;
+        }
+
+        \Illuminate\Support\Facades\Log::info(
+            "Client delete media#{$mediaId} on order {$this->order->reference} by user#{auth()->id()}"
+        );
+
+        $media->delete();
+
+        $this->recalcPriceFromActivePhotos();
+        session()->flash('success', 'Photo supprimée définitivement de votre commande.');
+        $this->order->refresh()->load(['media', 'delivery']);
+    }
+
+    /**
      * Recalcule total_price_cents d'après les photos actives (non rejetées par le client).
      */
     private function recalcPriceFromActivePhotos(): void
@@ -204,7 +239,7 @@ class extends Component
                 </div>
 
                 {{-- Grille sélection — état modal partagé + hover CSS pur --}}
-                <div x-data="{ pendingId: null, confirmOpen: false }">
+                <div x-data="{ pendingId: null, confirmOpen: false, deleteOpen: false }">
 
                     {{-- ── Modal confirmation retrait (téléporté hors overflow-hidden) ── --}}
                     <template x-teleport="body">
@@ -231,6 +266,36 @@ class extends Component
                                     <button @click="confirmOpen = false; $wire.rejectPhoto(pendingId)"
                                             class="px-5 py-2 text-sm bg-red-700 text-white rounded-sm hover:bg-red-600 transition-colors font-semibold">
                                         Retirer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- ── Modal suppression définitive ── --}}
+                        <div x-show="deleteOpen" x-cloak
+                             class="fixed inset-0 z-[999] flex items-center justify-center"
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100"
+                             x-transition:leave-end="opacity-0">
+                            <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" @click="deleteOpen = false"></div>
+                            <div class="relative z-10 w-full max-w-sm mx-4 bg-[#120F0A] border border-red-700/40 rounded-sm shadow-2xl p-6 text-center">
+                                <div class="w-12 h-12 border-2 border-red-600/50 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-900/30">
+                                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                </div>
+                                <h3 class="text-red-300 font-bold mb-1">Suppression définitive</h3>
+                                <p class="text-[#7A6E5E] text-xs mb-1 uppercase tracking-widest">Action irréversible</p>
+                                <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed mt-3">Cette photo sera <strong class="text-red-400">supprimée définitivement</strong> et ne pourra pas être récupérée. Confirmez uniquement si vous êtes certain.</p>
+                                <div class="flex gap-3 justify-center">
+                                    <button @click="deleteOpen = false"
+                                            class="px-5 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all">
+                                        Annuler
+                                    </button>
+                                    <button @click="deleteOpen = false; $wire.deletePhoto(pendingId)"
+                                            class="px-5 py-2 text-sm bg-red-900 border border-red-600/50 text-red-200 rounded-sm hover:bg-red-800 transition-colors font-bold">
+                                        🗑️ Supprimer définitivement
                                     </button>
                                 </div>
                             </div>
@@ -269,13 +334,17 @@ class extends Component
 
                             {{-- ── Overlay "Retirée" ── --}}
                             @if ($isRejected)
-                            <div class="absolute inset-0 bg-red-950/50 flex items-center justify-center pointer-events-none">
+                            <div class="absolute inset-0 bg-red-950/60 flex items-center justify-center pointer-events-none">
                                 <span class="text-red-200 text-xs font-bold uppercase tracking-widest bg-red-900/80 px-3 py-1 rounded">Retirée</span>
                             </div>
-                            {{-- Bouton ↩ réintégrer — coin haut-droit, visible au survol --}}
-                            <button wire:click="restorePhoto({{ $media->id }})" title="Réintégrer"
+                            {{-- Boutons sur photo retirée : ↩ réintégrer (haut-droit) + 🗑️ supprimer (haut-gauche) --}}
+                            <button wire:click="restorePhoto({{ $media->id }})" title="Réintégrer cette photo"
                                     class="absolute top-2 right-2 z-20 w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all duration-150 bg-emerald-700 text-emerald-100 opacity-0 group-hover:opacity-100 hover:bg-emerald-500 hover:scale-110">
                                 ↩
+                            </button>
+                            <button @click="pendingId = {{ $media->id }}; deleteOpen = true" title="Supprimer définitivement"
+                                    class="absolute top-2 left-2 z-20 w-7 h-7 flex items-center justify-center rounded-full text-[10px] font-bold transition-all duration-150 bg-red-900/90 text-red-300 border border-red-600/40 opacity-0 group-hover:opacity-100 hover:bg-red-800 hover:scale-110">
+                                🗑
                             </button>
                             @else
                             {{-- Croix ✕ — coin haut-droit, visible au survol --}}
