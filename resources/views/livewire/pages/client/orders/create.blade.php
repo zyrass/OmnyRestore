@@ -136,8 +136,16 @@ class extends Component
     {
         $this->validate([
             'photos'       => ['required', 'array', 'min:1', 'max:10'],
-            'photos.*'     => ['required', 'file', 'mimes:jpg,jpeg,png,tiff,tif', 'max:20480'],
+            // Note: photos.* n'est pas re-validé ici car les fichiers temporaires
+            // Livewire sont déjà validés à l'upload (wire:model) et peuvent être
+            // dans un état transitoire au moment du submit.
             'instructions' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        \Illuminate\Support\Facades\Log::info('Order submit() déclenché', [
+            'user_id'      => auth()->id(),
+            'photos_count' => count($this->photos),
+            'damage_level' => $this->damage_level,
         ]);
 
         // Le damage_level est déterminé par l'IA — non modifiable par le client

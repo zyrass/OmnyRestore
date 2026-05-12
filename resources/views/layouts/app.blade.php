@@ -228,7 +228,13 @@
 @livewireScripts
 
 <script>
-document.addEventListener('alpine:init', () => {
+/**
+ * Initialise le store Alpine confirmModal.
+ * Compatible wire:navigate : appel aussi sur livewire:navigated
+ * car alpine:init ne se déclenche qu'une seule fois.
+ */
+function initConfirmModalStore() {
+    if (typeof Alpine === 'undefined') return;
     Alpine.store('confirmModal', {
         show: false,
         title: '',
@@ -257,7 +263,11 @@ document.addEventListener('alpine:init', () => {
             this._resolve = null;
         }
     });
-});
+}
+
+document.addEventListener('alpine:init', initConfirmModalStore);
+// wire:navigate re-exécute les scripts mais pas alpine:init → forcer le store
+document.addEventListener('livewire:navigated', initConfirmModalStore);
 
 /**
  * Helper global : omnyConfirm({title, message, confirmLabel, danger}) → Promise<void>
