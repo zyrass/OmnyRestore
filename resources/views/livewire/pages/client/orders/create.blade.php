@@ -431,10 +431,11 @@ class extends Component
                         </div>
                         @if ($analysisComplete && count($photos) > 0)
                         @php
-                            $baseHt    = count($photos) * (\App\Services\PhotoDamageAnalyzer::PRICES[$damage_level] ?? 83);
+                            // Somme individuelle — chaque photo à son propre tarif IA
+                            $baseHt    = (int) array_sum(array_column($analysisResults, 'price_cents'));
                             $discount  = $couponResult['discount_cents'] ?? 0;
                             $netHt     = max(0, $baseHt - $discount);
-                            $tva       = round($netHt * 0.2);
+                            $tva       = (int) round($netHt * 0.2);
                             $ttc       = $netHt + $tva;
                         @endphp
                         @if ($discount > 0)
