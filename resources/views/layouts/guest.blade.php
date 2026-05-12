@@ -126,21 +126,19 @@
 </div>
 
 {{-- ════════════════════════════════════════════════════════════════════
-     COLONNE DROITE — formulaire (2/5 de l'écran sur ≥lg)
+     COLONNE DROITE — formulaire (flex-1, prend l'espace restant après 3/5)
      ════════════════════════════════════════════════════════════════════ --}}
-<div id="main-content"
-     class="flex-1 lg:w-2/5 flex flex-col justify-center items-center min-h-screen
-            bg-[#0D0B08] px-6 py-12 relative"
+<div class="flex-1 flex flex-col justify-center items-center min-h-screen bg-[#0D0B08] px-6 py-12 relative"
+     id="main-content"
      role="main">
 
-    {{-- Glow subtil à droite --}}
-    <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-[#C9A84C]/4 rounded-full
-                blur-[100px] pointer-events-none" aria-hidden="true"></div>
+    {{-- Glow subtil --}}
+    <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-[#C9A84C]/4 rounded-full blur-[100px] pointer-events-none"
+         aria-hidden="true"></div>
 
-    {{-- Logo mobile (petit écran uniquement) --}}
-    <div class="lg:hidden mb-10 relative z-10">
-        <a href="{{ route('home') }}" wire:navigate
-           class="flex items-center gap-3 justify-center"
+    {{-- Logo mobile (visible uniquement sur petit écran) --}}
+    <div class="lg:hidden mb-10">
+        <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 justify-center"
            aria-label="OmnyRestore — Retour à l'accueil">
             <div class="w-8 h-8 border border-[#C9A84C] flex items-center justify-center">
                 <span class="text-[#C9A84C] text-xs font-bold tracking-widest">OR</span>
@@ -149,8 +147,8 @@
         </a>
     </div>
 
-    {{-- Carte formulaire — légèrement plus large qu'avant (max-w-md vs max-w-sm) --}}
-    <div class="w-full max-w-md relative z-10">
+    {{-- Formulaire — même largeur qu'avant --}}
+    <div class="w-full max-w-sm relative z-10">
         {{ $slot }}
     </div>
 
