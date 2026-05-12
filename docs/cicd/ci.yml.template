@@ -1,3 +1,13 @@
+# CI — Tests & Qualité
+# STATUT : INACTIF — À activer quand le VPS OVH et les secrets GitHub seront configurés
+# Déplacer ce fichier vers ../.github/workflows/ci.yml pour l'activer
+#
+# Prérequis avant activation :
+#   - VPS OVH commandé et configuré
+#   - Secrets GitHub configurés (voir docs/deploiement-ovh-production.md §11)
+#   - Branche main protégée dans GitHub Settings
+#   - Slack Webhook configuré (optionnel)
+
 name: CI — Tests & Qualité
 
 on:
@@ -69,11 +79,7 @@ jobs:
 
       redis:
         image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 5
+        options: --health-cmd "redis-cli ping"
         ports:
           - '6379:6379'
 
@@ -142,16 +148,4 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           file: coverage.xml
-        continue-on-error: true
-
-      - name: Notify on failure
-        if: failure()
-        uses: slackapi/slack-github-action@v1
-        with:
-          payload: |
-            {
-              "text": "❌ *CI échoué* sur `${{ github.ref_name }}`\nCommit: ${{ github.sha }}\nAuteur: ${{ github.actor }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Voir les logs>"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         continue-on-error: true

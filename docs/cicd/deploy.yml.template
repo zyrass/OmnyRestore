@@ -1,3 +1,15 @@
+# CD — Deploy Production
+# STATUT : INACTIF — À activer quand le VPS OVH sera prêt
+# Déplacer ce fichier vers ../.github/workflows/deploy.yml pour l'activer
+#
+# Prérequis avant activation :
+#   - VPS OVH commandé et configuré (SSH, Nginx, PHP, PostgreSQL)
+#   - Clé SSH deploy ajoutée dans GitHub Secrets (VPS_SSH_KEY)
+#   - Variables .env production configurées sur le serveur
+#   - Branche main protégée avec review obligatoire
+#   - CI passé au vert au moins une fois
+#   - Slack Webhook configuré (optionnel mais recommandé)
+
 name: CD — Deploy Production
 
 on:
@@ -39,69 +51,42 @@ jobs:
           ssh -p $VPS_PORT $VPS_USER@$VPS_HOST << 'DEPLOY'
             set -e
             APP_DIR="/var/www/omnyrestore"
-
             echo "📦 Début du déploiement — $(date)"
             cd $APP_DIR
 
-            # Mode maintenance (avec token de bypass pour monitoring)
-            php artisan down --refresh=15 --secret="${{ secrets.MAINTENANCE_SECRET }}" --render="errors::503"
-
-            # Récupérer le dernier code main
+            php artisan down --refresh=15 --render="errors::503"
             git fetch origin main
             git reset --hard origin/main
-
-            # Installer dépendances PHP (prod only, autoloader optimisé)
             composer install --no-dev --optimize-autoloader --no-interaction --no-progress
-
-            # Builder les assets
-            npm ci --prefer-offline
-            npm run build
-
-            # Migrations (avec backup automatique beforehand via trigger)
+            npm ci --prefer-offline && npm run build
             php artisan migrate --force
-
-            # Vider et reconstruire tous les caches
             php artisan optimize:clear
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
             php artisan event:cache
-            php artisan icons:cache 2>/dev/null || true
-
-            # Permissions storage
             chown -R www-data:deploy storage bootstrap/cache
             chmod -R 775 storage bootstrap/cache
-
-            # Redémarrer Horizon gracieusement
             php artisan horizon:terminate
             sleep 3
             supervisorctl restart omnyrestore-horizon
-
-            # Désactiver mode maintenance
             php artisan up
 
             echo "✅ Déploiement réussi — $(date)"
-            php artisan --version
           DEPLOY
 
-      - name: Run post-deploy health check
+      - name: Health check
         run: |
           sleep 10
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://omnyrestore.fr)
-          if [ "$STATUS" != "200" ] && [ "$STATUS" != "302" ]; then
-            echo "❌ Health check échoué — HTTP $STATUS"
-            exit 1
-          fi
+          [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ] || (echo "❌ HTTP $STATUS" && exit 1)
           echo "✅ Health check OK — HTTP $STATUS"
 
       - name: Notify Slack — Success
         if: success()
         uses: slackapi/slack-github-action@v1
         with:
-          payload: |
-            {
-              "text": "🚀 *Production déployée avec succès*\nVersion: `${{ github.sha }}`\nAuteur: ${{ github.actor }}\n<https://omnyrestore.fr|🌐 Voir le site>"
-            }
+          payload: '{"text":"🚀 *Production déployée* — `${{ github.sha }}` par ${{ github.actor }}"}'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
@@ -109,9 +94,6 @@ jobs:
         if: failure()
         uses: slackapi/slack-github-action@v1
         with:
-          payload: |
-            {
-              "text": "🔥 *ÉCHEC déploiement production*\nCommit: `${{ github.sha }}`\n⚠️ Intervention manuelle requise\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Voir les logs>"
-            }
+          payload: '{"text":"🔥 *ÉCHEC déploiement prod* — intervention requise"}'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
