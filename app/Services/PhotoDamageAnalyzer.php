@@ -125,11 +125,12 @@ PROMPT;
         $response = Http::withToken(config('services.openai.key'))
             ->timeout(30)
             ->withOptions([
-                // Force HTTP/1.1 — PHP curl échoue souvent sur HTTP/2 avec OpenAI
-                CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
-                // Désactiver la vérification SSL côté dev si les certs manquent
-                CURLOPT_SSL_VERIFYPEER => app()->isProduction(),
-                CURLOPT_SSL_VERIFYHOST => app()->isProduction() ? 2 : 0,
+                // Guzzle : désactiver SSL en dev (les certs PHP peuvent manquer)
+                'verify' => app()->isProduction(),
+                // Guzzle : options curl brutes — force HTTP/1.1 (HTTP/2 échoue sur Windows)
+                'curl'   => [
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                ],
             ])
             ->post('https://api.openai.com/v1/chat/completions', [
                 'model'      => config('services.openai.model', 'gpt-4o'),
