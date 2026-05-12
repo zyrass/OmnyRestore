@@ -52,13 +52,13 @@ class OrderObserver
             'DONE' => Mail::to($userEmail, $userName)
                           ->queue(new OrderReadyForPayment($order)),
 
-            // Stripe a confirmé le paiement → email + génération ZIP
-            'PAID' => function () use ($order, $userEmail, $userName) {
-                Mail::to($userEmail, $userName)->queue(new OrderPaidConfirmation($order));
-                GenerateOrderZipJob::dispatch($order)->onQueue('default');
-            },
+            // Stripe a confirmé le paiement → email confirmation client
+            // ⚠️ Le GenerateOrderZipJob est dispatché par StripeWebhookController
+            //    pour éviter le double dispatch (observer + webhook).
+            'PAID' => Mail::to($userEmail, $userName)
+                          ->queue(new OrderPaidConfirmation($order)),
 
-            // Pas d'email pour les autres transitions
+            // Pas d'email pour les autres transitions (PAID→DELIVERED, etc.)
             default => null,
         };
     }

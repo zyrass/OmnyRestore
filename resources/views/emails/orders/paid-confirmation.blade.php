@@ -57,9 +57,13 @@
                 <span class="order-box-value">{{ $order->photo_count }}</span>
             </div>
             <div class="order-box-row">
-                <span class="order-box-label">Montant réglé</span>
+                <span class="order-box-label">Montant réglé TTC</span>
                 <span class="order-box-price">
-                    {{ number_format(($order->total_price_cents ?? $order->base_price_cents ?? 0) / 100, 2, ',', ' ') }} €
+                    @php
+                        $htCents  = (int) ($order->total_price_cents ?? $order->base_price_cents ?? 0);
+                        $ttcCents = $htCents + (int) round($htCents * 0.20);
+                    @endphp
+                    {{ number_format($ttcCents / 100, 2, ',', ' ') }} €
                 </span>
             </div>
             <div class="order-box-row">

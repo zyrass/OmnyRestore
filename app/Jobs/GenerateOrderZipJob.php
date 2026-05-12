@@ -61,11 +61,12 @@ class GenerateOrderZipJob implements ShouldQueue
             'order_id' => $order->id,
         ]);
 
-        // Vérifier qu'il y a des photos restaurées à zipper
-        $retouchedMedia = $order->getMedia('retouched');
+        // Récupérer uniquement les photos actives (non rejetées par le client)
+        $retouchedMedia = $order->getMedia('retouched')
+            ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
 
         if ($retouchedMedia->isEmpty()) {
-            Log::warning("GenerateOrderZipJob: no retouched media found for {$order->reference}");
+            Log::warning("GenerateOrderZipJob: no active retouched media for {$order->reference} (all rejected?)");
             return;
         }
 
