@@ -41,8 +41,8 @@
 
         {{-- Central quote --}}
         <div class="relative z-10 flex-1 flex flex-col justify-center">
-        {{-- Decorative photo frame — décalé vers la droite pour se rapprocher du formulaire --}}
-            <div class="w-64 h-80 border border-[#C9A84C]/20 ml-auto mr-12 relative mb-10">
+            {{-- Decorative photo frame --}}
+            <div class="w-64 h-80 border border-[#C9A84C]/20 mx-auto relative mb-10">
                 <div class="absolute inset-4 border border-[#C9A84C]/10 flex items-center justify-center">
                     <div class="text-center">
                         {{-- Photo icon --}}
@@ -60,7 +60,7 @@
                 <div class="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-[#C9A84C]/60"></div>
             </div>
 
-            <blockquote class="text-center max-w-xs ml-auto mr-12">
+            <blockquote class="text-center max-w-xs mx-auto">
                 <p class="text-[#F5F0E8]/70 text-sm leading-relaxed italic font-light mb-4">
                     "Vos souvenirs méritent une seconde vie.<br>
                     Vous voyez le résultat avant de payer."
@@ -86,8 +86,8 @@
         </div>
     </div>
 
-    {{-- ── Colonne droite : formulaire — collé à gauche pour se rapprocher du contenu ── --}}
-    <div class="flex-1 flex flex-col justify-center items-start min-h-screen bg-[#0D0B08] pl-10 pr-6 py-12 relative">
+    {{-- ── Colonne droite : formulaire ─────────────────────────────────────── --}}
+    <div class="flex-1 flex flex-col justify-center items-center min-h-screen bg-[#0D0B08] px-6 py-12 relative">
 
         {{-- Subtle glow --}}
         <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-[#C9A84C]/4 rounded-full blur-[100px] pointer-events-none"></div>
