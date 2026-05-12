@@ -88,6 +88,9 @@ class Testimonial extends Model
     public static function initialsFrom(string $name): string
     {
         $words = array_filter(explode(' ', trim($name)));
+        if (empty($words)) {
+            return '';
+        }
         $initials = '';
         foreach ($words as $word) {
             $initials .= mb_strtoupper(mb_substr($word, 0, 1));

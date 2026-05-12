@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureIsAdmin;
 use App\Http\Middleware\EnsureIsClient;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,18 +14,25 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // ─── Middleware Aliases ────────────────────────────────────────────
-        // Register shorthand aliases for middleware used in route definitions.
-        // Usage in routes: Route::middleware(['auth', 'verified', 'admin'])->...
+        // ─── En-têtes de sécurité HTTP ─────────────────────────────────────────
+        // Appliqué sur toutes les routes web : CSP, HSTS, X-Frame-Options, etc.
+        // Objectif : Grade A sur securityheaders.com en production.
+        $middleware->web(append: [
+            SecurityHeaders::class,
+        ]);
+
+        // ─── Alias de middleware ────────────────────────────────────────────────
+        // Raccourcis utilisés dans les définitions de routes.
+        // Usage : Route::middleware(['auth', 'verified', 'admin'])->group(...)
         $middleware->alias([
-            'admin' => EnsureIsAdmin::class,
+            'admin'  => EnsureIsAdmin::class,
             'client' => EnsureIsClient::class,
         ]);
 
-        // ─── CSRF Exemptions ───────────────────────────────────────────────
-        // Stripe webhooks are POST requests from Stripe's servers.
-        // They cannot include a CSRF token — exempt this route from verification.
-        // Security is maintained by Stripe's HMAC-SHA256 signature verification.
+        // ─── Exemptions CSRF ────────────────────────────────────────────────────
+        // Les webhooks Stripe sont des requêtes POST depuis les serveurs Stripe.
+        // Ils ne peuvent pas inclure de token CSRF — cette route est exemptée.
+        // La sécurité est assurée par la vérification de signature HMAC-SHA256.
         $middleware->validateCsrfTokens(except: [
             '/webhook/stripe',
         ]);
