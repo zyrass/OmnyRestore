@@ -169,22 +169,28 @@
     {{-- Interactive sliders (input range overlay — reliable on all devices) --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         @foreach([
-            ['year' => '1952', 'label' => 'Portrait de famille', 'issues' => 'Déchirure, jaunissement sévère'],
-            ['year' => '1967', 'label' => 'Photo de mariage',    'issues' => 'Taches, décoloration, bords abîmés'],
-            ['year' => '1943', 'label' => 'Portrait militaire',  'issues' => 'Dommages eau, pliures, contraste perdu'],
+            ['year' => '1952', 'label' => 'Portrait de famille', 'issues' => 'Déchirure, jaunissement sévère',   'slug' => 'portrait'],
+            ['year' => '1967', 'label' => 'Photo de mariage',    'issues' => 'Taches, décoloration, bords abîmés', 'slug' => 'mariage'],
+            ['year' => '1943', 'label' => 'Portrait militaire',  'issues' => 'Dommages eau, pliures, contraste perdu', 'slug' => 'militaire'],
         ] as $ex)
         <div class="card-glass overflow-hidden">
             {{-- Slider interactif --}}
             <div class="relative h-64 overflow-hidden select-none"
                  x-data="{ pct: 50 }">
 
-                {{-- APRÈS (restaurée) — chaude, nette, pleine largeur --}}
-                <div class="absolute inset-0" style="background: radial-gradient(ellipse at 40% 38%, rgba(201,168,76,0.55) 0%, transparent 52%), radial-gradient(ellipse at 70% 70%, rgba(160,100,30,0.4) 0%, transparent 45%), linear-gradient(145deg,#5A3B12 0%,#7A5020 30%,#3D240A 65%,#1E1408 100%);"></div>
+                {{-- APRÈS (restaurée) — pleine largeur en fond --}}
+                <img src="/images/samples/apres-{{ $ex['slug'] }}.png"
+                     alt="Après restauration — {{ $ex['label'] }} {{ $ex['year'] }}"
+                     class="absolute inset-0 w-full h-full object-cover object-top">
 
-                {{-- AVANT (endommagée) — sombre, sépia, révélée à gauche --}}
-                <div class="absolute inset-0"
-                     style="background: radial-gradient(ellipse at 40% 38%, rgba(80,60,30,0.3) 0%, transparent 52%), linear-gradient(145deg,#0D0B08 0%,#181410 30%,#0A0806 65%,#050403 100%); filter: sepia(1) contrast(0.55) brightness(0.45);"
-                     :style="{ clipPath: `inset(0 ${100 - pct}% 0 0)` }"></div>
+                {{-- AVANT (endommagée) — révélée à gauche par le slider --}}
+                <div class="absolute inset-0 z-10"
+                     :style="{ clipPath: `inset(0 ${100 - pct}% 0 0)` }">
+                    <img src="/images/samples/avant-{{ $ex['slug'] }}.png"
+                         alt="Avant restauration — {{ $ex['label'] }} {{ $ex['year'] }}"
+                         class="w-full h-full object-cover object-top"
+                         style="filter: sepia(0.8) contrast(0.65) brightness(0.55);">
+                </div>
 
                 {{-- Input range transparent — capture tous les événements souris + tactile --}}
                 <input type="range" min="0" max="100"
