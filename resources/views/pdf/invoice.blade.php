@@ -136,11 +136,13 @@ body {
     display: inline-block;
     border: 2.5px solid #1a7a3f;
     color: #1a7a3f;
-    padding: 8px 28px;
+    padding: 10px 28px 10px;
     font-size: 15px;
     font-weight: bold;
     letter-spacing: 3px;
     text-transform: uppercase;
+    line-height: 1;
+    vertical-align: middle;
 }
 
 /* ── Tableau prestations ──────────────────────────────── */
