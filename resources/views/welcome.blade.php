@@ -75,7 +75,7 @@
         {{-- Eyebrow --}}
         <div class="inline-flex items-center gap-3 mb-8">
             <div class="w-8 h-px bg-[#C9A84C]/60"></div>
-            <span class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase font-medium">Restauration IA • Qualité Studio 8K</span>
+            <span class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase font-medium">Restauration IA &bull; R&eacute;sultat garanti avant paiement</span>
             <div class="w-8 h-px bg-[#C9A84C]/60"></div>
         </div>
 
@@ -88,8 +88,8 @@
         {{-- Subheadline --}}
         <p class="text-lg md:text-xl text-[#7A6E5E] max-w-2xl mx-auto mb-10 leading-relaxed">
             Nous restaurons vos souvenirs abîmés grâce à l'intelligence artificielle.
-            Résultat livré en 8K, qualité photoréaliste — vous ne payez
-            <span class="text-[#F5F0E8]">qu'après avoir vu l'aperçu.</span>
+            L'IA améliore et rattrape considérablement chaque photo —
+            <span class="text-[#F5F0E8]">vous ne payez qu'après avoir vu l'aperçu.</span>
         </p>
 
         {{-- CTA buttons — auth-aware --}}
@@ -157,7 +157,7 @@
         <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Résultats réels</p>
         <h2 class="text-4xl font-bold text-[#F5F0E8] mb-4">Avant / Après</h2>
         <div class="divider-gold my-6"></div>
-        <p class="text-[#7A6E5E] max-w-xl mx-auto">Photos restaurées en résolution 8K par notre IA. Textures, détails et éclairage d'origine préservés.</p>
+        <p class="text-[#7A6E5E] max-w-xl mx-auto">Photos restaurées par notre IA. Textures, couleurs et netteté améliorées selon l'état de chaque photo &mdash; résultat visible avant toute décision.</p>
     </div>
 
     {{-- Comparison cards --}}
@@ -205,9 +205,9 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
             @foreach([
                 ['n' => '01', 'title' => 'Déposez vos photos',     'desc' => 'Uploadez vos photos abîmées directement sur la plateforme. Formats JPEG, PNG, TIFF acceptés.'],
-                ['n' => '02', 'title' => 'Analyse & Restauration', 'desc' => "Notre IA restaure chaque photo en 8K : suppression des artefacts, reconstruction des textures, optimisation studio."],
-                ['n' => '03', 'title' => 'Aperçu filigranné',      'desc' => "Consultez l'aperçu de vos photos restaurées avant de payer. Vous voyez le résultat, puis vous décidez."],
-                ['n' => '04', 'title' => 'Téléchargement HD',      'desc' => 'Après paiement, téléchargez vos photos en haute résolution, sans filigrane, dans un ZIP sécurisé.'],
+                ['n' => '02', 'title' => 'Analyse & Restauration', 'desc' => "Notre IA analyse les dommages et améliore drastiquement chaque photo : suppression des artefacts, reconstruction des textures, correction des couleurs. L'IA fait ce qu'elle peut au mieux — le résultat vous est montré avant tout paiement."],
+                ['n' => '03', 'title' => 'Aperçu filigranné',      'desc' => "Consultez l'aperçu de vos photos restaurées avant de payer. Vous voyez le résultat, puis vous décidez — sans engagement."],
+                ['n' => '04', 'title' => 'Téléchargement HD',      'desc' => 'Après paiement, téléchargez vos photos en haute résolution, sans filigrane, dans un ZIP sécurisé accompagné de votre facture PDF.'],
             ] as $step)
             <div class="text-center group">
                 <div class="step-badge mx-auto mb-6 group-hover:bg-[#C9A84C]/20 group-hover:border-[#C9A84C] transition-all duration-300">
@@ -237,16 +237,16 @@
 <section id="pricing" class="py-32 max-w-6xl mx-auto px-6">
     <div class="text-center mb-16">
         <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Tarification</p>
-        <h2 class="text-4xl font-bold text-[#F5F0E8] mb-4">Simple et transparent</h2>
+        <h2 class="text-4xl font-bold text-[#F5F0E8] mb-4">Prix par photo</h2>
         <div class="divider-gold my-6"></div>
-        <p class="text-[#7A6E5E] max-w-md mx-auto text-sm">Tarif évalué par notre équipe après analyse de vos photos. Devis personnalisé selon l'état et le nombre de photos.</p>
+        <p class="text-[#7A6E5E] max-w-md mx-auto text-sm">Chaque photo est analys&eacute;e individuellement. Le niveau de dommage d&eacute;termine le prix &mdash; vous ne payez que les photos que vous gardez.</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
         @foreach([
-            ['label' => 'Restauration Standard', 'price' => 'dès 1€',    'desc' => '1 photo, dommages légers (jaunissement, poussière)',     'features' => ['Restauration 8K', 'Aperçu filigranné', 'Livraison ZIP', 'Délai 24-48h']],
-            ['label' => 'Restauration Avancée',  'price' => 'dès 10€',   'desc' => 'Photo très endommagée (déchirures, dommages eau…)',      'features' => ['Tout ce qui précède', 'Reconstruction avancée', 'Corrections manuelles', 'Délai 48-72h'], 'featured' => true],
-            ['label' => 'Lot de photos',          'price' => 'Sur devis', 'desc' => 'À partir de 50 photos — tarif dégressif',               'features' => ['Tarif dégressif', 'Suivi personnalisé', 'Livraison groupée', 'Support prioritaire']],
+            ['label' => 'Restauration Standard', 'price' => '1', 'ttc' => '1,00&nbsp;&euro;&nbsp;TTC', 'desc' => 'Jaunissement, poussière, légères décolorations', 'features' => ['Analyse IA automatique', 'Aperçu filigranné inclus', 'Livraison ZIP + Facture', 'Délai 24-48h']],
+            ['label' => 'Restauration Avancée',  'price' => '2', 'ttc' => '2,00&nbsp;&euro;&nbsp;TTC', 'desc' => 'Rayures profondes, décoloration forte, pliures, grain', 'features' => ['Tout ce qui précède', 'Reconstruction avancée', 'Correction de contraste', 'Délai 48-72h'], 'featured' => true],
+            ['label' => 'Restauration Complète', 'price' => '3', 'ttc' => '3,00&nbsp;&euro;&nbsp;TTC', 'desc' => 'Déchirures, dommages eau, zones partiellement manquantes', 'features' => ['Tout ce qui précède', 'Reconstruction complexe', 'Zones reconstruites par IA', 'Délai 72-96h']],
         ] as $plan)
         <div class="card-glass p-8 text-center {{ ($plan['featured'] ?? false) ? 'border-[#C9A84C]/50 relative' : '' }}">
             @if($plan['featured'] ?? false)
@@ -256,7 +256,11 @@
             @endif
             <h3 class="text-[#F5F0E8] font-semibold mb-1">{{ $plan['label'] }}</h3>
             <p class="text-[#7A6E5E] text-xs mb-6">{{ $plan['desc'] }}</p>
-            <div class="text-3xl font-bold text-[#C9A84C] mb-8">{{ $plan['price'] }}<span class="text-base font-normal text-[#7A6E5E]"> HT</span></div>
+            <div class="mb-1">
+                <span class="text-4xl font-bold text-[#C9A84C]">{{ $plan['price'] }}&euro;</span>
+                <span class="text-sm text-[#7A6E5E]"> / photo HT</span>
+            </div>
+            <p class="text-xs text-[#7A6E5E]/70 mb-8">{!! $plan['ttc'] !!}</p>
             <ul class="space-y-3 text-sm text-[#7A6E5E] text-left mb-8">
                 @foreach($plan['features'] as $f)
                 <li class="flex items-center gap-3">
@@ -275,6 +279,7 @@
         </div>
         @endforeach
     </div>
+    <p class="text-center text-xs text-[#7A6E5E]/60 mt-8">* Le niveau est déterminé automatiquement par notre IA lors de l'analyse de vos photos. TVA 20% incluse dans le prix TTC.</p>
 </section>
 
 {{-- ========== CTA FINAL ========== --}}
