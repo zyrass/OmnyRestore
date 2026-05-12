@@ -96,10 +96,14 @@ class extends Component {}; ?>
             </div>
             <div class="card-glass p-5 border-red-500/15">
                 <h3 class="text-red-400 text-xs tracking-widest uppercase mb-3">Zone critique</h3>
-                <p class="text-[#7A6E5E] text-xs mb-4">La suppression de votre compte est irréversible. Vos photos seront supprimées immédiatement.</p>
-                <a href="mailto:privacy@omnyrestore.fr?subject=Demande de suppression de compte - {{ auth()->user()->email }}"
-                   class="block text-center px-4 py-2 text-xs border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 rounded-sm transition-all">
-                    Demander la suppression du compte
+                <p class="text-[#7A6E5E] text-xs mb-4">
+                    La suppression de votre compte est <strong class="text-red-400">irréversible</strong>.
+                    Vos photos seront supprimées immédiatement et vos données anonymisées.
+                </p>
+                <a href="{{ route('client.account.delete') }}"
+                   class="block text-center px-4 py-2 text-xs border border-red-500/30 text-red-400
+                          hover:bg-red-500/10 hover:border-red-500/50 rounded-sm transition-all">
+                    Supprimer mon compte →
                 </a>
             </div>
         </div>

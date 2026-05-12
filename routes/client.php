@@ -75,6 +75,11 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     \Livewire\Volt\Volt::route('/profile', 'pages.client.profile')
         ->name('profile');
 
+    // GET /client/account/delete — Suppression de compte RGPD Art. 17
+    // Volt::route pointe vers livewire/pages/client/account/delete.blade.php
+    \Livewire\Volt\Volt::route('/account/delete', 'pages.client.account.delete')
+        ->name('account.delete');
+
     // ─── Support Tickets ──────────────────────────────────────────────────
     // GET  /client/tickets         → Liste des tickets
     \Livewire\Volt\Volt::route('/tickets', 'pages.client.tickets.index')

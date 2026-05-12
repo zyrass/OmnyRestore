@@ -22,14 +22,16 @@ use Laravel\Cashier\Billable;
  *   - Billable (Cashier): Adds Stripe customer management, payment methods, etc.
  *   - Notifiable: Allows sending notifications (email, SMS) via Laravel's notification system
  *
- * GDPR Design:
+ * GDPR Design — DeleteUserAction:
  *   When a user requests erasure (Right to Erasure — GDPR Art. 17):
- *   1. $user->delete() → sets deleted_at (soft delete)
- *   2. A scheduled job anonymizes: name → "Deleted User", email → "deleted_{uuid}@erased.local"
- *   3. stripe_id is cleared (Stripe customer is also deleted via API)
- *   4. rgpd_consent_at is preserved (proof of consent must be kept)
- *   5. All S3 media files are scheduled for deletion
- *   → Order records are KEPT (5-year accounting legal requirement)
+ *   1. Password verified → all media (originals + retouched) deleted via Spatie
+ *   2. Support tickets deleted (no legal obligation to retain)
+ *   3. PII anonymized immediately: name → "Utilisateur supprimé", email → "deleted_{hash}@data.deleted"
+ *   4. stripe_id cleared, marketing_consent = false, password invalidated
+ *   5. anonymized_at = now() (audit trail RGPD)
+ *   6. soft-delete: deleted_at = now()
+ *   → rgpd_consent_at is KEPT (proof of initial consent — RGPD Art. 7.1)
+ *   → Orders KEPT with anonymized user_id (invoices: 10y legal — L.123-22 C.com)
  *
  * @property string $id UUID primary key
  * @property string $name Full name
@@ -39,6 +41,7 @@ use Laravel\Cashier\Billable;
  * @property \Carbon\Carbon|null $rgpd_consent_at GDPR consent timestamp
  * @property bool $marketing_consent Marketing email opt-in
  * @property \Carbon\Carbon|null $deleted_at Soft delete timestamp
+ * @property \Carbon\Carbon|null $anonymized_at RGPD anonymization audit timestamp
  */
 class User extends Authenticatable
 {
@@ -113,6 +116,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',   // Carbon instance
             'rgpd_consent_at'   => 'datetime',   // Carbon instance
+            'anonymized_at'     => 'datetime',   // Carbon instance — audit RGPD
             'marketing_consent' => 'boolean',    // true/false (not 1/0)
             'password'          => 'hashed',     // Auto-hashes on set (Laravel 10+)
             'deleted_at'        => 'datetime',   // Carbon instance (soft delete)
@@ -184,5 +188,16 @@ class User extends Authenticatable
     public function auditLogs(): HasMany
     {
         return $this->hasMany(AuditLog::class, 'user_id');
+    }
+
+    /**
+     * All support tickets opened by this client.
+     * Loaded eagerly in DeleteUserAction to delete tickets before anonymization.
+     *
+     * @return HasMany<SupportTicket, $this>
+     */
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'user_id');
     }
 }
