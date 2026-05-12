@@ -13,7 +13,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
-[![Version](https://img.shields.io/badge/version-0.9.0-blue?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.10.0-blue?style=flat-square)](CHANGELOG.md)
 
 </div>
 
@@ -41,10 +41,11 @@
 
 **OmnyRestore** est une plateforme SaaS professionnelle permettant à des clients de soumettre leurs photographies anciennes ou endommagées pour une restauration par IA. Le workflow est :
 
-1. **Client** dépose 1 à 10 photos — l'IA (GPT-4o Vision) analyse l'état de dégradation et calcule le prix sur 3 niveaux (1 / 2 / 5 € TTC)
+1. **Client** dépose 1 à 10 photos — l'IA (GPT-4o Vision) analyse l'état de dégradation et calcule le prix sur 3 niveaux (1 € / 2 € / 3 € TTC)
 2. **Admin** prend en charge, restaure et uploade les photos → statut DONE
-3. **Client** visualise les aperçus filigrannés, **sélectionne les photos à garder** (rejet possible, prix recalculé automatiquement)
-4. **Client** paie via Stripe pour les photos sélectionnées et télécharge le ZIP + facture PDF avec TVA
+3. **Client** visualise les aperçus filigrannnés, **sélectionne les photos à garder** (rejet possible, prix recalculé **par photo selon son niveau**)
+4. **Client** paie via Stripe pour les photos sélectionnées
+5. **ZIP généré en asynchrone** — email de livraison avec lien téléchargement + facture PDF avec TVA
 
 > **Modèle économique** : aperçu d'abord, paiement ensuite. Le filigrane crée un déclencheur émotionnel fort avant la conversion.
 
@@ -129,8 +130,13 @@ stateDiagram-v2
     end note
 
     note right of PAID
-        → ZIP généré en asynchrone
-        → URL signée valide 48h
+        → ZIP généré en asynchrone (GenerateOrderZipJob)
+        → Email "paiement reçu" immédiat
+    end note
+
+    note right of DELIVERED
+        → Email livraison avec ZIP + Facture
+        → Lien valide 90 jours
     end note
 ```
 
@@ -276,7 +282,9 @@ omnyrestore/
 │   │   ├── AuditService.php         # Écriture logs audit centralisée
 │   │   └── ZipGeneratorService.php
 │   └── Mail/
-│       └── OrderPaidConfirmation.php
+│       ├── OrderReadyForPayment.php    # Email DONE → aperçu filigranné + bouton Payer
+│       ├── OrderPaidConfirmation.php   # Email PAID → ZIP en préparation
+│       └── OrderDeliveryReady.php      # Email DELIVERED → ZIP + Facture [NEW v0.10]
 ├── resources/views/livewire/pages/
 │   ├── client/
 │   │   ├── orders/
@@ -290,12 +298,19 @@ omnyrestore/
 │   │   └── profile.blade.php
 │   └── admin/
 │       ├── dashboard.blade.php      # KPIs + file d'attente
+│       ├── clients/
+│       │   └── index.blade.php      # Liste clients avec dépenses
 │       ├── orders/
 │       │   ├── index.blade.php      # Liste commandes filtrables
 │       │   └── show.blade.php       # Gestion commande + upload photos
 │       └── tickets/
 │           ├── index.blade.php      # Liste tous les tickets (badge non-lus)
 │           └── show.blade.php       # Fil conversation + réponse admin
+├── resources/views/emails/
+│   └── orders/
+│       ├── ready-for-payment.blade.php  # Email DONE → aperçu + lien paiement
+│       ├── paid-confirmation.blade.php  # Email PAID → ZIP en préparation
+│       └── delivery-ready.blade.php     # Email DELIVERED → ZIP + Facture ← NEW v0.10
 ├── routes/
 │   ├── web.php
 │   ├── client.php                   # Routes espace client (auth + verified)
@@ -484,9 +499,17 @@ git commit -m "feat(tickets): interface admin tickets support" \
   - [x] Artisan `watermarks:regenerate [--order] [--sync]`
   - [x] Font Inter Bold bundlée dans `storage/app/fonts/`
   - [x] Vue client : vraies images watermarked + fallback CSS
+- [x] `v0.10.0` — **Phase 2 : Workflow livraison, recalcul par photo, layout**
+  - [x] `OrderDeliveryReady` mail + `delivery-ready.blade.php` (ZIP + Facture)
+  - [x] `OrderObserver` case `DELIVERED` → email livraison avec vrais liens
+  - [x] `paid-confirmation` : message honnête \"ZIP en préparation\"
+  - [x] `recalcPriceFromActivePhotos()` : somme `price[ai_level]` par photo
+  - [x] `deletePhoto()` garde-fou : commande ne peut jamais être vide
+  - [x] Layout `max-w-[1400px]` sur header + main
+  - [x] Auth layout : centrage symétrique frame + formulaire
 - [ ] `v1.0.0` — **MVP — Prêt pour production**
-- [ ] `v1.1.0` — Aperçu filigranné automatique (Intervention Image / GD)
-- [ ] `v1.2.0` — Intégration API OpenAI (restauration automatique)
+- [ ] `v1.1.0` — Landing page (Before/After slider, testimonials, section IA, footer)
+- [ ] `v1.2.0` — Dashboard admin (URSSAF, coûts IA, badges tickets)
 - [ ] `v2.0.0` — Multi-prestataires + messagerie avancée
 
 ---

@@ -8,7 +8,55 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ## [Unreleased]
 
-> Prochaines étapes : export CSV, conformité RGPD complète, MVP production.
+> Prochaines étapes : landing page (Before/After slider, testimonials, section IA, footer), dashboard admin (URSSAF, coûts IA, badges tickets), conformité RGPD complète.
+
+---
+
+## [0.10.0] — 2026-05-12 — Phase 2 complète : Workflow livraison, recalcul par photo, layout
+
+### 🚨 Critique — Corrigé
+
+- **Workflow email livraison cassé** : l'email `OrderPaidConfirmation` prétendait que le ZIP était disponible **immédiatement** alors qu'il est généré en asynchrone. Le client cliquait sur "Télécharger" et obtenait une erreur 404.
+- **Email post-livraison manquant** : `GenerateOrderZipJob` terminait (statut DELIVERED) sans envoyer **aucun** email. Le client ne recevait jamais ses liens de téléchargement malgré la promesse du flash message.
+
+### Ajouté
+
+- **`App\Mail\OrderDeliveryReady`** — nouvelle classe mail envoyée quand le ZIP est réellement prêt :
+  - Sujet : "⬇ Vos photos sont prêtes à télécharger — {référence}"
+  - Dispatché par `OrderObserver` lors du passage au statut `DELIVERED`
+
+- **`emails/orders/delivery-ready.blade.php`** — template email livraison :
+  - Récapitulatif commande (référence, photos livrées, date, montant TTC)
+  - Deux CTA : **⬇ Archive ZIP** (`client.orders.download`) + **📄 Facture PDF** (`client.orders.invoice`)
+  - Date d'expiration du lien (90 jours depuis `zip_expires_at`)
+  - Style dark-gold cohérent avec les autres emails transactionnels
+
+- **`OrderObserver`** — ajout case `'DELIVERED'` dans le `match` :
+  - Dispatch de `OrderDeliveryReady` à la fin du job ZIP
+  - Log `"email DELIVERED queued → {email}"` traçable
+
+### Modifié
+
+- **`emails/orders/paid-confirmation.blade.php`** — message honnête :
+  - ❌ Avant : "Vos photos sont disponibles au téléchargement" + bouton "⬇ Télécharger"
+  - ✅ Après : "Votre archive ZIP est en cours de préparation — vous recevrez un second email" + bouton "Voir ma commande"
+
+- **`client/orders/show.blade.php`** — `recalcPriceFromActivePhotos()` :
+  - ❌ Avant : `activeCount × price[order.damage_level]` (un seul prix pour toutes les photos)
+  - ✅ Après : somme `price[media.ai_level]` **par photo** — cohérent avec la facture PDF
+  - Log enrichi avec breakdown photo-par-photo (id, level, price)
+
+- **`client/orders/show.blade.php`** — garde-fous corrigés :
+  - `deletePhoto()` : guard `$totalCount <= 1` (commande ne peut pas être vide)
+  - Suppression du guard `activeCount <= 1` dans `rejectPhoto()` (laissé au choix du client)
+
+- **`layouts/app.blade.php`** — largeur layout :
+  - `max-w-screen-xl` (1280px) → `max-w-[1400px]` (1400px) sur `<header>` et `<main>`
+  - Intermédiaire entre `max-w-7xl` (1280px) et `max-w-screen-2xl` (1536px)
+
+- **`layouts/guest.blade.php`** — pages d'authentification :
+  - Contenu gauche (cadre photo) et formulaire droit parfaitement centrés dans leurs colonnes respectives
+  - Appliqué sur : connexion, inscription, mot de passe oublié
 
 ---
 
@@ -397,7 +445,14 @@ Le droit de valider / rejeter les photos restaurées est désormais **exclusivem
 ---
 
 <!-- Liens -->
-[Unreleased]: https://github.com/zyrass/OmnyRestore/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/zyrass/OmnyRestore/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/zyrass/OmnyRestore/compare/v0.9.0...v0.10.0
+[0.9.0]: https://github.com/zyrass/OmnyRestore/compare/v0.8.1...v0.9.0
+[0.8.1]: https://github.com/zyrass/OmnyRestore/compare/v0.8.0...v0.8.1
+[0.8.0]: https://github.com/zyrass/OmnyRestore/compare/v0.6.0...v0.8.0
+[0.6.0]: https://github.com/zyrass/OmnyRestore/compare/v0.5.1...v0.6.0
+[0.5.1]: https://github.com/zyrass/OmnyRestore/compare/v0.5.0...v0.5.1
+[0.5.0]: https://github.com/zyrass/OmnyRestore/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/zyrass/OmnyRestore/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/zyrass/OmnyRestore/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/zyrass/OmnyRestore/compare/v0.2.0...v0.3.0
