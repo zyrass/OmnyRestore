@@ -66,7 +66,7 @@ class extends Component
                     <th class="text-left text-[#7A6E5E] text-xs tracking-widest uppercase px-6 py-4 font-medium">Référence</th>
                     <th class="text-left text-[#7A6E5E] text-xs tracking-widest uppercase px-6 py-4 font-medium hidden md:table-cell">Photos</th>
                     <th class="text-left text-[#7A6E5E] text-xs tracking-widest uppercase px-6 py-4 font-medium">Statut</th>
-                    <th class="text-left text-[#7A6E5E] text-xs tracking-widests uppercase px-6 py-4 font-medium hidden lg:table-cell">Montant</th>
+                    <th class="text-left text-[#7A6E5E] text-xs tracking-widests uppercase px-6 py-4 font-medium hidden lg:table-cell">Montant TTC</th>
                     <th class="text-left text-[#7A6E5E] text-xs tracking-widest uppercase px-6 py-4 font-medium hidden lg:table-cell">Date</th>
                     <th class="px-6 py-4"></th>
                 </tr>
@@ -102,12 +102,21 @@ class extends Component
                         </span>
                     </td>
 
-                    {{-- Montant --}}
+                    {{-- Montant TTC --}}
                     <td class="px-6 py-4 text-[#F5F0E8] hidden lg:table-cell">
-                        @if ($order->total_price_cents)
-                            {{ number_format($order->total_price_cents / 100, 2, ',', ' ') }} €
-                        @else
+                        @php
+                            // !== null obligatoire : total_price_cents = 0 (coupon 100%) est falsy
+                            $listHt  = $order->total_price_cents !== null
+                                ? $order->total_price_cents
+                                : ($order->base_price_cents ?? null);
+                            $listTtc = $listHt !== null ? $listHt + round($listHt * 0.2) : null;
+                        @endphp
+                        @if ($listTtc === null)
                             <span class="text-[#7A6E5E]">—</span>
+                        @elseif ($listTtc === 0)
+                            <span class="text-emerald-400 text-xs font-medium">Offert ✓</span>
+                        @else
+                            {{ number_format($listTtc / 100, 2, ',', ' ') }} €
                         @endif
                     </td>
 
