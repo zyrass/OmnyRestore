@@ -33,6 +33,29 @@ class extends Component
     }
 
     /**
+     * Sondage Livewire : détecte quand le ZIP est prêt après paiement.
+     * Activé via wire:poll.5000ms seulement si status=PAID et zip_path=null.
+     * Quand le job GenerateOrderZipJob termine (status→DELIVERED), on rafraîchit
+     * le composant et on dispatch un event Alpine 'zip-ready' pour le toast.
+     */
+    public function pollDelivery(): void
+    {
+        // Inutile de poller si on attend pas le ZIP
+        if ($this->order->status !== 'PAID' || $this->order->zip_path) {
+            return;
+        }
+
+        $fresh = $this->order->fresh();
+
+        // Le ZIP vient d'être généré !
+        if ($fresh->zip_path) {
+            $this->order = $fresh->load(['media', 'delivery']);
+            // Dispatch vers Alpine.js pour déclencher le toast
+            $this->dispatch('zip-ready');
+        }
+    }
+
+    /**
      * Client rejette une photo restaurée (exclue du livrable et du calcul de prix).
      * Disponible uniquement au statut DONE (avant paiement).
      */
@@ -145,7 +168,54 @@ class extends Component
     }
 }; ?>
 
-<div>
+{{--
+    Toast Alpine.js — notification live « ZIP prêt »
+    Déclenché par l'event Livewire 'zip-ready' (via wire:poll + pollDelivery)
+--}}
+<div x-data="{ showZipToast: false }"
+     @zip-ready.window="showZipToast = true"
+     class="contents">
+
+    {{-- Toast positioenné en haut à droite via Teleport --}}
+    <template x-teleport="body">
+        <div x-show="showZipToast" x-cloak
+             x-transition:enter="transition ease-out duration-500"
+             x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0 translate-y-4"
+             class="fixed bottom-6 right-6 z-[9999] max-w-sm w-full"
+             style="filter: drop-shadow(0 20px 40px rgba(0,0,0,0.6));">
+            <div class="relative bg-[#1A1510] border border-emerald-500/40 rounded-sm overflow-hidden">
+                {{-- Barre de progression verte en haut --}}
+                <div class="h-0.5 bg-gradient-to-r from-emerald-500 to-[#C9A84C]"></div>
+                <div class="p-5 flex items-start gap-4">
+                    {{-- Icône success animée --}}
+                    <div class="shrink-0 w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                    </div>
+                    {{-- Texte --}}
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[#F5F0E8] text-sm font-semibold leading-tight">Votre archive est prête !</p>
+                        <p class="text-[#7A6E5E] text-xs mt-1">Vos photos restaurées sont disponibles en HD sans filigrane.</p>
+                        <a href="{{ route('client.orders.download', $order) }}"
+                           class="inline-flex items-center gap-1.5 mt-3 px-4 py-2 text-xs font-bold text-[#0F0C08] bg-gradient-to-r from-[#C9A84C] to-[#E8C97A] rounded-sm hover:opacity-90 transition-opacity">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Télécharger le ZIP
+                        </a>
+                    </div>
+                    {{-- Fermeture --}}
+                    <button @click="showZipToast = false" class="shrink-0 text-[#7A6E5E] hover:text-[#F5F0E8] transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
     {{-- En-tête --}}
     <div class="flex items-center gap-4 mb-8">
         <a href="{{ route('client.orders.index') }}" wire:navigate class="text-[#7A6E5E] hover:text-[#C9A84C] transition-colors">
@@ -423,7 +493,9 @@ class extends Component
 
             {{-- === ÉTAT : PAYÉ / LIVRÉ === --}}
             @if (in_array($order->status, ['PAID', 'DELIVERED']))
-            <div class="card-glass p-8 text-center border-[#C9A84C]/30">
+            <div class="card-glass p-8 text-center border-[#C9A84C]/30"
+                 {{-- Polling actif uniquement si le ZIP n'est pas encore généré --}}
+                 @if (!$order->zip_path) wire:poll.5000ms="pollDelivery" @endif>
                 <div class="w-16 h-16 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
