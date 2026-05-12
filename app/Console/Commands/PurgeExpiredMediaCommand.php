@@ -7,97 +7,97 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Command: PurgeExpiredMediaCommand
+ * Commande : PurgeExpiredMediaCommand
  *
- * Scheduled command that automatically deletes restored photos from S3
- * after the GDPR-mandated retention period (6 months post-delivery).
+ * Commande planifiée qui supprime automatiquement les photos restaurées depuis S3
+ * après la période de rétention légale imposée par le RGPD (6 mois après livraison).
  *
- * GDPR Article 5(1)(e) — Storage Limitation:
- *   "Personal data shall be kept in a form which permits identification of
- *    data subjects for no longer than is necessary for the purposes for which
- *    the personal data are processed."
+ * RGPD Article 5(1)(e) — Limitation de la conservation :
+ *   « Les données à caractère personnel doivent être conservées sous une forme permettant
+ *    l'identification des personnes concernées pendant une durée n'excédant pas celle nécessaire
+ *    au regard des finalités pour lesquelles elles sont traitées. »
  *
- *   Our retention policy (documented in Privacy Policy):
- *   - Photos (originals + retouched): Deleted 6 months after delivery_at
- *   - Order records (metadata): Kept 5 years (French accounting law — CGI Art. 302)
- *   - Audit logs: Kept 12 months minimum (NIS2 recommendation)
+ *   Politique de rétention OmnyRestore (documentée dans la Politique de confidentialité) :
+ *   - Photos (originales + restaurées) : supprimées 6 mois après delivered_at
+ *   - Données de commande (méta) : conservées 10 ans (droit comptable français — L.123-22 C.com)
+ *   - Logs d'audit : conservés 12 mois minimum (recommandation NIS2)
  *
- * Schedule: Run daily at 02:00 AM (configured in routes/console.php)
- * Usage: php artisan media:purge-expired (manual trigger for testing)
+ * Planification : Exécutée chaque jour à 02h00 (configurée dans routes/console.php)
+ * Utilisation : php artisan media:purge-expired (déclenchement manuel pour tests)
  *
- * What gets deleted:
- *   - S3 files in the 'originals' collection
- *   - S3 files in the 'retouched' collection
- *   - S3 files in the 'watermarked' collection
- *   - The ZIP archive (order_deliveries.zip_path)
- *   - All Spatie Media Library records for these collections
+ * Ce qui est supprimé :
+ *   - Fichiers S3 de la collection 'originals'
+ *   - Fichiers S3 de la collection 'retouched'
+ *   - Fichiers S3 de la collection 'watermarked'
+ *   - L'archive ZIP (order_deliveries.zip_path)
+ *   - Tous les enregistrements Spatie Media Library correspondants
  *
- * What is NOT deleted:
- *   - The Order record itself (accounting retention)
- *   - Audit logs (compliance retention)
- *   - User account (managed separately via GDPR erasure flow)
+ * Ce qui n'est PAS supprimé :
+ *   - L'enregistrement Order (rétention comptable)
+ *   - Les logs d'audit (rétention réglementaire)
+ *   - Le compte utilisateur (géré séparément via le flux d'effacement RGPD)
  *
- * @see routes/console.php for scheduling
+ * @see routes/console.php pour la planification
  */
 class PurgeExpiredMediaCommand extends Command
 {
     /**
-     * The command signature (used to call it from CLI or scheduler).
+     * Signature de la commande (utilisée depuis le CLI ou le planificateur).
      * @var string
      */
     protected $signature = 'media:purge-expired
-                            {--dry-run : Show what would be deleted without actually deleting}';
+                            {--dry-run : Affiche ce qui serait supprimé sans effectuer de suppression réelle}';
 
     /**
-     * Human-readable description shown in: php artisan list
+     * Description affichée par : php artisan list
      * @var string
      */
-    protected $description = 'Delete restored photos from S3 more than 6 months after delivery (GDPR compliance)';
+    protected $description = 'Supprime les photos restaurées depuis S3 plus de 6 mois après livraison (conformité RGPD)';
 
     /**
-     * Execute the command.
+     * Exécute la commande.
      *
-     * @return int 0 for success, 1 for failure (used by CI to detect errors)
+     * @return int 0 si succès, 1 si échec (utilisé par la CI pour détecter les erreurs)
      */
     public function handle(): int
     {
         $dryRun     = $this->option('dry-run');
         $cutoffDate = now()->subMonths(6);
 
-        $this->info("🗑️  GDPR Media Purge — cutoff date: {$cutoffDate->toDateString()}");
+        $this->info("🗑️  Purge RGPD des médias — date de coupure : {$cutoffDate->toDateString()}");
 
         if ($dryRun) {
-            $this->warn('  [DRY RUN] No files will actually be deleted.');
+            $this->warn('  [DRY RUN] Aucun fichier ne sera réellement supprimé.');
         }
 
-        // Find all orders delivered more than 6 months ago that still have media
+        // Recherche des commandes livrées depuis plus de 6 mois qui ont encore des médias attachés
         $orders = Order::whereNotNull('delivered_at')
                         ->where('delivered_at', '<', $cutoffDate)
-                        ->whereHas('media') // Only orders that still have media attached
+                        ->whereHas('media') // Uniquement les commandes qui ont encore des médias
                         ->with(['media', 'delivery'])
                         ->get();
 
         if ($orders->isEmpty()) {
-            $this->info('  ✅ No expired media found. Nothing to purge.');
+            $this->info('  ✅ Aucun média expiré trouvé. Rien à purger.');
             return self::SUCCESS;
         }
 
-        $this->info("  Found {$orders->count()} order(s) with expired media.");
+        $this->info("  {$orders->count()} commande(s) avec des médias expirés trouvée(s).");
         $this->newLine();
 
         $totalDeleted = 0;
 
         foreach ($orders as $order) {
-            $this->line("  → Order {$order->reference} (delivered {$order->delivered_at->toDateString()})");
+            $this->line("  → Commande {$order->reference} (livrée le {$order->delivered_at->toDateString()})");
 
             if (! $dryRun) {
-                // Delete all Spatie Media Library items (removes from S3 + DB records)
+                // Suppression de tous les éléments Spatie Media Library (retire les fichiers S3 + enregistrements DB)
                 $mediaCount = $order->media->count();
                 $order->clearMediaCollection('originals');
                 $order->clearMediaCollection('retouched');
                 $order->clearMediaCollection('watermarked');
 
-                // Delete the ZIP file from S3 (if it exists)
+                // Suppression du fichier ZIP depuis S3 (s'il existe)
                 if ($order->delivery && $order->delivery->zip_path) {
                     Storage::disk($order->delivery->zip_disk)
                            ->delete($order->delivery->zip_path);
@@ -107,26 +107,26 @@ class PurgeExpiredMediaCommand extends Command
                         'signed_url'=> null,
                     ]);
 
-                    $this->line("     ✅ Deleted {$mediaCount} media files + ZIP archive");
+                    $this->line("     ✅ {$mediaCount} fichier(s) média + archive ZIP supprimés");
                 } else {
-                    $this->line("     ✅ Deleted {$mediaCount} media files (no ZIP found)");
+                    $this->line("     ✅ {$mediaCount} fichier(s) média supprimés (aucun ZIP trouvé)");
                 }
 
                 $totalDeleted++;
             } else {
-                // Dry run: just show what would happen
+                // Mode simulation : affiche ce qui serait supprimé
                 $mediaCount = $order->media->count();
-                $this->line("     [DRY RUN] Would delete {$mediaCount} media files" .
-                    ($order->delivery ? ' + ZIP archive' : ''));
+                $this->line("     [DRY RUN] Supprimerait {$mediaCount} fichier(s) média" .
+                    ($order->delivery ? ' + archive ZIP' : ''));
             }
         }
 
         $this->newLine();
 
         if ($dryRun) {
-            $this->warn("  [DRY RUN] Would have purged {$orders->count()} order(s). Run without --dry-run to apply.");
+            $this->warn("  [DRY RUN] Aurait purgé {$orders->count()} commande(s). Relancer sans --dry-run pour appliquer.");
         } else {
-            $this->info("  ✅ Successfully purged {$totalDeleted} order(s) of expired media.");
+            $this->info("  ✅ Purge réussie : {$totalDeleted} commande(s) nettoyée(s).");
         }
 
         return self::SUCCESS;

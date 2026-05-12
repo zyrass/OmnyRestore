@@ -11,18 +11,18 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * Controller: OrderController (Admin)
+ * Controller : OrderController (Admin)
  *
- * Handles admin order management actions not covered by Livewire components.
- * The primary Livewire UI is in: resources/views/livewire/pages/admin/orders/
+ * Gère les actions d'administration sur les commandes non couvertes par les composants Livewire.
+ * L'interface Livewire principale est dans : resources/views/livewire/pages/admin/orders/
  *
- * This controller handles API-style state transitions triggered via PATCH requests.
- * The 'admin' middleware (EnsureIsAdmin) is applied at the route group level.
+ * Ce contrôleur gère les transitions d'état via des requêtes PATCH (style API REST).
+ * Le middleware 'admin' (EnsureIsAdmin) est appliqué au niveau du groupe de routes.
  *
  * @see App\Http\Middleware\EnsureIsAdmin
  * @see routes/admin.php
  *
- * TODO Phase 2: Full admin order management via Livewire components
+ * TODO Phase 2 : Gestion complète des commandes admin via composants Livewire
  */
 class OrderController extends Controller
 {
@@ -31,16 +31,16 @@ class OrderController extends Controller
     ) {}
 
     /**
-     * Update the status of an order.
+     * Met à jour le statut d'une commande.
      *
-     * Called by: PATCH /admin/orders/{order}/status
-     * Middleware: auth + verified + admin (from route group)
+     * Appelé par : PATCH /admin/orders/{order}/status
+     * Middleware : auth + verified + admin (depuis le groupe de routes)
      *
-     * Validates the new status and uses the Order model's state machine methods
-     * to enforce valid transitions (guardTransition prevents invalid moves).
+     * Valide le nouveau statut et utilise les méthodes de la machine d'état du modèle Order
+     * pour garantir des transitions valides (guardTransition empêche les transitions illégales).
      *
      * @param Request $request
-     * @param Order   $order Route model binding
+     * @param Order   $order Lié automatiquement par Route Model Binding
      * @return RedirectResponse
      */
     public function updateStatus(Request $request, Order $order): RedirectResponse
@@ -64,7 +64,7 @@ class OrderController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        // Record state change in audit log
+        // Journalisation du changement de statut dans le log d'audit
         $this->auditService->orderStatusChanged($order, $previousStatus, $newStatus);
 
         return back()->with('success', "Commande {$order->reference} : statut mis à jour → {$newStatus}");

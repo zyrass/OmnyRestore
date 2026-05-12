@@ -8,7 +8,61 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ## [Unreleased]
 
-> Prochaines étapes : landing page (Before/After slider, testimonials, section IA, footer), dashboard admin (URSSAF, coûts IA, badges tickets), conformité RGPD complète.
+> Prochaines étapes : dashboard admin (URSSAF, coûts IA), export CSV des commandes, notifications push, page portfolio publique avant/après.
+
+---
+
+## [0.15.0] — 2026-05-13 — Conformité RGPD complète, Testimonials & Traduction
+
+### Ajouté
+
+- **Moteur de témoignages complet** :
+  - Formulaire client dans `show.blade.php` (status DELIVERED uniquement) : étoiles interactives Alpine.js, compteur de caractères en temps réel, validation Livewire
+  - Contrainte UNIQUE `order_id` en base — un seul avis par commande livrée
+  - `Testimonial::initialsFrom()` — génère les initiales automatiquement depuis le nom complet
+  - Workflow 3 états : **en attente** / **publié** / **rejeté** (via `rejected_at`, sans suppression)
+  - `App\Models\Testimonial` : scopes `pending()`, `published()`, `rejected()`, relations `order()` / `user()`
+  - Migration `add_order_user_to_testimonials_table` : colonnes `order_id`, `user_id`, `rejected_at`
+
+- **Panel d'administration des avis** (`/admin/testimonials`) :
+  - 3 onglets : En attente / Publiés / Rejetés
+  - Badge doré dans la nav (nombre d'avis en attente)
+  - Actions contextuelles : Publier, Rejeter, Dépublier, Supprimer (avec `wire:confirm`)
+  - Accessible depuis la nav desktop ET le dropdown avatar (mobile inclus)
+
+- **Suppression de compte RGPD Art. 17 (libre-service)** :
+  - Page dédiée `/client/account/delete` (2 étapes : avertissement + formulaire mot de passe)
+  - `App\Actions\DeleteUserAction` : suppression médias Spatie, tickets support, anonymisation PII irréversible, soft-delete
+  - Migration `add_anonymized_at_to_users_table` : colonne audit trail RGPD
+  - Remplacement du lien `mailto:` dans la Zone critique du profil par un vrai lien de page
+
+- **Email-gate** : déverrouillage de l'aperçu filigrané via **lien signé unique** (7 jours)
+  - `UnlockPreviewController` + middleware `signed` + route `client.orders.unlock`
+  - `OrderReadyForPayment` mailable mis à jour avec le lien signé uniquement
+  - Bouton "Renvoyer l'email" avec throttle 5 minutes dans `show.blade.php`
+
+- **Paiement échoué Stripe** :
+  - Gestion de l'évènement `payment_intent.payment_failed` dans `StripeWebhookController`
+  - Lookup robuste par métadonnées Stripe (`order_id`) ou `payment_intent_id`
+  - Nouveau mailable `OrderPaymentFailed` envoyé au client avec lien de réessai
+  - Propagation de `payment_intent_data.metadata` dans `OrderCheckoutController`
+
+### Modifié
+
+- **Politique de confidentialité** (`privacy.blade.php`) : refonte complète
+  - Rétention factures corrigée : 5 ans → **10 ans** (Art. L.123-22 C.com)
+  - Adresse physique du responsable du traitement (Alain GUILLON)
+  - Section cookies (strictement nécessaires), notification violation 72h, droits RGPD Art. 17
+
+- **Mentions légales** (`mentions.blade.php`) : refonte complète
+  - Directeur de publication (LCEN), adresse physique
+  - Médiation consommateur obligatoire : CNPM + plateforme ODR européenne
+
+- **Commentaires PHP** : traduction intégrale EN → FR
+  - `EnsureIsAdmin.php`, `PurgeExpiredMediaCommand.php`, `OrderController.php` (admin), `DebugMedia.php`
+  - `PurgeExpiredMediaCommand` : rétention des commandes corrigée 5 ans → 10 ans dans les commentaires
+
+- **Nav admin** : lien **Avis** ajouté avec badge (en attente) dans la barre desktop ET le dropdown avatar
 
 ---
 
@@ -459,3 +513,5 @@ Le droit de valider / rejeter les photos restaurées est désormais **exclusivem
 [0.2.0]: https://github.com/zyrass/OmnyRestore/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/zyrass/OmnyRestore/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/zyrass/OmnyRestore/releases/tag/v0.0.1
+[0.10.0]: https://github.com/zyrass/OmnyRestore/compare/v0.9.0...v0.10.0
+[0.15.0]: https://github.com/zyrass/OmnyRestore/compare/v0.10.0...v0.15.0

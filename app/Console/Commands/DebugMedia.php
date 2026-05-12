@@ -8,7 +8,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class DebugMedia extends Command
 {
     protected $signature = 'debug:media';
-    protected $description = 'Debug media URLs and storage';
+    protected $description = 'Déboguer les URLs et le stockage des médias Spatie';
 
     public function handle(): void
     {
@@ -42,7 +42,7 @@ class DebugMedia extends Command
             $this->info('Target exists: ' . (is_dir(storage_path('app/public')) ? 'YES' : 'NO'));
         }
 
-        // List files in public disk
+        // Liste les fichiers dans le disque public
         $pubPath = storage_path('app/public');
         if (is_dir($pubPath)) {
             $files = [];
