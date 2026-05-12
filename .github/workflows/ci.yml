@@ -139,7 +139,7 @@ jobs:
         run: php artisan test --env=testing --parallel --coverage-clover coverage.xml
 
       - name: Upload Coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           file: coverage.xml
         continue-on-error: true
