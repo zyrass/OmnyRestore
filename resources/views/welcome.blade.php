@@ -166,43 +166,46 @@
         ← Glissez le curseur pour comparer →
     </p>
 
-    {{-- Interactive sliders --}}
+    {{-- Interactive sliders (input range overlay — reliable on all devices) --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         @foreach([
-            ['year' => '1952', 'label' => 'Portrait de famille', 'issues' => 'Déchirure, jaunissement', 'h' => '30% 35%', 'c' => '60% 50%'],
-            ['year' => '1967', 'label' => 'Photo de mariage',    'issues' => 'Taches, flou, décoloration', 'h' => '45% 40%', 'c' => '55% 65%'],
-            ['year' => '1943', 'label' => 'Portrait militaire',  'issues' => 'Dommages eau, pliures', 'h' => '35% 55%', 'c' => '65% 45%'],
+            ['year' => '1952', 'label' => 'Portrait de famille', 'issues' => 'Déchirure, jaunissement sévère'],
+            ['year' => '1967', 'label' => 'Photo de mariage',    'issues' => 'Taches, décoloration, bords abîmés'],
+            ['year' => '1943', 'label' => 'Portrait militaire',  'issues' => 'Dommages eau, pliures, contraste perdu'],
         ] as $ex)
         <div class="card-glass overflow-hidden">
-            {{-- Slider --}}
-            <div class="relative h-56 overflow-hidden select-none cursor-col-resize"
-                 x-data="{ pct: 50, drag: false }"
-                 @mousedown.prevent="drag = true"
-                 @mouseup.window="drag = false"
-                 @mousemove.window="drag && (() => { let r = $el.getBoundingClientRect(); pct = Math.max(3, Math.min(97, ($event.clientX - r.left) / r.width * 100)) })()"
-                 @touchstart.prevent="drag = true"
-                 @touchend.window="drag = false"
-                 @touchmove.window.prevent="drag && (() => { let r = $el.getBoundingClientRect(); pct = Math.max(3, Math.min(97, ($event.touches[0].clientX - r.left) / r.width * 100)) })()">
+            {{-- Slider interactif --}}
+            <div class="relative h-64 overflow-hidden select-none"
+                 x-data="{ pct: 50 }">
 
-                {{-- AFTER (restored) — warm, clear --}}
-                <div class="absolute inset-0" style="background: radial-gradient(ellipse at {{ $ex['h'] }}, rgba(201,168,76,0.35) 0%, transparent 55%), radial-gradient(ellipse at {{ $ex['c'] }}, rgba(120,80,30,0.3) 0%, transparent 45%), linear-gradient(150deg,#3D2810 0%,#5A3D1A 40%,#2A1C0C 75%,#1A130A 100%); filter: brightness(1.05) contrast(1.05) sepia(0.12);"></div>
+                {{-- APRÈS (restaurée) — chaude, nette, pleine largeur --}}
+                <div class="absolute inset-0" style="background: radial-gradient(ellipse at 40% 38%, rgba(201,168,76,0.55) 0%, transparent 52%), radial-gradient(ellipse at 70% 70%, rgba(160,100,30,0.4) 0%, transparent 45%), linear-gradient(145deg,#5A3B12 0%,#7A5020 30%,#3D240A 65%,#1E1408 100%);"></div>
 
-                {{-- BEFORE (damaged) — clipped left to pct --}}
+                {{-- AVANT (endommagée) — sombre, sépia, révélée à gauche --}}
                 <div class="absolute inset-0"
-                     :style="`clip-path: inset(0 ${100-pct}% 0 0); background: radial-gradient(ellipse at {{ $ex['h'] }}, rgba(100,80,40,0.25) 0%, transparent 55%), linear-gradient(150deg,#1A1510 0%,#2A1E14 40%,#120E09 75%,#0A0806 100%); filter: sepia(0.75) contrast(0.7) brightness(0.65);`"></div>
+                     style="background: radial-gradient(ellipse at 40% 38%, rgba(80,60,30,0.3) 0%, transparent 52%), linear-gradient(145deg,#0D0B08 0%,#181410 30%,#0A0806 65%,#050403 100%); filter: sepia(1) contrast(0.55) brightness(0.45);"
+                     :style="{ clipPath: `inset(0 ${100 - pct}% 0 0)` }"></div>
 
-                {{-- Handle --}}
-                <div class="absolute top-0 bottom-0 z-20 pointer-events-none"
+                {{-- Input range transparent — capture tous les événements souris + tactile --}}
+                <input type="range" min="0" max="100"
+                       x-model="pct"
+                       class="absolute inset-0 w-full h-full z-30 m-0 cursor-col-resize"
+                       style="opacity:0; appearance:none; -webkit-appearance:none; padding:0; margin:0; border:none; background:transparent;">
+
+                {{-- Handle (pointer-events:none, au-dessus du visuel) --}}
+                <div class="absolute inset-y-0 z-20 pointer-events-none flex items-center"
                      :style="`left: ${pct}%`">
-                    <div class="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white/80"></div>
-                    <div class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-2xl flex items-center justify-center">
-                        <svg class="w-4 h-4 text-[#1A1510]" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 4 4 4M16 9l4 4-4 4"/></svg>
+                    <div class="absolute inset-y-0 w-px -translate-x-1/2 bg-white/90"></div>
+                    <div class="w-10 h-10 rounded-full bg-white shadow-2xl -translate-x-1/2 flex items-center justify-center border border-white/20">
+                        <svg class="w-4 h-4 text-[#1A1510]" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 4 4 4M16 9l4 4-4 4"/>
+                        </svg>
                     </div>
                 </div>
 
-                {{-- Labels --}}
-                <span class="absolute top-3 left-3 z-10 px-2 py-0.5 bg-[#C9A84C] text-[#0D0B08] text-[10px] font-bold tracking-widest uppercase pointer-events-none">Après</span>
-                <span class="absolute top-3 right-3 z-10 px-2 py-0.5 bg-black/50 text-white/70 text-[10px] font-bold tracking-widest uppercase pointer-events-none">Avant</span>
+                {{-- Labels : Avant à gauche (endommagée), Après à droite (restaurée) --}}
+                <span class="absolute top-3 left-3 z-10 px-2 py-0.5 bg-black/60 text-white/80 text-[10px] font-bold tracking-widest uppercase pointer-events-none">Avant</span>
+                <span class="absolute top-3 right-3 z-10 px-2 py-0.5 bg-[#C9A84C] text-[#0D0B08] text-[10px] font-bold tracking-widest uppercase pointer-events-none">Après</span>
             </div>
 
             <div class="p-5">
@@ -215,6 +218,7 @@
         </div>
         @endforeach
     </div>
+
 </section>
 
 {{-- ========== HOW IT WORKS ========== --}}
@@ -352,6 +356,7 @@
 </section>
 
 {{-- ========== TESTIMONIALS ========== --}}
+@php $testimonials = \App\Models\Testimonial::published()->orderByDesc('created_at')->limit(6)->get(); @endphp
 <section id="testimonials" class="py-32 max-w-6xl mx-auto px-6">
     <div class="text-center mb-16">
         <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Témoignages</p>
@@ -359,33 +364,43 @@
         <div class="divider-gold my-6"></div>
     </div>
 
+    @if($testimonials->isEmpty())
+    {{-- Empty state --}}
+    <div class="text-center py-12">
+        <div class="w-16 h-16 border border-[#C9A84C]/20 rounded-full flex items-center justify-center mx-auto mb-5">
+            <svg class="w-7 h-7 text-[#7A6E5E]/50" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+            </svg>
+        </div>
+        <p class="text-[#7A6E5E] text-sm">Aucun avis pour le moment.</p>
+        <p class="text-[#7A6E5E]/50 text-xs mt-1">Soyez le premier à partager votre expérience après votre restauration.</p>
+    </div>
+    @else
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        @foreach([
-            ['name' => 'Marie L.',      'initials' => 'ML', 'stars' => 5, 'text' => "J'avais une photo de mariage de mes grands-parents datant de 1958, déchirée en deux. Le résultat est incroyable — on distingue maintenant chaque détail de leurs visages. Un vrai cadeau de famille."],
-            ['name' => 'Jean-Pierre D.','initials' => 'JD', 'stars' => 5, 'text' => "Très satisfait du résultat sur mes 8 photos de famille des années 40. L'IA a fait un excellent travail sur les zones abîmées. Le fait de voir l'aperçu avant de payer est vraiment rassurant."],
-            ['name' => 'Sophie M.',     'initials' => 'SM', 'stars' => 4, 'text' => "Rapide et efficace. J'aurais aimé pouvoir zoomer davantage sur l'aperçu, mais le rendu final est excellent. Je recommande pour toute photo de famille précieuse."],
-            ['name' => 'Thomas B.',     'initials' => 'TB', 'stars' => 5, 'text' => "Mes photos de montagne des années 70 ont été complètement transformées. Service professionnel, communication claire, résultat au-delà de mes espérances."],
-            ['name' => 'Isabelle C.',   'initials' => 'IC', 'stars' => 4, 'text' => "Le principe « aperçu avant paiement » est vraiment rassurant. On peut choisir de ne payer que les photos qui nous conviennent. Parfait pour une vieille collection hétérogène."],
-            ['name' => 'Laurent R.',    'initials' => 'LR', 'stars' => 5, 'text' => "J'ai fait restaurer un portrait de mon arrière-grand-père de 1932. Résultat bluffant. L'équipe est sérieuse et le processus entièrement en ligne, très pratique."],
-        ] as $t)
-        <div class="card-glass p-6">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-full bg-[#C9A84C]/20 border border-[#C9A84C]/40 flex items-center justify-center shrink-0">
-                    <span class="text-[#C9A84C] text-xs font-bold">{{ $t['initials'] }}</span>
+        @foreach($testimonials as $t)
+        <div class="card-glass p-6 flex flex-col gap-4">
+            {{-- Header : avatar + nom + étoiles --}}
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-full bg-[#C9A84C]/15 border border-[#C9A84C]/40 flex items-center justify-center shrink-0">
+                    <span class="text-[#C9A84C] text-sm font-bold tracking-wide">{{ $t->author_initials }}</span>
                 </div>
                 <div>
-                    <p class="text-[#F5F0E8] text-sm font-medium">{{ $t['name'] }}</p>
-                    <div class="flex gap-0.5 mt-0.5">
+                    <p class="text-[#F5F0E8] text-sm font-semibold">{{ $t->author_name }}</p>
+                    <div class="flex gap-0.5 mt-1">
                         @for($s = 1; $s <= 5; $s++)
-                        <svg class="w-3 h-3 {{ $s <= $t['stars'] ? 'text-[#C9A84C]' : 'text-[#7A6E5E]/30' }}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        <svg class="w-3 h-3 {{ $s <= $t->rating ? 'text-[#C9A84C]' : 'text-[#7A6E5E]/25' }}" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                        </svg>
                         @endfor
                     </div>
                 </div>
             </div>
-            <p class="text-[#7A6E5E] text-sm leading-relaxed italic">"{{ $t['text'] }}"</p>
+            {{-- Avis --}}
+            <p class="text-[#7A6E5E] text-sm leading-relaxed italic flex-1">&ldquo;{{ $t->content }}&rdquo;</p>
         </div>
         @endforeach
     </div>
+    @endif
 </section>
 
 {{-- ========== CTA FINAL ========== --}}

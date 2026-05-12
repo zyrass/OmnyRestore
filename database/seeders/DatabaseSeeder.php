@@ -71,6 +71,10 @@ class DatabaseSeeder extends Seeder
             $this->command->info("  ✅ Client created: {$client->email}");
         }
 
+        // ─── 3. Testimonials ──────────────────────────────────────────────
+        $this->call(TestimonialSeeder::class);
+        $this->command->info('  ✅ Testimonials seedés.');
+
         $this->command->newLine();
         $this->command->info('🎉 Seeding complete!');
         $this->command->newLine();
