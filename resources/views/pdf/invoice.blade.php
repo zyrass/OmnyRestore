@@ -298,7 +298,7 @@ table.totals tr.free-row td {
     {{-- ══════════════════════════════════════════════
          TAMPON PAYÉE — table pour centrage fiable DomPDF
          ══════════════════════════════════════════════ --}}
-    <table width="100%" style="margin: 10px 0 34px; border-collapse: collapse;">
+    <table width="100%" style="margin: 0 0 24px; border-collapse: collapse;">
         <tr>
             <td align="center">
                 <span class="stamp">&#10003; Pay&eacute;e &mdash; {{ $order->paid_at?->format('d/m/Y') ?? now()->format('d/m/Y') }}</span>
