@@ -67,6 +67,16 @@ class extends Component
         $media = $this->order->getMedia('retouched')->firstWhere('id', $mediaId);
         abort_if(! $media, 404, 'Photo introuvable.');
 
+        // Garde-fou : au moins 1 photo active doit rester pour le paiement
+        $activeCount = $this->order->getMedia('retouched')
+            ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
+            ->count();
+
+        if ($activeCount <= 1) {
+            session()->flash('error', 'Vous ne pouvez pas retirer votre seule photo restante. Réintégrez d\'abord une photo retirée ou annulez la commande.');
+            return;
+        }
+
         $media->setCustomProperty('is_rejected', true)
               ->setCustomProperty('rejected_at', now()->toISOString())
               ->setCustomProperty('rejected_by', 'client')
@@ -112,13 +122,12 @@ class extends Component
         abort_if(! $media, 404);
         abort_if(! $media->getCustomProperty('is_rejected', false), 403, 'Retirez la photo avant de la supprimer.');
 
-        // Garde-fou : au moins 1 photo active doit rester dans la commande
-        $activeCount = $this->order->getMedia('retouched')
-            ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
-            ->count();
+        // Garde-fou : la commande doit garder au moins 1 photo (active ou non)
+        // car on ne peut pas avoir une commande vide.
+        $totalCount = $this->order->getMedia('retouched')->count();
 
-        if ($activeCount === 0 && $this->order->getMedia('retouched')->count() === 1) {
-            session()->flash('error', 'Vous ne pouvez pas supprimer la dernière photo de la commande.');
+        if ($totalCount <= 1) {
+            session()->flash('error', 'Impossible de supprimer la dernière photo de la commande.');
             return;
         }
 
@@ -134,18 +143,27 @@ class extends Component
     }
 
     /**
-     * Recalcule total_price_cents d'après les photos actives (non rejetées par le client).
+     * Recalcule total_price_cents d'après les photos ACTIVES (non rejetées).
+     *
+     * IMPORTANT : chaque photo peut avoir un niveau de dommage différent,
+     * stocké dans custom_properties('ai_level'). On somme photo par photo.
+     * Fallback : si ai_level absent, on utilise le damage_level de la commande.
+     *
+     * Cohérent avec invoice.blade.php (même logique de calcul par niveau).
      */
     private function recalcPriceFromActivePhotos(): void
     {
-        $prices       = \App\Services\PhotoDamageAnalyzer::PRICES;
-        $pricePerPhoto = $prices[$this->order->damage_level] ?? $prices['light'];
+        $prices = \App\Services\PhotoDamageAnalyzer::PRICES;
 
-        $activeCount = $this->order->getMedia('retouched')
-            ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
-            ->count();
+        $activePhotos = $this->order->getMedia('retouched')
+            ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
 
-        $newBaseHt  = $activeCount * $pricePerPhoto;
+        // Somme par photo selon son niveau individuel (ai_level en custom_property)
+        $newBaseHt = $activePhotos->sum(function ($media) use ($prices) {
+            $level = $media->getCustomProperty('ai_level', $this->order->damage_level ?? 'light');
+            return $prices[$level] ?? $prices['light'];
+        });
+
         $newDiscount = 0;
 
         if ($this->order->coupon_code) {
@@ -163,7 +181,12 @@ class extends Component
         ]);
 
         \Illuminate\Support\Facades\Log::info(
-            "Client recalc {$this->order->reference}: {$activeCount} photo(s) × {$pricePerPhoto} cts = {$newTotalHt} cts HT net."
+            "Client recalc {$this->order->reference}: {$activePhotos->count()} photo(s) = {$newTotalHt} cts HT net.",
+            ['breakdown' => $activePhotos->map(fn($m) => [
+                'id'    => $m->id,
+                'level' => $m->getCustomProperty('ai_level', $this->order->damage_level ?? 'light'),
+                'price' => $prices[$m->getCustomProperty('ai_level', $this->order->damage_level ?? 'light')] ?? $prices['light'],
+            ])->values()->toArray()]
         );
     }
 }; ?>
