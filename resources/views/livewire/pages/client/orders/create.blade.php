@@ -4,7 +4,7 @@
  * Route: GET /client/orders/create
  *
  * Flow amélioré :
- *   1. Client sélectionne 1-N photos (jusqu'à 10)
+ *   1. Client sélectionne 1-N photos (jusqu'à 20)
  *   2. Après sélection → analyse IA automatique (GPT-4o Vision)
  *   3. L'IA détermine le niveau de dommage et affiche son verdict + prix
  *   4. Le client peut consulter le verdict mais PAS changer le prix
@@ -59,6 +59,13 @@ class extends Component
     public function updatedPhotos(): void
     {
         if (empty($this->photos)) {
+            $this->reset(['analysisResults', 'analyzing', 'analysisComplete', 'damage_level']);
+            return;
+        }
+
+        // Limite de sécurité côté serveur (la limite HTML n'est pas fiable)
+        if (count($this->photos) > 20) {
+            $this->addError('photos', 'Vous pouvez envoyer au maximum 20 photos par commande.');
             $this->reset(['analysisResults', 'analyzing', 'analysisComplete', 'damage_level']);
             return;
         }
@@ -135,7 +142,7 @@ class extends Component
     public function submit(AuditService $audit, CouponService $couponService): void
     {
         $this->validate([
-            'photos'       => ['required', 'array', 'min:1', 'max:10'],
+            'photos'       => ['required', 'array', 'min:1', 'max:20'],
             // Note: photos.* n'est pas re-validé ici car les fichiers temporaires
             // Livewire sont déjà validés à l'upload (wire:model) et peuvent être
             // dans un état transitoire au moment du submit.
@@ -249,7 +256,7 @@ class extends Component
                 {{-- Zone upload --}}
                 <div class="card-glass p-6">
                     <h2 class="text-[#F5F0E8] font-semibold mb-1">Vos photos à restaurer</h2>
-                    <p class="text-[#7A6E5E] text-sm mb-5">JPEG, PNG ou TIFF &mdash; 20 Mo max par photo &mdash; jusqu'&agrave; 10 photos</p>
+                    <p class="text-[#7A6E5E] text-sm mb-5">JPEG, PNG ou TIFF &mdash; 20 Mo max par photo &mdash; jusqu'&agrave; 20 photos</p>
 
                     <label for="photos-input"
                            class="block border-2 border-dashed border-[#C9A84C]/20 hover:border-[#C9A84C]/50 rounded-sm p-10 text-center cursor-pointer transition-all duration-300 hover:bg-[#C9A84C]/3"
@@ -264,6 +271,7 @@ class extends Component
                         <input id="photos-input" type="file" wire:model.live="photos" multiple accept=".jpg,.jpeg,.png,.tiff,.tif" class="hidden">
                     </label>
 
+                    @error('photos') <p class="text-red-400 text-sm mt-2 font-medium">&#9888; {{ $message }}</p> @enderror
                     @error('photos.*') <p class="text-red-400 text-xs mt-2">{{ $message }}</p> @enderror
 
                     {{-- Loading upload --}}
