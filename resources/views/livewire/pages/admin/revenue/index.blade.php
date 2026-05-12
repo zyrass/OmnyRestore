@@ -86,10 +86,6 @@ class extends Component
     }
 }; ?>
 
-{{-- Chart.js CDN --}}
-@push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-@endpush
 
 <div>
     {{-- En-tête --}}
@@ -178,80 +174,94 @@ class extends Component
     </div>
 </div>
 
-{{-- Chart.js init --}}
+{{-- Chart.js init — livewire:navigated pour les navigations SPA wire:navigate --}}
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const ctx = document.getElementById('revenueChart');
-    if (!ctx) return;
+(function () {
+    let _revenueChart = null;
 
-    const labels  = @json($chartLabels);
-    const htData  = @json($chartHt);
-    const ttcData = @json($chartTtc);
+    function initRevenueChart() {
+        const canvas = document.getElementById('revenueChart');
+        if (!canvas) return;
 
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: 'CA HT (€)',
-                    data: htData,
-                    backgroundColor: 'rgba(201, 168, 76, 0.25)',
-                    borderColor: '#C9A84C',
-                    borderWidth: 2,
-                    borderRadius: 4,
-                    order: 2,
-                },
-                {
-                    label: 'CA TTC (€)',
-                    data: ttcData,
-                    type: 'line',
-                    borderColor: '#34d399',
-                    backgroundColor: 'rgba(52, 211, 153, 0.08)',
-                    borderWidth: 2,
-                    pointBackgroundColor: '#34d399',
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    tension: 0.4,
-                    fill: true,
-                    order: 1,
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#1C1812',
-                    borderColor: 'rgba(201,168,76,0.2)',
-                    borderWidth: 1,
-                    titleColor: '#F5F0E8',
-                    bodyColor: '#7A6E5E',
-                    padding: 12,
-                    callbacks: {
-                        label: (ctx) => ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} €`
+        if (_revenueChart) {
+            _revenueChart.destroy();
+            _revenueChart = null;
+        }
+
+        const labels  = @json($chartLabels);
+        const htData  = @json($chartHt);
+        const ttcData = @json($chartTtc);
+
+        _revenueChart = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'CA HT (€)',
+                        data: htData,
+                        backgroundColor: 'rgba(201, 168, 76, 0.25)',
+                        borderColor: '#C9A84C',
+                        borderWidth: 2,
+                        borderRadius: 4,
+                        order: 2,
+                    },
+                    {
+                        label: 'CA TTC (€)',
+                        data: ttcData,
+                        type: 'line',
+                        borderColor: '#34d399',
+                        backgroundColor: 'rgba(52, 211, 153, 0.08)',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#34d399',
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        tension: 0.4,
+                        fill: true,
+                        order: 1,
                     }
-                }
+                ]
             },
-            scales: {
-                x: {
-                    grid: { color: 'rgba(201,168,76,0.05)' },
-                    ticks: { color: '#7A6E5E', font: { size: 11 } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1C1812',
+                        borderColor: 'rgba(201,168,76,0.2)',
+                        borderWidth: 1,
+                        titleColor: '#F5F0E8',
+                        bodyColor: '#7A6E5E',
+                        padding: 12,
+                        callbacks: {
+                            label: (ctx) => ` ${ctx.dataset.label} : ${ctx.parsed.y.toFixed(2)} €`
+                        }
+                    }
                 },
-                y: {
-                    beginAtZero: true,
-                    grid: { color: 'rgba(201,168,76,0.07)' },
-                    ticks: {
-                        color: '#7A6E5E',
-                        font: { size: 11 },
-                        callback: (v) => v.toFixed(2) + ' €'
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(201,168,76,0.05)' },
+                        ticks: { color: '#7A6E5E', font: { size: 11 } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(201,168,76,0.07)' },
+                        ticks: {
+                            color: '#7A6E5E',
+                            font: { size: 11 },
+                            callback: (v) => v.toFixed(2) + ' €'
+                        }
                     }
                 }
             }
-        }
-    });
-});
+        });
+    }
+
+    // 1er chargement direct (F5 / acces URL)
+    document.addEventListener('DOMContentLoaded', initRevenueChart);
+    // Navigations SPA Livewire wire:navigate
+    document.addEventListener('livewire:navigated', initRevenueChart);
+})();
 </script>

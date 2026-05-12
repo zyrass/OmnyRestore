@@ -10,6 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Chart.js — disponible globalement pour les pages admin --}}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     @livewireStyles
 </head>
 <body class="min-h-screen bg-[#0D0B08] text-[#F5F0E8]" x-data x-on:omny:confirm.window="$store.confirmModal.open($event.detail)">
