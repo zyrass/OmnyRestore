@@ -51,6 +51,16 @@
                class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->is('admin/coupons*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                 Réductions
             </a>
+            {{-- ── Clients ── --}}
+            <a href="{{ route('admin.clients') }}" wire:navigate
+               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.clients') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                Clients
+            </a>
+            {{-- ── CA ── --}}
+            <a href="{{ route('admin.revenue') }}" wire:navigate
+               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.revenue') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                CA
+            </a>
             {{-- ── Séparateur + Panel Admin (Dashboard) ── --}}
             <div class="w-px h-4 bg-[#C9A84C]/15 mx-1"></div>
             <a href="{{ route('admin.dashboard') }}" wire:navigate
@@ -260,5 +270,6 @@ window.omnyConfirm = function(options) {
     });
 };
 </script>
+@stack('scripts')
 </body>
 </html>

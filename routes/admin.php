@@ -50,4 +50,14 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Volt::route('/coupons', 'pages.admin.coupons.index')
         ->name('coupons.index');
 
+    // ─── Clients ─────────────────────────────────────────────────────────
+    // GET /admin/clients — Liste complète des clients avec CA payé
+    Volt::route('/clients', 'pages.admin.clients.index')
+        ->name('clients');
+
+    // ─── Chiffre d'Affaire ───────────────────────────────────────────────
+    // GET /admin/revenue — CA mensuel avec graphes Chart.js
+    Volt::route('/revenue', 'pages.admin.revenue.index')
+        ->name('revenue');
+
 });
