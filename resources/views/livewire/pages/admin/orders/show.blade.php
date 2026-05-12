@@ -391,8 +391,8 @@ class extends Component
             @endif
 
             {{-- === RESTAURATION IA AUTOMATIQUE (Phase 8) === --}}
-            {{-- Disponible pour PENDING et IN_PROGRESS --}}
-            @if (in_array($order->status, ['PENDING', 'IN_PROGRESS']))
+            {{-- Disponible uniquement EN COURS (après prise en charge) --}}
+            @if ($order->status === 'IN_PROGRESS')
             <div class="card-glass overflow-hidden border border-purple-500/20">
                 <div class="px-5 py-4 border-b border-purple-500/15 flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
@@ -657,7 +657,7 @@ class extends Component
 
             {{-- Détails --}}
             <div class="card-glass p-5">
-                <h3 class="text-[#7A6E5E] text-xs tracking-widest uppercase mb-4">Détails commande</h3>
+                <h3 class="text-[#C9A84C] text-xs tracking-widest uppercase border-b border-[#C9A84C]/20 pb-2 mb-4 font-semibold">D&eacute;tails commande</h3>
                 <dl class="space-y-2.5 text-sm">
                     <div class="flex justify-between"><dt class="text-[#7A6E5E]">Photos</dt><dd class="text-[#F5F0E8]">{{ $order->photo_count }}</dd></div>
                     <div class="flex justify-between"><dt class="text-[#7A6E5E]">Niveau IA</dt>
@@ -691,7 +691,7 @@ class extends Component
                     @endif
                     <div class="border-t border-[#C9A84C]/10 pt-2 space-y-1.5">
                         <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT{{ $discountHt > 0 ? ' net' : '' }}</dt><dd class="text-[#F5F0E8]">{{ number_format($finalHt / 100, 2, ',', ' ') }} €</dd></div>
-                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">TVA 20%</dt><dd class="text-[#7A6E5E]">{{ number_format($tva / 100, 2, ',', ' ') }} €</dd></div>
+                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">TVA 20%</dt><dd class="text-[#F5F0E8]">{{ number_format($tva / 100, 2, ',', ' ') }} €</dd></div>
                         <div class="flex justify-between font-bold"><dt class="text-[#C9A84C]">TTC</dt><dd class="text-[#C9A84C]">{{ number_format($ttc / 100, 2, ',', ' ') }} €</dd></div>
                         {{-- Coût IA : offert si coupon couvre tout, sinon mention ~0,01 €/photo --}}
                         @if ($finalHt === 0 && $discountHt > 0)
@@ -708,14 +708,16 @@ class extends Component
 
             {{-- Notes + prix rapide --}}
             <div class="card-glass p-5">
-                <h3 class="text-[#7A6E5E] text-xs tracking-widest uppercase mb-4">Notes internes</h3>
+                <h3 class="text-[#C9A84C] text-xs tracking-widest uppercase border-b border-[#C9A84C]/20 pb-2 mb-4 font-semibold">Notes internes</h3>
                 <textarea wire:model="adminNotes" rows="4" placeholder="Notes visibles uniquement par l'équipe…"
                           class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs rounded-sm px-3 py-2 placeholder-[#7A6E5E]/50 resize-none focus:outline-none focus:border-[#C9A84C]/60 transition-all mb-3">
                 </textarea>
                 @if (!in_array($order->status, ['PAID', 'DELIVERED', 'CANCELLED']))
                 <div class="flex gap-2 mb-3">
-                    <input wire:model="finalPrice" type="number" step="0.01" placeholder="Prix €"
-                           class="flex-1 bg-[#1A1510] border border-[#C9A84C]/20 text-[#C9A84C] text-sm rounded-sm px-3 py-2 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
+                    <input wire:model="finalPrice" type="number" step="0.01" placeholder="Prix HT (€)"
+                           title="Montant hors taxes — TVA 20% s'ajoute automatiquement"
+                           class="flex-1 bg-[#1A1510] border border-[#C9A84C]/20 text-[#C9A84C] text-sm rounded-sm px-3 py-2 focus:outline-none focus:border-[#C9A84C]/60 transition-all"
+                           x-data x-tooltip="'HT — TTC = ' + (parseFloat($el.value || 0) * 1.2).toFixed(2) + ' €'">
                     <button wire:click="saveNotes" class="px-4 py-2 text-xs bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30 hover:bg-[#C9A84C]/30 rounded-sm transition-all">
                         Sauver
                     </button>
@@ -773,13 +775,31 @@ class extends Component
             {{-- Audit log --}}
             @if ($order->auditLogs->isNotEmpty())
             <div class="card-glass p-5">
-                <h3 class="text-[#7A6E5E] text-xs tracking-widest uppercase mb-3">Historique</h3>
+                <h3 class="text-[#C9A84C] text-xs tracking-widest uppercase border-b border-[#C9A84C]/20 pb-2 mb-3 font-semibold">Historique</h3>
                 <div class="space-y-2.5">
                     @foreach ($order->auditLogs->sortByDesc('created_at')->take(8) as $log)
+                    @php
+                        $actionLabels = [
+                            'ORDER_CREATED'        => '✦ Commande créée',
+                            'ORDER_STATUS_CHANGED'  => '➤ Statut modifié',
+                            'ORDER_CANCELLED'       => '✕ Commande annulée',
+                            'ORDER_UPDATED'         => '✎ Commande modifiée',
+                            'ORDER_PAID'            => '✔ Paiement reçu',
+                            'ORDER_DELIVERED'       => '📦 Photos livrées',
+                            'COUPON_USED'           => '🏷️ Coupon appliqué',
+                        ];
+                        $label = $actionLabels[$log->action] ?? $log->action;
+                        // Si meta contient from/to, afficher la transition
+                        $meta  = is_array($log->meta) ? $log->meta : (json_decode($log->meta ?? '{}', true) ?? []);
+                        if (!empty($meta['from']) && !empty($meta['to'])) {
+                            $statusFr = ['PENDING'=>'En attente','IN_PROGRESS'=>'En cours','DONE'=>'Terminé','PAID'=>'Payé','CANCELLED'=>'Annulé'];
+                            $label .= ' : ' . ($statusFr[$meta['from']] ?? $meta['from']) . ' → ' . ($statusFr[$meta['to']] ?? $meta['to']);
+                        }
+                    @endphp
                     <div class="flex items-start gap-2 text-xs">
                         <div class="w-1.5 h-1.5 rounded-full bg-[#C9A84C]/40 mt-1.5 shrink-0"></div>
                         <div>
-                            <p class="text-[#F5F0E8]">{{ $log->action }}</p>
+                            <p class="text-[#F5F0E8]">{{ $label }}</p>
                             <p class="text-[#7A6E5E]">{{ $log->created_at->format('d/m/Y H:i') }}</p>
                         </div>
                     </div>

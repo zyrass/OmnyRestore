@@ -470,15 +470,15 @@ class extends Component
                         <div class="border-t border-[#C9A84C]/10 pt-3 space-y-1.5">
                             <div class="flex justify-between text-sm">
                                 <span class="text-[#7A6E5E]">Total HT</span>
-                                <span class="text-[#F5F0E8]">{{ number_format($netHt / 100, 2, ',', ' ') }} €</span>
+                                <span class="text-[#F5F0E8]">{{ number_format($netHt / 100, 2, ',', ' ') }} &euro;</span>
                             </div>
                             <div class="flex justify-between text-sm">
                                 <span class="text-[#7A6E5E]">TVA 20%</span>
-                                <span class="text-[#7A6E5E]">{{ number_format($tva / 100, 2, ',', ' ') }} €</span>
+                                <span class="text-[#F5F0E8]">{{ number_format($tva / 100, 2, ',', ' ') }} &euro;</span>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-[#7A6E5E]">Total TTC</span>
-                                <span class="text-[#C9A84C] font-bold text-lg">{{ number_format($ttc / 100, 2, ',', ' ') }} €</span>
+                            <div class="flex justify-between pt-1 border-t border-[#C9A84C]/10">
+                                <span class="text-[#C9A84C] font-semibold text-sm">Total TTC</span>
+                                <span class="text-[#C9A84C] font-bold text-lg">{{ number_format($ttc / 100, 2, ',', ' ') }} &euro;</span>
                             </div>
                         </div>
                         @else
