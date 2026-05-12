@@ -148,9 +148,18 @@ class extends Component
                     <form action="{{ route('client.orders.checkout', $order) }}" method="POST">
                         @csrf
                         <button type="submit" class="btn-gold whitespace-nowrap">
-                            Payer — {{ $order->total_price_cents
-                                ? number_format($order->total_price_cents / 100, 2, ',', ' ') . ' €'
-                                : number_format(($order->base_price_cents ?? 0) / 100, 2, ',', ' ') . ' €' }}
+                            @php
+                                // total_price_cents peut valoir 0 (coupon 100%) — !== null obligatoire
+                                $payHt  = $order->total_price_cents !== null
+                                    ? $order->total_price_cents
+                                    : ($order->base_price_cents ?? 0);
+                                $payTtc = $payHt + round($payHt * 0.2);
+                            @endphp
+                            @if ($payTtc === 0)
+                                Payer — Offert ✓
+                            @else
+                                Payer — {{ number_format($payTtc / 100, 2, ',', ' ') }} € TTC
+                            @endif
                         </button>
                     </form>
                 </div>
@@ -227,14 +236,62 @@ class extends Component
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-[#7A6E5E]">Type</dt>
-                        <dd class="text-[#F5F0E8]">{{ $order->damage_level === 'heavy' ? 'Avancée' : 'Standard' }}</dd>
-                    </div>
-                    @if ($order->base_price_cents)
-                    <div class="flex justify-between pt-2 border-t border-[#C9A84C]/10">
-                        <dt class="text-[#7A6E5E]">Montant HT</dt>
-                        <dd class="text-[#C9A84C] font-semibold">
-                            {{ number_format($order->base_price_cents / 100, 2, ',', ' ') }} €
+                        <dd class="text-[#F5F0E8]">
+                            @php
+                                $lvl = match($order->damage_level) {
+                                    'light'  => 'Standard',
+                                    'medium' => 'Avancée',
+                                    'heavy'  => 'Complète',
+                                    default  => ucfirst($order->damage_level ?? 'N/A'),
+                                };
+                            @endphp
+                            {{ $lvl }}
                         </dd>
+                    </div>
+                    @php
+                        $baseHtC     = $order->base_price_cents ?? 0;
+                        $discountC   = $order->discount_cents ?? 0;
+                        $finalHtC    = $order->total_price_cents !== null
+                            ? $order->total_price_cents
+                            : max(0, $baseHtC - $discountC);
+                        $tvaC        = round($finalHtC * 0.2);
+                        $ttcC        = $finalHtC + $tvaC;
+                    @endphp
+                    @if ($baseHtC > 0)
+                    <div class="pt-2 border-t border-[#C9A84C]/10 space-y-1.5">
+                        {{-- Estim. brut IA --}}
+                        <div class="flex justify-between text-xs">
+                            <dt class="text-[#7A6E5E]">Estim. IA HT</dt>
+                            <dd class="text-[#7A6E5E]">{{ number_format($baseHtC / 100, 2, ',', ' ') }} €</dd>
+                        </div>
+                        {{-- Remise coupon (si applicable) --}}
+                        @if ($discountC > 0)
+                        <div class="flex justify-between text-xs">
+                            <dt class="text-emerald-400/80">Remise ({{ $order->coupon_code }})</dt>
+                            <dd class="text-emerald-400">−{{ number_format($discountC / 100, 2, ',', ' ') }} €</dd>
+                        </div>
+                        @endif
+                        {{-- HT net --}}
+                        <div class="flex justify-between text-xs">
+                            <dt class="text-[#7A6E5E]">HT{{ $discountC > 0 ? ' net' : '' }}</dt>
+                            <dd class="text-[#F5F0E8]">{{ number_format($finalHtC / 100, 2, ',', ' ') }} €</dd>
+                        </div>
+                        {{-- TVA --}}
+                        <div class="flex justify-between text-xs">
+                            <dt class="text-[#7A6E5E]/70">TVA 20%</dt>
+                            <dd class="text-[#7A6E5E]/70">{{ number_format($tvaC / 100, 2, ',', ' ') }} €</dd>
+                        </div>
+                        {{-- TTC --}}
+                        <div class="flex justify-between font-semibold">
+                            <dt class="text-[#C9A84C]">Total TTC</dt>
+                            <dd class="text-[#C9A84C]">
+                                @if ($ttcC === 0)
+                                    Offert ✓
+                                @else
+                                    {{ number_format($ttcC / 100, 2, ',', ' ') }} €
+                                @endif
+                            </dd>
+                        </div>
                     </div>
                     @endif
                     @if ($order->paid_at)
