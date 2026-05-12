@@ -8,7 +8,42 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ## [Unreleased]
 
-> Prochaines étapes : champ coupon côté client, export CSV, conformité RGPD complète, MVP production.
+> Prochaines étapes : export CSV, conformité RGPD complète, MVP production.
+
+---
+
+## [0.8.1] — 2026-05-12 — Patch : Coupon client, exclusion ZIP & recalcul prix
+
+### Ajouté
+
+- **Coupon côté client (formulaire de création de commande)** :
+  - Champ de saisie du code de réduction dans la sidebar du formulaire `/client/orders/create`
+  - Bouton "Appliquer" appelle `CouponService::apply()` via Livewire (`wire:click="applyCoupon"`)
+  - Feedback immédiat : badge vert ✓ avec message si valide, alerte rouge si invalide
+  - Bouton × pour retirer le coupon appliqué
+  - Le coupon est réinitialisé automatiquement si les photos changent (montant HT différent)
+  - Lors de la soumission : `discount_cents` et `coupon_code` sauvegardés sur l'`Order`, `CouponService::confirm()` incrémente `used_count`
+  - `coupon_code` et `discount_cents` ajoutés au `$fillable` du modèle `Order`
+
+- **Affichage prix 3 niveaux dans le récapitulatif client** :
+  - 1,00 € (Standard), 2,00 € (Avancée), 5,00 € (Complète) avec couleur de badge distincte
+  - Décomposition HT / TVA 20% / TTC en temps réel (Alpine.js)
+  - Ligne Réduction visible si coupon appliqué
+
+- **Worst-case level corrigé** : l'algo `updatedPhotos()` supporte maintenant le niveau `medium` (précédemment seul `heavy` était testé)
+
+### Modifié
+
+- **`ZipGeneratorService::generate()`** : filtre les médias `is_rejected = true` avant de générer le ZIP
+  - Log info si des photos sont exclues
+  - Levée d'exception si *toutes* les photos sont rejetées
+  - `buildZipReadme()` mis à jour : affiche le nombre de photos actives et mentionne les exclues
+
+- **`rejectPhoto()` / `restorePhoto()` dans `admin/orders/show.blade.php`** :
+  - Appel de `recalcPriceFromActivePhotos()` après chaque action
+  - `recalcPriceFromActivePhotos()` : compte les médias non rejetés, recalcule `total_price_cents` (HT) en centimes et sauvegarde l'order
+  - Log info du calcul (N photos × prix/photo = total)
+  - Message flash mis à jour : "prix recalculé" / "prix mis à jour"
 
 ---
 

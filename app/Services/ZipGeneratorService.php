@@ -51,11 +51,30 @@ class ZipGeneratorService
 
         // ─── 2. Fetch retouched media from Spatie Media Library ────────────
         // getMedia('retouched') returns a Collection of Spatie\MediaLibrary\MediaCollections\Models\Media
-        $mediaItems = $order->getMedia('retouched');
+        $allMediaItems = $order->getMedia('retouched');
+
+        if ($allMediaItems->isEmpty()) {
+            throw new \RuntimeException(
+                "Cannot generate ZIP for order {$order->reference}: no retouched photos found."
+            );
+        }
+
+        // Phase D : exclure les photos marquées comme rejetées par l'admin
+        $mediaItems    = $allMediaItems->filter(
+            fn($m) => ! $m->getCustomProperty('is_rejected', false)
+        );
+        $rejectedCount = $allMediaItems->count() - $mediaItems->count();
+
+        if ($rejectedCount > 0) {
+            \Illuminate\Support\Facades\Log::info(
+                "ZIP {$order->reference}: {$rejectedCount} photo(s) rejet\u00e9e(s) exclue(s) du livrable.",
+                ['order_id' => $order->id]
+            );
+        }
 
         if ($mediaItems->isEmpty()) {
             throw new \RuntimeException(
-                "Cannot generate ZIP for order {$order->reference}: no retouched photos found."
+                "Cannot generate ZIP for order {$order->reference}: all photos were rejected by admin."
             );
         }
 
@@ -144,14 +163,26 @@ class ZipGeneratorService
      */
     private function buildZipReadme(Order $order): string
     {
-        return implode(PHP_EOL, [
+        // Compter les photos actives (non rejetées) pour le README
+        $allMedia      = $order->getMedia('retouched');
+        $activeCount   = $allMedia->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))->count();
+        $rejectedCount = $allMedia->count() - $activeCount;
+
+        $lines = [
             "=== OmnyRestore — Commande {$order->reference} ===",
             "",
             "Photos restaurées par intelligence artificielle.",
             "Technologie : Restauration 8K, optimisation Studio Professionnel.",
             "",
             "Contenu de cette archive :",
-            "  - {$order->photo_count} photo(s) restaurée(s) en haute résolution",
+            "  - {$activeCount} photo(s) restaurée(s) en haute résolution",
+        ];
+
+        if ($rejectedCount > 0) {
+            $lines[] = "  - {$rejectedCount} photo(s) exclue(s) suite à un contrôle qualité admin";
+        }
+
+        $lines = array_merge($lines, [
             "  - README.txt (ce fichier)",
             "",
             "Date de livraison : " . ($order->delivered_at?->format('d/m/Y H:i') ?? 'N/A'),
@@ -160,6 +191,8 @@ class ZipGeneratorService
             "© OmnyRestore — OmnyVia",
             "https://omnyrestore.fr",
         ]);
+
+        return implode(PHP_EOL, $lines);
     }
 
     /**

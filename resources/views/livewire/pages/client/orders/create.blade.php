@@ -15,6 +15,7 @@
 
 use App\Models\Order;
 use App\Services\AuditService;
+use App\Services\CouponService;
 use App\Services\PhotoDamageAnalyzer;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -45,6 +46,12 @@ class extends Component
     /** Instructions optionnelles du client */
     public ?string $instructions = null;
 
+    /** Code coupon saisi par le client */
+    public string $couponCode = '';
+
+    /** Résultat de l'application du coupon (null = pas encore appliqué) */
+    public ?array $couponResult = null;
+
     /**
      * Déclenché automatiquement quand les photos changent (wire:model.live).
      * Lance l'analyse IA pour chaque photo uploadée.
@@ -62,26 +69,61 @@ class extends Component
 
         $analyzer = app(PhotoDamageAnalyzer::class);
         $worstLevel = 'light';
+        $levelPriority = ['light' => 0, 'medium' => 1, 'heavy' => 2];
 
         foreach ($this->photos as $i => $photo) {
             $result = $analyzer->analyze($photo);
             $this->analysisResults[$i] = $result;
 
-            // Worst-case : si au moins une photo est "heavy", tout le lot est "heavy"
-            if ($result['level'] === 'heavy') {
-                $worstLevel = 'heavy';
+            // Worst-case : niveau le plus élevé détermine le tarif de tout le lot
+            if (($levelPriority[$result['level']] ?? 0) > ($levelPriority[$worstLevel] ?? 0)) {
+                $worstLevel = $result['level'];
             }
         }
 
         $this->damage_level     = $worstLevel;
         $this->analyzing        = false;
         $this->analysisComplete = true;
+
+        // Réinitialiser le coupon si les photos changent (le montant HT a pu changer)
+        $this->couponResult = null;
+        $this->couponCode   = '';
+    }
+
+    /**
+     * Calcule le prix HT de base (en centimes) sans coupon.
+     */
+    private function baseHtCents(): int
+    {
+        return count($this->photos) * (PhotoDamageAnalyzer::PRICES[$this->damage_level] ?? 83);
+    }
+
+    /**
+     * Applique un code coupon.
+     * Appelé via wire:click ou x-on:submit sur le formulaire coupon.
+     */
+    public function applyCoupon(CouponService $couponService): void
+    {
+        $this->validate(['couponCode' => 'required|string|min:3|max:32']);
+        $this->couponResult = $couponService->apply(
+            $this->couponCode,
+            $this->baseHtCents()
+        );
+    }
+
+    /**
+     * Supprime le coupon appliqué.
+     */
+    public function removeCoupon(): void
+    {
+        $this->couponResult = null;
+        $this->couponCode   = '';
     }
 
     /**
      * Valide et soumet la commande.
      */
-    public function submit(AuditService $audit): void
+    public function submit(AuditService $audit, CouponService $couponService): void
     {
         $this->validate([
             'photos'       => ['required', 'array', 'min:1', 'max:10'],
@@ -90,7 +132,17 @@ class extends Component
         ]);
 
         // Le damage_level est déterminé par l'IA — non modifiable par le client
-        $pricePerPhoto = PhotoDamageAnalyzer::PRICES[$this->damage_level];
+        $baseHtCents   = $this->baseHtCents();
+        $discountCents = 0;
+        $couponCode    = null;
+
+        // Appliquer le coupon si valide
+        if ($this->couponResult && $this->couponResult['valid']) {
+            $discountCents = $this->couponResult['discount_cents'];
+            $couponCode    = strtoupper(trim($this->couponCode));
+        }
+
+        $finalHtCents = max(0, $baseHtCents - $discountCents);
 
         $order = Order::create([
             'user_id'          => auth()->id(),
@@ -98,8 +150,16 @@ class extends Component
             'photo_count'      => count($this->photos),
             'damage_level'     => $this->damage_level,
             'instructions'     => $this->instructions,
-            'base_price_cents' => count($this->photos) * $pricePerPhoto,
+            'base_price_cents' => $baseHtCents,
+            'coupon_code'      => $couponCode,
+            'discount_cents'   => $discountCents,
+            // total_price_cents sera fixé par l'admin lors de la validation
         ]);
+
+        // Confirmer l'utilisation du coupon (incrémenter le compteur)
+        if ($this->couponResult && $this->couponResult['valid'] && $this->couponResult['coupon']) {
+            $couponService->confirm($this->couponResult['coupon']);
+        }
 
         // ── Copie des fichiers AVANT que Livewire les supprime ─────────────
         // Les fichiers temporaires Livewire sont supprimés après chaque cycle.
@@ -310,9 +370,19 @@ class extends Component
                             <span class="text-[#7A6E5E]">Tarif/photo</span>
                             <span class="text-right">
                                 @if ($analysisComplete)
-                                    <span class="{{ $damage_level === 'heavy' ? 'text-orange-400' : 'text-emerald-400' }} font-semibold">
-                                        {{ $damage_level === 'heavy' ? '10,00 €' : '1,00 €' }}
-                                    </span><br>
+                                    @php
+                                        $priceLabel = match($damage_level) {
+                                            'medium' => '2,00 €',
+                                            'heavy'  => '5,00 €',
+                                            default  => '1,00 €',
+                                        };
+                                        $priceColor = match($damage_level) {
+                                            'medium' => 'text-amber-400',
+                                            'heavy'  => 'text-orange-400',
+                                            default  => 'text-emerald-400',
+                                        };
+                                    @endphp
+                                    <span class="{{ $priceColor }} font-semibold">{{ $priceLabel }}</span><br>
                                     <span class="text-[10px] text-[#7A6E5E]">défini par IA</span>
                                 @elseif ($analyzing)
                                     <svg class="animate-spin w-3.5 h-3.5 text-[#C9A84C] inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -321,16 +391,44 @@ class extends Component
                                 @endif
                             </span>
                         </div>
+                        @if ($analysisComplete && count($photos) > 0)
+                        @php
+                            $baseHt    = count($photos) * (\App\Services\PhotoDamageAnalyzer::PRICES[$damage_level] ?? 83);
+                            $discount  = $couponResult['discount_cents'] ?? 0;
+                            $netHt     = max(0, $baseHt - $discount);
+                            $tva       = round($netHt * 0.2);
+                            $ttc       = $netHt + $tva;
+                        @endphp
+                        @if ($discount > 0)
+                        <div class="flex justify-between text-sm">
+                            <span class="text-[#7A6E5E]">Sous-total HT</span>
+                            <span class="text-[#F5F0E8]">{{ number_format($baseHt / 100, 2, ',', ' ') }} €</span>
+                        </div>
+                        <div class="flex justify-between text-sm text-emerald-400">
+                            <span>Réduction</span>
+                            <span>−{{ number_format($discount / 100, 2, ',', ' ') }} €</span>
+                        </div>
+                        @endif
+                        <div class="border-t border-[#C9A84C]/10 pt-3 space-y-1.5">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-[#7A6E5E]">Total HT</span>
+                                <span class="text-[#F5F0E8]">{{ number_format($netHt / 100, 2, ',', ' ') }} €</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-[#7A6E5E]">TVA 20%</span>
+                                <span class="text-[#7A6E5E]">{{ number_format($tva / 100, 2, ',', ' ') }} €</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-[#7A6E5E]">Total TTC</span>
+                                <span class="text-[#C9A84C] font-bold text-lg">{{ number_format($ttc / 100, 2, ',', ' ') }} €</span>
+                            </div>
+                        </div>
+                        @else
                         <div class="border-t border-[#C9A84C]/10 pt-3 flex justify-between">
                             <span class="text-[#7A6E5E]">Total estimé</span>
-                            <span class="text-[#C9A84C] font-bold text-lg">
-                                @if ($analysisComplete && count($photos) > 0)
-                                    {{ number_format(count($photos) * ($damage_level === 'heavy' ? 10 : 1), 0, ',', '') }} €
-                                @else
-                                    —
-                                @endif
-                            </span>
+                            <span class="text-[#C9A84C] font-bold text-lg">—</span>
                         </div>
+                        @endif
                     </div>
 
                     <div class="mt-5 bg-[#C9A84C]/8 border border-[#C9A84C]/20 rounded-sm p-3">
@@ -340,6 +438,56 @@ class extends Component
                         </p>
                     </div>
                 </div>
+
+                {{-- Bloc coupon --}}
+                @if ($analysisComplete)
+                <div class="card-glass p-5">
+                    <h3 class="text-[#F5F0E8] font-semibold text-sm mb-3">Code de réduction</h3>
+
+                    @if ($couponResult && $couponResult['valid'])
+                    {{-- Coupon validé --}}
+                    <div class="flex items-center justify-between p-3 bg-emerald-900/20 border border-emerald-500/30 rounded-sm">
+                        <div>
+                            <p class="text-emerald-400 text-sm font-semibold">{{ strtoupper($couponCode) }}</p>
+                            <p class="text-emerald-400/70 text-xs">{{ $couponResult['message'] }}</p>
+                        </div>
+                        <button type="button" wire:click="removeCoupon"
+                                class="text-[#7A6E5E] hover:text-red-400 transition-colors ml-3">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    @elseif ($couponResult && !$couponResult['valid'])
+                    {{-- Coupon invalide --}}
+                    <div class="mb-2 p-2 bg-red-900/20 border border-red-500/30 rounded-sm">
+                        <p class="text-red-400 text-xs">{{ $couponResult['message'] }}</p>
+                    </div>
+                    @endif
+
+                    @if (!($couponResult && $couponResult['valid']))
+                    <div class="flex gap-2">
+                        <input wire:model="couponCode"
+                               type="text"
+                               placeholder="BIENVENUE10"
+                               class="flex-1 bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-sm rounded-sm
+                                      px-3 py-2 placeholder-[#7A6E5E]/50 uppercase tracking-widest
+                                      focus:outline-none focus:border-[#C9A84C]/60 transition-all">
+                        <button type="button" wire:click="applyCoupon"
+                                wire:loading.attr="disabled" wire:target="applyCoupon"
+                                class="px-4 py-2 text-xs bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30
+                                       hover:bg-[#C9A84C]/25 rounded-sm transition-all whitespace-nowrap">
+                            <span wire:loading.remove wire:target="applyCoupon">Appliquer</span>
+                            <span wire:loading wire:target="applyCoupon">⧖</span>
+                        </button>
+                    </div>
+                    @error('couponCode')
+                    <p class="text-red-400 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                    @endif
+                </div>
+                @endif
 
                 {{-- Bouton submit --}}
                 <button type="submit"

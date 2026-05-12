@@ -193,9 +193,8 @@ class extends Component
     // ── Phase D : Rejet de photos restaurées ────────────────────────────────
 
     /**
-     * Marque une photo restaurée comme rejetée.
+     * Marque une photo restaurée comme rejetée, puis recalcule le prix HT de la commande.
      * Utilise les custom_properties de Spatie MediaLibrary (pas de migration nécessaire).
-     * La photo sera exclue du ZIP final et le prix recalculé en conséquence.
      */
     public function rejectPhoto(int $mediaId): void
     {
@@ -206,12 +205,14 @@ class extends Component
               ->setCustomProperty('rejected_at', now()->toISOString())
               ->save();
 
-        session()->flash('success', 'Photo rejetée — exclue du livrable et du calcul de prix.');
+        $this->recalcPriceFromActivePhotos();
+
+        session()->flash('success', 'Photo rejetée — prix recalculé, exclue du livrable.');
         $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
     }
 
     /**
-     * Restaure une photo rejetée (annule le rejet).
+     * Restaure une photo rejetée (annule le rejet), puis recalcule le prix HT.
      */
     public function restorePhoto(int $mediaId): void
     {
@@ -222,8 +223,38 @@ class extends Component
               ->forgetCustomProperty('rejected_at')
               ->save();
 
-        session()->flash('success', 'Photo réintégrée dans le livrable.');
+        $this->recalcPriceFromActivePhotos();
+
+        session()->flash('success', 'Photo réintégrée dans le livrable — prix mis à jour.');
         $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
+    }
+
+    /**
+     * Recalcule total_price_cents d'après le nombre de photos actives (non rejetées).
+     * Le tarif par photo est déterminé par le damage_level de la commande.
+     *
+     * Prix HT par photo :
+     *   light  →  83 cts (1,00 € TTC)
+     *   medium → 167 cts (2,00 € TTC)
+     *   heavy  → 417 cts (5,00 € TTC)
+     */
+    private function recalcPriceFromActivePhotos(): void
+    {
+        $pricesHt = \App\Services\PhotoDamageAnalyzer::PRICES;
+        $pricePerPhoto = $pricesHt[$this->order->damage_level] ?? $pricesHt['light'];
+
+        // Recharger les médias après la modification de custom_property
+        $activeCount = $this->order->getMedia('retouched')
+            ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
+            ->count();
+
+        $newPriceHt = $activeCount * $pricePerPhoto;
+
+        $this->order->update(['total_price_cents' => $newPriceHt]);
+
+        \Illuminate\Support\Facades\Log::info(
+            "Prix recalculé pour {$this->order->reference}: {$activeCount} photo(s) active(s) × {$pricePerPhoto} cts = {$newPriceHt} cts HT."
+        );
     }
 }; ?>
 

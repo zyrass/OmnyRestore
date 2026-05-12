@@ -114,6 +114,8 @@ class Order extends Model implements HasMedia
         'delivered_at',
         'zip_path',
         'zip_expires_at',
+        'coupon_code',
+        'discount_cents',
     ];
 
     /**
