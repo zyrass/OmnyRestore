@@ -2,6 +2,7 @@
 
 namespace App\Observers;
 
+use App\Mail\OrderDeliveryReady;
 use App\Mail\OrderPaidConfirmation;
 use App\Mail\OrderReadyForPayment;
 use App\Models\Order;
@@ -52,17 +53,22 @@ class OrderObserver
                 'DONE' => Mail::to($userEmail, $userName)
                               ->queue(new OrderReadyForPayment($order)),
 
-                // Stripe a confirmé le paiement → email confirmation client
-                // ⚠️ Le GenerateOrderZipJob est dispatchED par PaymentSuccessController
+                // Stripe a confirmé le paiement → email "paiement reçu, ZIP en préparation"
+                // ⚠️ Le GenerateOrderZipJob est dispatched par PaymentSuccessController
                 //    ET StripeWebhookController — pas ici pour éviter le double dispatch.
                 'PAID' => Mail::to($userEmail, $userName)
                               ->queue(new OrderPaidConfirmation($order)),
 
-                // Pas d'email pour les autres transitions (PAID→DELIVERED, etc.)
+                // Le ZIP est généré et prêt → email avec liens téléchargement + facture
+                // C'est LE mail que le client attendait vraiment !
+                'DELIVERED' => Mail::to($userEmail, $userName)
+                                   ->queue(new OrderDeliveryReady($order)),
+
+                // Pas d'email pour les autres transitions
                 default => null,
             };
 
-            if (in_array($newStatus, ['DONE', 'PAID'])) {
+            if (in_array($newStatus, ['DONE', 'PAID', 'DELIVERED'])) {
                 Log::info("OrderObserver: email {$newStatus} queued → {$userEmail}", [
                     'reference' => $order->reference,
                     'status'    => $newStatus,

@@ -43,8 +43,13 @@
         <p class="greeting">Bonjour {{ $order->user->name }},</p>
 
         <p class="text">
-            Votre paiement a bien été reçu. Merci pour votre confiance !
-            Vos photos restaurées en haute résolution sont désormais disponibles au téléchargement.
+            Votre paiement a bien été reçu et validé. Merci pour votre confiance !
+        </p>
+
+        <p class="text">
+            Votre archive ZIP est en cours de préparation.
+            Vous recevrez un <strong>second email</strong> d'ici quelques minutes
+            contenant vos liens de téléchargement (archive ZIP + facture PDF).
         </p>
 
         <div class="order-box">
@@ -74,13 +79,14 @@
 
         <div class="cta-wrapper">
             <a href="{{ route('client.orders.show', $order) }}" class="cta">
-                ⬇ Télécharger mes photos
+                Voir ma commande
             </a>
         </div>
 
         <div class="note">
-            <strong>Important :</strong> Votre archive ZIP sera disponible pendant <strong>90 jours</strong>.
-            Pensez à sauvegarder vos photos restaurées sur un support personnel (disque dur externe, cloud personnel…).
+            <strong>Que se passe-t-il maintenant ?</strong>
+            Votre archive est en cours de génération. Vous recevrez un email dès qu'elle sera prête
+            avec vos liens de téléchargement (ZIP + facture PDF).
         </div>
 
         <p class="text">
