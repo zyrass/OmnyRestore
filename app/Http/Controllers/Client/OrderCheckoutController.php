@@ -32,10 +32,32 @@ class OrderCheckoutController extends Controller
         // Protection IDOR : seul le propriétaire peut payer
         abort_if($order->user_id !== $request->user()->id, 403, 'Accès non autorisé.');
 
-
         // Seules les commandes DONE peuvent être payées
         if ($order->status !== 'DONE') {
             return back()->with('error', 'Cette commande n\'est pas disponible au paiement.');
+        }
+
+        // ── Calcul du montant ─────────────────────────────────────────────
+        // total_price_cents = HT net (après remise coupon), peut valoir 0
+        // On compare !== null pour distinguer "non fixé" de "offert"
+        $htCents  = $order->total_price_cents !== null
+            ? $order->total_price_cents
+            : ($order->base_price_cents ?? 0);
+
+        $tvaC     = (int) round($htCents * 0.20);
+        $ttcCents = $htCents + $tvaC;   // montant TTC à facturer au client
+
+        // ── Cas coupon 100% : commande offerte, pas de Stripe ────────────
+        if ($ttcCents === 0) {
+            $order->update([
+                'payment_status'    => 'paid',
+                'status'            => 'PAID',
+                'paid_at'           => now(),
+                'payment_intent_id' => 'coupon_free_' . $order->reference,
+            ]);
+
+            return redirect()->route('client.orders.show', $order)
+                ->with('success', 'Votre commande est offerte grâce à votre coupon. Téléchargement disponible !');
         }
 
         // Vérifier que Stripe est configuré
@@ -47,27 +69,28 @@ class OrderCheckoutController extends Controller
         try {
             Stripe::setApiKey($stripeKey);
 
-            $amountCents = $order->total_price_cents ?? $order->base_price_cents ?? 0;
-            $label       = "Restauration photographique — {$order->reference}";
-            $label      .= " ({$order->photo_count} photo" . ($order->photo_count > 1 ? 's' : '') . ')';
+            $photoCount = $order->photo_count;
+            $label      = "Restauration photographique — {$order->reference}";
+            $label     .= " ({$photoCount} photo" . ($photoCount > 1 ? 's' : '') . ')';
 
+            // unit_amount = montant TTC en centimes (Stripe attend le montant final payé)
             $session = Session::create([
                 'mode'         => 'payment',
                 'currency'     => 'eur',
                 'line_items'   => [[
                     'price_data' => [
                         'currency'     => 'eur',
-                        'unit_amount'  => $amountCents,
+                        'unit_amount'  => $ttcCents,   // ← TTC, pas HT
                         'product_data' => [
                             'name'        => $label,
-                            'description' => "Restauration {$order->damage_level} — OmnyRestore",
+                            'description' => "Restauration {$order->damage_level} — OmnyRestore (TVA 20% incluse)",
                         ],
                     ],
                     'quantity' => 1,
                 ]],
-                'success_url'  => route('payment.success') . '?session_id={CHECKOUT_SESSION_ID}',
-                'cancel_url'   => route('client.orders.show', $order),
-                'metadata'     => [
+                'success_url'    => route('payment.success') . '?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url'     => route('client.orders.show', $order),
+                'metadata'       => [
                     'order_id'   => $order->id,
                     'order_ref'  => $order->reference,
                     'user_id'    => $order->user_id,
