@@ -232,7 +232,7 @@ class extends Component
                 {{-- Zone upload --}}
                 <div class="card-glass p-6">
                     <h2 class="text-[#F5F0E8] font-semibold mb-1">Vos photos à restaurer</h2>
-                    <p class="text-[#7A6E5E] text-xs mb-5">JPEG, PNG ou TIFF — 20 Mo max par photo — jusqu'à 10 photos</p>
+                    <p class="text-[#7A6E5E] text-sm mb-5">JPEG, PNG ou TIFF &mdash; 20 Mo max par photo &mdash; jusqu'&agrave; 10 photos</p>
 
                     <label for="photos-input"
                            class="block border-2 border-dashed border-[#C9A84C]/20 hover:border-[#C9A84C]/50 rounded-sm p-10 text-center cursor-pointer transition-all duration-300 hover:bg-[#C9A84C]/3"
@@ -282,18 +282,34 @@ class extends Component
                                 {{-- Badge résultat IA --}}
                                 @if (isset($analysisResults[$i]))
                                 @php $result = $analysisResults[$i]; @endphp
-                                <div class="mt-1.5 px-2 py-1 rounded-sm text-center
-                                    {{ $result['level'] === 'heavy'
-                                        ? 'bg-orange-950/60 border border-orange-500/30'
-                                        : 'bg-emerald-950/60 border border-emerald-500/30' }}">
-                                    <p class="text-xs font-semibold {{ $result['level'] === 'heavy' ? 'text-orange-400' : 'text-emerald-400' }}">
-                                        {{ $result['level'] === 'heavy' ? '⚠ Avancée · 10€' : '✓ Standard · 1€' }}
-                                    </p>
+                                 @php
+                                 $lvlCfg = match($result['level']) {
+                                     'heavy'  => [
+                                         'bg'    => 'bg-orange-950/60 border border-orange-500/30',
+                                         'text'  => 'text-orange-400',
+                                         'bar'   => 'bg-orange-400',
+                                         'label' => '&#9888; Compl&egrave;te &middot; 3&euro;',
+                                     ],
+                                     'medium' => [
+                                         'bg'    => 'bg-amber-950/60 border border-amber-500/30',
+                                         'text'  => 'text-amber-400',
+                                         'bar'   => 'bg-amber-400',
+                                         'label' => '~ Avanc&eacute;e &middot; 2&euro;',
+                                     ],
+                                     default  => [
+                                         'bg'    => 'bg-emerald-950/60 border border-emerald-500/30',
+                                         'text'  => 'text-emerald-400',
+                                         'bar'   => 'bg-emerald-400',
+                                         'label' => '&#10003; Standard &middot; 1&euro;',
+                                     ],
+                                 };
+                                 @endphp
+                                 <div class="mt-1.5 px-2 py-1 rounded-sm text-center {{ $lvlCfg['bg'] }}">
+                                     <p class="text-xs font-semibold {{ $lvlCfg['text'] }}">{!! $lvlCfg['label'] !!}</p>
                                     <p class="text-[10px] text-[#7A6E5E] mt-0.5 leading-tight">{{ $result['reason'] }}</p>
                                     {{-- Barre de confiance --}}
                                     <div class="mt-1 h-1 bg-[#1A1510] rounded-full overflow-hidden">
-                                        <div class="h-full rounded-full transition-all duration-500
-                                            {{ $result['level'] === 'heavy' ? 'bg-orange-400' : 'bg-emerald-400' }}"
+                                        <div class="h-full rounded-full transition-all duration-500 {{ $lvlCfg['bar'] }}"
                                              style="width: {{ $result['confidence'] }}%">
                                         </div>
                                     </div>
@@ -316,25 +332,31 @@ class extends Component
                             {{ $damage_level === 'heavy'
                                 ? 'bg-orange-950/30 border-orange-500/30'
                                 : 'bg-emerald-950/30 border-emerald-500/30' }}">
-                            @if ($damage_level === 'heavy')
+                        @if ($damage_level === 'heavy')
                             <svg class="w-5 h-5 text-orange-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                             <div>
-                                <p class="text-orange-400 font-semibold text-sm">Restauration Avancée requise</p>
-                                <p class="text-[#7A6E5E] text-xs mt-0.5">L'IA a détecté des dommages importants sur au moins une photo. Le tarif appliqué sera de <strong class="text-orange-400">10€ / photo</strong>.</p>
+                                <p class="text-orange-400 font-semibold text-sm">Restauration Compl&egrave;te requise</p>
+                                <p class="text-[#7A6E5E] text-sm mt-0.5">L'IA a d&eacute;tect&eacute; des dommages importants sur au moins une photo. Le tarif appliqu&eacute; sera de <strong class="text-orange-400">3&euro; / photo</strong>.</p>
                             </div>
-                            @else
+                        @elseif ($damage_level === 'medium')
+                            <svg class="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            <div>
+                                <p class="text-amber-400 font-semibold text-sm">Restauration Avanc&eacute;e applicable</p>
+                                <p class="text-[#7A6E5E] text-sm mt-0.5">L'IA a d&eacute;tect&eacute; une usure mod&eacute;r&eacute;e &agrave; avanc&eacute;e. Le tarif appliqu&eacute; sera de <strong class="text-amber-400">2&euro; / photo</strong>.</p>
+                            </div>
+                        @else
                             <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <div>
                                 <p class="text-emerald-400 font-semibold text-sm">Restauration Standard applicable</p>
-                                <p class="text-[#7A6E5E] text-xs mt-0.5">L'IA a évalué vos photos comme étant dans un état modéré. Le tarif appliqué sera de <strong class="text-emerald-400">1€ / photo</strong>.</p>
+                                <p class="text-[#7A6E5E] text-sm mt-0.5">L'IA a &eacute;valu&eacute; vos photos comme &eacute;tant dans un &eacute;tat satisfaisant. Le tarif appliqu&eacute; sera de <strong class="text-emerald-400">1&euro; / photo</strong>.</p>
                             </div>
-                            @endif
+                        @endif
                         </div>
 
                         {{-- Note transparence --}}
-                        <div class="flex items-start gap-2 text-[#7A6E5E] text-xs">
-                            <svg class="w-3.5 h-3.5 text-[#C9A84C] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span>Le tarif est défini automatiquement par analyse IA pour garantir l'équité. Notre équipe peut réviser le prix après examen manuel si vous contestez le verdict.</span>
+                        <div class="flex items-start gap-2 text-[#7A6E5E] text-sm">
+                            <svg class="w-4 h-4 text-[#C9A84C] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Le tarif est d&eacute;fini automatiquement par analyse IA pour garantir l'&eacute;quit&eacute;. Notre &eacute;quipe peut r&eacute;viser le prix apr&egrave;s examen manuel si vous contestez le verdict.</span>
                         </div>
                         @endif
                     </div>
@@ -344,7 +366,7 @@ class extends Component
                 {{-- Instructions optionnelles --}}
                 <div class="card-glass p-6">
                     <h2 class="text-[#F5F0E8] font-semibold mb-1">Instructions (optionnel)</h2>
-                    <p class="text-[#7A6E5E] text-xs mb-4">Zones à préserver, contexte de la photo, personnes importantes…</p>
+                    <p class="text-[#7A6E5E] text-sm mb-4">Zones &agrave; pr&eacute;server, contexte de la photo, personnes importantes&hellip;</p>
                     <textarea wire:model="instructions" id="instructions" rows="4"
                               placeholder="Ex : Photo de mariage 1967. La robe de mariée doit être blanche. Préserver les visages à gauche…"
                               class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-sm rounded-sm px-4 py-3
@@ -372,9 +394,9 @@ class extends Component
                                 @if ($analysisComplete)
                                     @php
                                         $priceLabel = match($damage_level) {
-                                            'medium' => '2,00 €',
-                                            'heavy'  => '5,00 €',
-                                            default  => '1,00 €',
+                                            'medium' => '2,00 &euro;',
+                                            'heavy'  => '3,00 &euro;',
+                                            default  => '1,00 &euro;',
                                         };
                                         $priceColor = match($damage_level) {
                                             'medium' => 'text-amber-400',
