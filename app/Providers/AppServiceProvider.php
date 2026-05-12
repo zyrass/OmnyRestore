@@ -2,13 +2,10 @@
 
 namespace App\Providers;
 
-use App\Listeners\GenerateWatermarkOnRetouchedUpload;
 use App\Models\Order;
 use App\Observers\OrderObserver;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
-use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -59,11 +56,8 @@ class AppServiceProvider extends ServiceProvider
         Order::observe(OrderObserver::class);
 
         // ── Watermark automatique ────────────────────────────────────────────
-        // Quand l'admin uploade une photo dans `retouched`, Spatie déclenche cet event.
-        // Le listener dispatch GenerateWatermarkJob en arrière-plan (queue).
-        Event::listen(
-            MediaHasBeenAddedEvent::class,
-            GenerateWatermarkOnRetouchedUpload::class
-        );
+        // NB: Le listener GenerateWatermarkOnRetouchedUpload est enregistré
+        // AUTOMATIQUEMENT par l'auto-découverte Laravel 11 (app/Listeners/).
+        // Ne PAS l'enregistrer manuellement ici → évite le double dispatch.
     }
 }

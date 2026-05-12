@@ -2,7 +2,6 @@
 
 namespace App\Observers;
 
-use App\Jobs\GenerateOrderZipJob;
 use App\Mail\OrderPaidConfirmation;
 use App\Mail\OrderReadyForPayment;
 use App\Models\Order;
@@ -47,19 +46,33 @@ class OrderObserver
             'user'      => $userEmail,
         ]);
 
-        match ($newStatus) {
-            // L'admin vient de finir la restauration → notifier le client
-            'DONE' => Mail::to($userEmail, $userName)
-                          ->queue(new OrderReadyForPayment($order)),
+        try {
+            match ($newStatus) {
+                // L'admin vient de finir la restauration → notifier le client
+                'DONE' => Mail::to($userEmail, $userName)
+                              ->queue(new OrderReadyForPayment($order)),
 
-            // Stripe a confirmé le paiement → email confirmation client
-            // ⚠️ Le GenerateOrderZipJob est dispatché par StripeWebhookController
-            //    pour éviter le double dispatch (observer + webhook).
-            'PAID' => Mail::to($userEmail, $userName)
-                          ->queue(new OrderPaidConfirmation($order)),
+                // Stripe a confirmé le paiement → email confirmation client
+                // ⚠️ Le GenerateOrderZipJob est dispatchED par PaymentSuccessController
+                //    ET StripeWebhookController — pas ici pour éviter le double dispatch.
+                'PAID' => Mail::to($userEmail, $userName)
+                              ->queue(new OrderPaidConfirmation($order)),
 
-            // Pas d'email pour les autres transitions (PAID→DELIVERED, etc.)
-            default => null,
-        };
+                // Pas d'email pour les autres transitions (PAID→DELIVERED, etc.)
+                default => null,
+            };
+
+            if (in_array($newStatus, ['DONE', 'PAID'])) {
+                Log::info("OrderObserver: email {$newStatus} queued → {$userEmail}", [
+                    'reference' => $order->reference,
+                    'status'    => $newStatus,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::error("OrderObserver: échec envoi email {$newStatus} → {$userEmail}", [
+                'error'     => $e->getMessage(),
+                'reference' => $order->reference,
+            ]);
+        }
     }
 }
