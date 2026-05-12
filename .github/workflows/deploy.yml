@@ -1,0 +1,117 @@
+name: CD — Deploy Production
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to OVH VPS
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://omnyrestore.fr
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Add VPS to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H -p ${{ secrets.VPS_PORT }} ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to production
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          ssh -p $VPS_PORT $VPS_USER@$VPS_HOST << 'DEPLOY'
+            set -e
+            APP_DIR="/var/www/omnyrestore"
+
+            echo "📦 Début du déploiement — $(date)"
+            cd $APP_DIR
+
+            # Mode maintenance (avec token de bypass pour monitoring)
+            php artisan down --refresh=15 --secret="${{ secrets.MAINTENANCE_SECRET }}" --render="errors::503"
+
+            # Récupérer le dernier code main
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Installer dépendances PHP (prod only, autoloader optimisé)
+            composer install --no-dev --optimize-autoloader --no-interaction --no-progress
+
+            # Builder les assets
+            npm ci --prefer-offline
+            npm run build
+
+            # Migrations (avec backup automatique beforehand via trigger)
+            php artisan migrate --force
+
+            # Vider et reconstruire tous les caches
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+            php artisan icons:cache 2>/dev/null || true
+
+            # Permissions storage
+            chown -R www-data:deploy storage bootstrap/cache
+            chmod -R 775 storage bootstrap/cache
+
+            # Redémarrer Horizon gracieusement
+            php artisan horizon:terminate
+            sleep 3
+            supervisorctl restart omnyrestore-horizon
+
+            # Désactiver mode maintenance
+            php artisan up
+
+            echo "✅ Déploiement réussi — $(date)"
+            php artisan --version
+          DEPLOY
+
+      - name: Run post-deploy health check
+        run: |
+          sleep 10
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://omnyrestore.fr)
+          if [ "$STATUS" != "200" ] && [ "$STATUS" != "302" ]; then
+            echo "❌ Health check échoué — HTTP $STATUS"
+            exit 1
+          fi
+          echo "✅ Health check OK — HTTP $STATUS"
+
+      - name: Notify Slack — Success
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🚀 *Production déployée avec succès*\nVersion: `${{ github.sha }}`\nAuteur: ${{ github.actor }}\n<https://omnyrestore.fr|🌐 Voir le site>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify Slack — Failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🔥 *ÉCHEC déploiement production*\nCommit: `${{ github.sha }}`\n⚠️ Intervention manuelle requise\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Voir les logs>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -117,7 +117,7 @@ return [
     'prohibited'           => ':attribute est interdit.',
     'prohibited_if'        => ':attribute est interdit quand :other est :value.',
     'prohibited_unless'    => ':attribute est interdit sauf si :other est parmi :values.',
-    'prohibits'            => ':attribute interdit :other d'être présent.',
+    'prohibits'            => ':attribute interdit :other d\'être présent.',
     'regex'                => "Le format de :attribute n'est pas valide.",
     'required'             => 'Le champ :attribute est obligatoire.',
     'required_array_keys'  => ':attribute doit contenir des entrées pour : :values.',

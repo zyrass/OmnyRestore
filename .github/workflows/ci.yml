@@ -1,0 +1,157 @@
+name: CI — Tests & Qualité
+
+on:
+  push:
+    branches: [test, main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Code Style (Pint)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+      - run: composer install --no-interaction --prefer-dist --quiet
+      - run: ./vendor/bin/pint --test
+
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+      - run: composer install --no-interaction --prefer-dist --quiet
+      - run: composer audit
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci --quiet
+      - run: npm audit --audit-level=high
+
+  tests:
+    name: PHPUnit — PostgreSQL
+    runs-on: ubuntu-24.04
+    needs: [lint, audit]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: omnyrestore_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: secret
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - '5432:5432'
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 5
+        ports:
+          - '6379:6379'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pgsql, pdo_pgsql, redis, mbstring, xml, curl, zip, gd, bcmath, intl
+          coverage: xdebug
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Build assets
+        run: npm ci && npm run build
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env.testing
+          cat >> .env.testing << 'EOF'
+          APP_ENV=testing
+          APP_DEBUG=true
+          DB_CONNECTION=pgsql
+          DB_HOST=127.0.0.1
+          DB_PORT=5432
+          DB_DATABASE=omnyrestore_test
+          DB_USERNAME=postgres
+          DB_PASSWORD=secret
+          QUEUE_CONNECTION=sync
+          MAIL_MAILER=array
+          SESSION_DRIVER=array
+          CACHE_STORE=array
+          FILESYSTEM_DISK=local
+          MEDIA_DISK=local
+          DELIVERY_DISK=local
+          STRIPE_KEY=pk_test_fake
+          STRIPE_SECRET=sk_test_fake
+          OPENAI_API_KEY=sk-fake
+          EOF
+
+      - name: Generate App Key
+        run: php artisan key:generate --env=testing
+
+      - name: Run Migrations
+        run: php artisan migrate --env=testing --force
+
+      - name: Run Tests (parallel)
+        run: php artisan test --env=testing --parallel --coverage-clover coverage.xml
+
+      - name: Upload Coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.xml
+        continue-on-error: true
+
+      - name: Notify on failure
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "❌ *CI échoué* sur `${{ github.ref_name }}`\nCommit: ${{ github.sha }}\nAuteur: ${{ github.actor }}\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Voir les logs>"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
