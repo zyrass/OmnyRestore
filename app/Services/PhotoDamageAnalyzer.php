@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Log;
  *              Jaunissement, poussière légère, légères taches, décoloration modérée
  *   'medium' → Restauration Avancée    → 1,67 € HT → 2,00 € TTC
  *              Rayures visibles, décoloration forte, pliures légères, grain important
- *   'heavy'  → Restauration Complète   → 4,17 € HT → 5,00 € TTC
+ *   'heavy'  → Restauration Complète   → 2,50 € HT → 3,00 € TTC
  *              Déchirures, dommages eau, zones manquantes, moisissures, brûlures
  *
  * Coût IA estimé : ~0,005 € HT/photo (GPT-4o Vision, detail=low)
@@ -34,7 +34,7 @@ class PhotoDamageAnalyzer
     public const PRICES = [
         'light'  => 83,    // 0,83 € HT → 1,00 € TTC
         'medium' => 167,   // 1,67 € HT → 2,00 € TTC
-        'heavy'  => 417,   // 4,17 € HT → 5,00 € TTC
+        'heavy'  => 250,   // 2,50 € HT → 3,00 € TTC
     ];
 
     /**
@@ -66,10 +66,11 @@ Format de réponse obligatoire :
 Critères d'évaluation stricts :
 - "light"  : jaunissement léger, poussière, petites taches superficielles, légère décoloration → 1,00 € TTC
 - "medium" : rayures visibles, décoloration forte, pliures légères, grain photographique important, taches marquées → 2,00 € TTC
-- "heavy"  : déchirures, dommages eau importants, zones manquantes, pliures majeures, moisissures, brûlures, photo très dégradée → 5,00 € TTC
+- "heavy"  : déchirures, dommages eau importants, zones manquantes, pliures majeures, moisissures, brûlures, photo très dégradée → 3,00 € TTC
 
 Si l'image semble déjà en bon état ou n'est pas une photo ancienne, réponds avec level "light".
-En cas de doute entre deux niveaux, choisis le niveau inférieur.
+Sois précis : ne sous-évalue pas les dommages. Une photo ancienne typique avec usure modérée est "medium", pas "light".
+En cas de doute entre "light" et "medium", choisis "medium". En cas de doute entre "medium" et "heavy", choisis "medium".
 PROMPT;
 
     /**
@@ -169,7 +170,11 @@ PROMPT;
      */
     private function heuristicFallback(UploadedFile $file): array
     {
-        $score = 50;
+        // Score de départ : 45 (légèrement en-dessous du seuil medium=33/light=66).
+        // La plupart des vieilles photos N&B restent "medium" par défaut.
+        // Seules les photos avec luminosité idéale ET bon contraste passent "light".
+        $score      = 45;
+        $lumBonus   = 0;
 
         try {
             if (extension_loaded('gd')) {
@@ -181,14 +186,17 @@ PROMPT;
 
                 if ($img !== false) {
                     [$w, $h] = [imagesx($img), imagesy($img)];
-                    $totalLum = 0;
-                    $samples  = 0;
-                    $step     = max(1, (int) ($w / 20));
+                    $totalLum  = 0;
+                    $totalLum2 = 0; // pour la variance
+                    $samples   = 0;
+                    $step      = max(1, (int) ($w / 20));
 
                     for ($x = 0; $x < $w; $x += $step) {
                         for ($y = 0; $y < $h; $y += $step) {
                             $rgb = imagecolorsforindex($img, imagecolorat($img, $x, $y));
-                            $totalLum += 0.299 * $rgb['red'] + 0.587 * $rgb['green'] + 0.114 * $rgb['blue'];
+                            $lum = 0.299 * $rgb['red'] + 0.587 * $rgb['green'] + 0.114 * $rgb['blue'];
+                            $totalLum  += $lum;
+                            $totalLum2 += $lum * $lum;
                             $samples++;
                         }
                     }
@@ -196,9 +204,18 @@ PROMPT;
                     imagedestroy($img);
 
                     if ($samples > 0) {
-                        $avgLum = $totalLum / $samples;
-                        if ($avgLum < 30 || $avgLum > 230) { $score -= 30; }
-                        if ($avgLum >= 80 && $avgLum <= 180) { $score += 20; }
+                        $avgLum  = $totalLum / $samples;
+                        $variance = ($totalLum2 / $samples) - ($avgLum * $avgLum);
+
+                        // Luminosité équilibrée (100-170) : la photo est bien exposée → +15
+                        if ($avgLum >= 100 && $avgLum <= 170) { $score += 15; $lumBonus = 15; }
+                        // Très sombre ou très clair → signes de dégradation → -25
+                        elseif ($avgLum < 30 || $avgLum > 230) { $score -= 25; }
+
+                        // Variance faible (< 800) → image uniforme, peu de déchirures/taches → +15
+                        if ($variance < 800) { $score += 15; }
+                        // Variance très élevée (> 3000) → fort contraste, dommages visibles → -15
+                        elseif ($variance > 3000) { $score -= 15; }
                     }
                 }
             }
@@ -206,9 +223,10 @@ PROMPT;
             // Ignore GD errors
         }
 
+        // Seuils ajustés : ≥75 → light | ≥40 → medium | <40 → heavy
         $level = match(true) {
-            $score >= 66 => 'light',
-            $score >= 33 => 'medium',
+            $score >= 75 => 'light',
+            $score >= 40 => 'medium',
             default      => 'heavy',
         };
 
