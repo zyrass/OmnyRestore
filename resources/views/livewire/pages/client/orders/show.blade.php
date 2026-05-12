@@ -28,10 +28,85 @@ class extends Component
 
     public function mount(Order $order): void
     {
-        // IDOR prevention : vérifie que la commande appartient à l'utilisateur connecté
         $this->authorize('view', $order);
-
         $this->order = $order->load(['media', 'delivery']);
+    }
+
+    /**
+     * Client rejette une photo restaurée (exclue du livrable et du calcul de prix).
+     * Disponible uniquement au statut DONE (avant paiement).
+     */
+    public function rejectPhoto(int $mediaId): void
+    {
+        abort_if($this->order->user_id !== auth()->id(), 403);
+        abort_if($this->order->status !== 'DONE', 403, 'La sélection n\'est possible qu\'avant le paiement.');
+
+        $media = $this->order->getMedia('retouched')->firstWhere('id', $mediaId);
+        abort_if(! $media, 404, 'Photo introuvable.');
+
+        $media->setCustomProperty('is_rejected', true)
+              ->setCustomProperty('rejected_at', now()->toISOString())
+              ->setCustomProperty('rejected_by', 'client')
+              ->save();
+
+        $this->recalcPriceFromActivePhotos();
+        session()->flash('success', 'Photo retirée de votre sélection — prix mis à jour.');
+        $this->order->refresh()->load(['media', 'delivery']);
+    }
+
+    /**
+     * Client réintègre une photo précédemment rejetée.
+     */
+    public function restorePhoto(int $mediaId): void
+    {
+        abort_if($this->order->user_id !== auth()->id(), 403);
+        abort_if($this->order->status !== 'DONE', 403);
+
+        $media = $this->order->getMedia('retouched')->firstWhere('id', $mediaId);
+        abort_if(! $media, 404);
+
+        $media->forgetCustomProperty('is_rejected')
+              ->forgetCustomProperty('rejected_at')
+              ->forgetCustomProperty('rejected_by')
+              ->save();
+
+        $this->recalcPriceFromActivePhotos();
+        session()->flash('success', 'Photo réintégrée — prix mis à jour.');
+        $this->order->refresh()->load(['media', 'delivery']);
+    }
+
+    /**
+     * Recalcule total_price_cents d'après les photos actives (non rejetées par le client).
+     */
+    private function recalcPriceFromActivePhotos(): void
+    {
+        $prices       = \App\Services\PhotoDamageAnalyzer::PRICES;
+        $pricePerPhoto = $prices[$this->order->damage_level] ?? $prices['light'];
+
+        $activeCount = $this->order->getMedia('retouched')
+            ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
+            ->count();
+
+        $newBaseHt  = $activeCount * $pricePerPhoto;
+        $newDiscount = 0;
+
+        if ($this->order->coupon_code) {
+            $coupon = \App\Models\Coupon::where('code', $this->order->coupon_code)->first();
+            if ($coupon) {
+                $newDiscount = $coupon->discountCents($newBaseHt);
+            }
+        }
+
+        $newTotalHt = max(0, $newBaseHt - $newDiscount);
+
+        $this->order->update([
+            'total_price_cents' => $newTotalHt,
+            'discount_cents'    => $newDiscount,
+        ]);
+
+        \Illuminate\Support\Facades\Log::info(
+            "Client recalc {$this->order->reference}: {$activeCount} photo(s) × {$pricePerPhoto} cts = {$newTotalHt} cts HT net."
+        );
     }
 }; ?>
 
@@ -99,84 +174,110 @@ class extends Component
             </div>
             @endif
 
-            {{-- === ÉTAT : APERÇU PRÊT (DONE) — Paiement requis === --}}
+            {{-- === ÉTAT : APERÇU PRÊT (DONE) — Sélection + Paiement === --}}
             @if ($order->status === 'DONE')
+            @php
+                $retouched      = $order->getMedia('retouched');
+                $activePhotos   = $retouched->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
+                $rejectedPhotos = $retouched->filter(fn($m) => $m->getCustomProperty('is_rejected', false));
+                $payHt          = $order->total_price_cents !== null ? $order->total_price_cents : ($order->base_price_cents ?? 0);
+                $payTtc         = $payHt + round($payHt * 0.2);
+            @endphp
+
+            <div class="flex items-start gap-3 px-4 py-3 bg-[#C9A84C]/8 border border-[#C9A84C]/25 rounded-sm mb-4">
+                <svg class="w-4 h-4 text-[#C9A84C] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <div>
+                    <p class="text-[#C9A84C] text-sm font-medium">Validez votre sélection avant de payer</p>
+                    <p class="text-[#7A6E5E] text-xs mt-0.5">Survolez une photo et cliquez ✕ pour la retirer — le prix se recalcule automatiquement. Vous ne payez que ce que vous gardez.</p>
+                </div>
+            </div>
+
             <div class="card-glass overflow-hidden">
                 <div class="p-5 border-b border-[#C9A84C]/10 flex items-center justify-between">
-                    <h3 class="text-[#F5F0E8] font-semibold">Aperçu de votre restauration</h3>
-                    <span class="text-[#C9A84C] text-xs border border-[#C9A84C]/30 px-2 py-0.5 rounded-full">
-                        Filigranné — payer pour débloquer
-                    </span>
-                </div>
-
-                {{-- Grille aperçus — collection watermarked (Intervention Image) ou fallback CSS --}}
-                <div class="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
-                    @php
-                        $watermarked = $order->getMedia('watermarked');
-                        $useCssFallback = $watermarked->isEmpty();
-                        $previews = $useCssFallback
-                            ? $order->getMedia('retouched')
-                            : $watermarked;
-                    @endphp
-                    @forelse ($previews as $media)
-                    <div class="relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/10 group select-none">
-                        <img src="{{ $media->getUrl() }}" alt="Aperçu restauré"
-                             class="w-full h-full object-cover pointer-events-none"
-                             draggable="false">
-                        @if ($useCssFallback)
-                        {{-- Fallback CSS watermark si le job n'a pas encore tourné --}}
-                        <div class="absolute inset-0 pointer-events-none overflow-hidden"
-                             style="background: repeating-linear-gradient(
-                                 -45deg,
-                                 transparent,
-                                 transparent 60px,
-                                 rgba(201,168,76,0.08) 60px,
-                                 rgba(201,168,76,0.08) 62px
-                             );">
-                        </div>
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span class="text-white/15 text-xs font-bold tracking-[0.3em] uppercase rotate-[-35deg] select-none whitespace-nowrap">
-                                OmnyRestore
-                            </span>
-                        </div>
+                    <h3 class="text-[#F5F0E8] font-semibold">Vos photos restaurées</h3>
+                    <div class="flex items-center gap-3 text-xs">
+                        <span class="text-emerald-400">{{ $activePhotos->count() }} sélectionnée{{ $activePhotos->count() > 1 ? 's' : '' }}</span>
+                        @if ($rejectedPhotos->count() > 0)
+                        <span class="text-red-400/80">{{ $rejectedPhotos->count() }} retirée{{ $rejectedPhotos->count() > 1 ? 's' : '' }}</span>
                         @endif
                     </div>
-                    @empty
-                    {{-- Placeholder si les aperçus ne sont pas encore générés --}}
-                    @for ($i = 0; $i < $order->photo_count; $i++)
-                    <div class="aspect-square bg-[#1A1510] border border-[#C9A84C]/10 rounded-sm flex items-center justify-center">
-                        <div class="text-center">
-                            <svg class="w-8 h-8 text-[#C9A84C]/20 mx-auto mb-1" fill="currentColor" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
-                            <span class="text-[#7A6E5E] text-xs">Aperçu {{ $i + 1 }}</span>
+                </div>
+
+                {{-- Grille sélection — retouched avec CSS watermark + boutons action --}}
+                <div class="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
+                    @forelse ($retouched as $media)
+                    @php $isRejected = $media->getCustomProperty('is_rejected', false); @endphp
+                    <div class="relative group aspect-square bg-[#1A1510] rounded-sm overflow-hidden select-none
+                                {{ $isRejected ? 'border-2 border-red-500/50 opacity-50' : 'border border-[#C9A84C]/15' }}">
+                        <img src="{{ $media->getUrl() }}" alt="Photo restaurée"
+                             class="w-full h-full object-cover pointer-events-none" draggable="false">
+                        {{-- CSS watermark --}}
+                        @if (! $isRejected)
+                        <div class="absolute inset-0 pointer-events-none overflow-hidden"
+                             style="background: repeating-linear-gradient(-45deg, transparent, transparent 60px, rgba(201,168,76,0.07) 60px, rgba(201,168,76,0.07) 62px);"></div>
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <span class="text-white/12 text-xs font-bold tracking-[0.3em] uppercase rotate-[-35deg] select-none whitespace-nowrap">OmnyRestore</span>
+                        </div>
+                        @endif
+                        {{-- Badge retirée --}}
+                        @if ($isRejected)
+                        <div class="absolute inset-0 bg-red-900/50 flex items-center justify-center">
+                            <span class="text-red-300 text-xs font-bold uppercase tracking-wider bg-red-900/80 px-2 py-0.5 rounded">Retirée</span>
+                        </div>
+                        @endif
+                        {{-- Hover actions --}}
+                        <div class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                            @if ($isRejected)
+                            <button wire:click="restorePhoto({{ $media->id }})"
+                                    class="text-xs px-3 py-1.5 bg-emerald-700/80 text-emerald-200 rounded hover:bg-emerald-600 transition-colors font-medium">
+                                ↩ Réintégrer
+                            </button>
+                            @else
+                            <button wire:click="rejectPhoto({{ $media->id }})"
+                                    wire:confirm="Retirer cette photo de votre commande ?"
+                                    class="text-xs px-3 py-1.5 bg-red-800/80 text-red-200 rounded hover:bg-red-700 transition-colors font-medium">
+                                ✕ Retirer
+                            </button>
+                            @endif
                         </div>
                     </div>
-                    @endfor
+                    @empty
+                    <div class="col-span-3 py-8 text-center text-[#7A6E5E] text-sm">Aucune photo disponible.</div>
                     @endforelse
                 </div>
 
-                {{-- Call to action paiement --}}
+                @if ($rejectedPhotos->count() > 0)
+                <p class="px-5 pb-3 text-xs text-red-400/70">
+                    {{ $rejectedPhotos->count() }} photo{{ $rejectedPhotos->count() > 1 ? 's retirées' : ' retirée' }} — vous ne serez pas facturé pour {{ $rejectedPhotos->count() > 1 ? 'ces photos' : 'cette photo' }}.
+                </p>
+                @endif
+
+                {{-- CTA paiement --}}
                 <div class="p-5 border-t border-[#C9A84C]/10 bg-[#C9A84C]/5 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div>
-                        <p class="text-[#F5F0E8] text-sm font-medium">Satisfait du résultat ?</p>
-                        <p class="text-[#7A6E5E] text-xs">Payez pour télécharger vos photos en haute résolution, sans filigrane.</p>
+                        <p class="text-[#F5F0E8] text-sm font-medium">
+                            {{ $activePhotos->count() > 0 ? 'Satisfait de votre sélection ?' : 'Toutes les photos ont été retirées.' }}
+                        </p>
+                        <p class="text-[#7A6E5E] text-xs">
+                            @if ($activePhotos->count() > 0)
+                                {{ $activePhotos->count() }} photo{{ $activePhotos->count() > 1 ? 's' : '' }} · téléchargement HD sans filigrane après paiement.
+                            @else
+                                Réintégrez au moins une photo pour procéder au paiement.
+                            @endif
+                        </p>
                     </div>
+                    @if ($activePhotos->count() > 0)
                     <form action="{{ route('client.orders.checkout', $order) }}" method="POST">
                         @csrf
                         <button type="submit" class="btn-gold whitespace-nowrap">
-                            @php
-                                // total_price_cents peut valoir 0 (coupon 100%) — !== null obligatoire
-                                $payHt  = $order->total_price_cents !== null
-                                    ? $order->total_price_cents
-                                    : ($order->base_price_cents ?? 0);
-                                $payTtc = $payHt + round($payHt * 0.2);
-                            @endphp
                             @if ($payTtc === 0)
-                                Payer — Offert ✓
+                                Confirmer — Offert ✓
                             @else
-                                Payer — {{ number_format($payTtc / 100, 2, ',', ' ') }} € TTC
+                                Payer — {{ number_format($payTtc / 100, 2, ',', ' ') }} € TTC
                             @endif
                         </button>
                     </form>
+                    @endif
                 </div>
             </div>
             @endif

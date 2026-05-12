@@ -12,6 +12,37 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.9.0] — 2026-05-12 — Refactorisation critique : Validation photos côté Client
+
+### ⚠️ Changement de workflow (breaking UX)
+
+Le droit de valider / rejeter les photos restaurées est désormais **exclusivement côté client** (avant paiement). L'admin ne peut plus modifier la sélection.
+
+### Ajouté
+
+- **Composant client `show.blade.php`** — méthodes `rejectPhoto()`, `restorePhoto()`, `recalcPriceFromActivePhotos()` :
+  - Sécurité renforcée : vérification `user_id + status === DONE` avant chaque action
+  - Rejection marquée avec `is_rejected`, `rejected_at`, `rejected_by = client` sur le média
+  - Recalcul automatique de `total_price_cents` (+ recalcul coupon si présent) après chaque rejet/réintégration
+  - Log info traçable : `"Client recalc REF: N photo(s) × P cts = T cts HT net."`
+
+- **UI client DONE** — grille de sélection interactive :
+  - Bandeau d'information explicatif ("Vous ne payez que ce que vous gardez")
+  - Chaque photo affiche un bouton ✕ au survol (✕ Retirer / ↩ Réintégrer)
+  - Photos retirées : overlay rouge + badge "Retirée" + opacité réduite
+  - Compteur en-tête : "N sélectionnée(s) / N retirée(s)"
+  - Bouton Payer masqué si toutes les photos sont retirées
+  - Prix TTC du bouton Payer mis à jour après chaque action
+
+### Modifié
+
+- **Admin `show.blade.php`** — grille photos restaurées en lecture seule :
+  - Boutons Rejeter / Réintégrer supprimés de l'interface admin
+  - Note informative : "Le client sélectionne les photos depuis son espace client"
+  - Affichage du statut de rejet (badges "Retirée par client") visible en lecture
+
+---
+
 ## [0.8.1] — 2026-05-12 — Patch : Coupon client, exclusion ZIP & recalcul prix
 
 ### Ajouté

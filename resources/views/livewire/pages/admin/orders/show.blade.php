@@ -592,7 +592,7 @@ class extends Component
             </form>
             @endif
 
-            {{-- === PHOTOS RESTAURÉES (avec boutons de rejet) === --}}
+            {{-- === PHOTOS RESTAURÉES — lecture seule (le client valide depuis son espace) === --}}
             @php
                 $retouched = $order->getMedia('retouched');
                 $activePhotos   = $retouched->filter(fn($m) => ! $m->getCustomProperty('is_rejected'));
@@ -600,62 +600,44 @@ class extends Component
             @endphp
             @if ($retouched->isNotEmpty())
             <div class="card-glass p-5">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-[#F5F0E8] font-semibold">Photos restaurées uploadées</h2>
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-[#F5F0E8] font-semibold">Photos restaurées</h2>
                     <div class="flex items-center gap-3 text-xs">
                         <span class="text-emerald-400">{{ $activePhotos->count() }} actives</span>
                         @if ($rejectedPhotos->count() > 0)
-                        <span class="text-red-400">{{ $rejectedPhotos->count() }} rejetées</span>
+                        <span class="text-red-400">{{ $rejectedPhotos->count() }} retirées par le client</span>
                         @endif
                     </div>
+                </div>
+                {{-- Note informative --}}
+                <div class="flex items-center gap-2 mb-4 px-3 py-2 bg-[#1A1510] border border-[#C9A84C]/10 rounded-sm">
+                    <svg class="w-3.5 h-3.5 text-[#7A6E5E] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <p class="text-[#7A6E5E] text-xs">Le client sélectionne les photos à conserver depuis son espace client (statut DONE, avant paiement).</p>
                 </div>
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     @foreach ($retouched as $media)
                     @php $isRejected = $media->getCustomProperty('is_rejected', false); @endphp
-                    <div class="relative group aspect-square bg-[#1A1510] rounded-sm overflow-hidden
-                                {{ $isRejected ? 'border-2 border-red-500/60 opacity-50' : 'border border-emerald-500/20' }}">
+                    <div class="relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden
+                                {{ $isRejected ? 'border-2 border-red-500/40 opacity-50' : 'border border-emerald-500/20' }}">
                         <img src="{{ $media->getUrl() }}" class="w-full h-full object-cover">
-
-                        {{-- Overlay rejeté --}}
                         @if ($isRejected)
                         <div class="absolute inset-0 bg-red-900/40 flex items-center justify-center">
-                            <span class="text-red-300 text-xs font-bold uppercase tracking-wider
-                                         bg-red-900/80 px-2 py-0.5 rounded">Rejetée</span>
+                            <span class="text-red-300 text-xs font-bold uppercase tracking-wider bg-red-900/80 px-2 py-0.5 rounded">
+                                Retirée par client
+                            </span>
                         </div>
+                        @else
+                        <a href="{{ $media->getUrl() }}" target="_blank"
+                           class="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        </a>
                         @endif
-
-                        {{-- Hover overlay : voir + rejeter/restaurer --}}
-                        <div class="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 transition-opacity
-                                    flex flex-col items-center justify-center gap-2 p-2">
-                            <a href="{{ $media->getUrl() }}" target="_blank"
-                               class="text-white text-xs underline underline-offset-2">
-                                Voir en grand
-                            </a>
-                            @if ($isRejected)
-                            <button wire:click="restorePhoto({{ $media->id }})"
-                                    class="text-xs px-2 py-1 bg-emerald-700/80 text-emerald-200 rounded hover:bg-emerald-600 transition-colors">
-                                ↩ Réintégrer
-                            </button>
-                            @else
-                            <button wire:click="rejectPhoto({{ $media->id }})"
-                                    wire:confirm="Rejeter cette photo ? Elle sera exclue du livrable et du calcul de prix."
-                                    class="text-xs px-2 py-1 bg-red-800/80 text-red-200 rounded hover:bg-red-700 transition-colors">
-                                ✕ Rejeter
-                            </button>
-                            @endif
-                        </div>
                     </div>
                     @endforeach
                 </div>
-                @if ($rejectedPhotos->count() > 0)
-                <p class="mt-3 text-xs text-red-400/70 flex items-center gap-1.5">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    {{ $rejectedPhotos->count() }} photo{{ $rejectedPhotos->count() > 1 ? 's rejetées sont' : ' rejetée est' }}
-                    exclue{{ $rejectedPhotos->count() > 1 ? 's' : '' }} du ZIP final et du calcul de prix.
-                </p>
-                @endif
             </div>
             @endif
+
 
         </div>
 
