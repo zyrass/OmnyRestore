@@ -124,6 +124,13 @@ PROMPT;
 
         $response = Http::withToken(config('services.openai.key'))
             ->timeout(30)
+            ->withOptions([
+                // Force HTTP/1.1 — PHP curl échoue souvent sur HTTP/2 avec OpenAI
+                CURLOPT_HTTP_VERSION   => CURL_HTTP_VERSION_1_1,
+                // Désactiver la vérification SSL côté dev si les certs manquent
+                CURLOPT_SSL_VERIFYPEER => app()->isProduction(),
+                CURLOPT_SSL_VERIFYHOST => app()->isProduction() ? 2 : 0,
+            ])
             ->post('https://api.openai.com/v1/chat/completions', [
                 'model'      => config('services.openai.model', 'gpt-4o'),
                 'max_tokens' => 150,
