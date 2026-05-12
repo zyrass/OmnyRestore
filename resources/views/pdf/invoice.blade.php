@@ -296,11 +296,15 @@ table.totals tr.free-row td {
     </div>
 
     {{-- ══════════════════════════════════════════════
-         TAMPON PAYÉE
+         TAMPON PAYÉE — table pour centrage fiable DomPDF
          ══════════════════════════════════════════════ --}}
-    <div class="stamp-wrap">
-        <span class="stamp">&#10003; Payée &mdash; {{ $order->paid_at?->format('d/m/Y') ?? now()->format('d/m/Y') }}</span>
-    </div>
+    <table width="100%" style="margin: 10px 0 34px; border-collapse: collapse;">
+        <tr>
+            <td align="center">
+                <span class="stamp">&#10003; Pay&eacute;e &mdash; {{ $order->paid_at?->format('d/m/Y') ?? now()->format('d/m/Y') }}</span>
+            </td>
+        </tr>
+    </table>
 
     {{-- ══════════════════════════════════════════════
          TABLEAU PRESTATIONS
