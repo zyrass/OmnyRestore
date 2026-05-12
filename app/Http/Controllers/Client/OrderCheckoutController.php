@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\GenerateOrderZipJob;
+use App\Mail\OrderPaidConfirmation;
 use App\Models\Order;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Stripe\Checkout\Session;
 use Stripe\Stripe;
 
@@ -56,8 +60,18 @@ class OrderCheckoutController extends Controller
                 'payment_intent_id' => 'coupon_free_' . $order->reference,
             ]);
 
+            // Générer le ZIP comme après un vrai paiement Stripe
+            GenerateOrderZipJob::dispatch($order)->onQueue('default');
+
+            // Notifier le client par email
+            try {
+                Mail::to($order->user->email)->queue(new OrderPaidConfirmation($order));
+            } catch (\Throwable $e) {
+                Log::error("Coupon free: mail échec {$order->reference}", ['error' => $e->getMessage()]);
+            }
+
             return redirect()->route('client.orders.show', $order)
-                ->with('success', 'Votre commande est offerte grâce à votre coupon. Téléchargement disponible !');
+                ->with('success', 'Votre commande est offerte grâce à votre coupon. Votre archive ZIP est en cours de préparation !');
         }
 
         // Vérifier que Stripe est configuré
