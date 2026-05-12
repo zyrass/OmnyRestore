@@ -45,4 +45,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Volt::route('/tickets/{ticket}', 'pages.admin.tickets.show')
         ->name('tickets.show');
 
+    // ─── Codes de réduction (Coupons) ───────────────────────────────────
+    // GET /admin/coupons — Liste + création des codes de réduction
+    Volt::route('/coupons', 'pages.admin.coupons.index')
+        ->name('coupons.index');
+
 });

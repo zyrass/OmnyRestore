@@ -12,30 +12,45 @@ use Illuminate\Support\Facades\Log;
  * Utilise l'API OpenAI Vision (GPT-4o) pour analyser l'état d'une photo
  * et déterminer automatiquement le niveau de dommage.
  *
- * Niveaux de dommage :
- *   'light'  → Restauration Standard (1€/photo)
- *              Jaunissement, poussière légère, légères rayures, décoloration
- *   'heavy'  → Restauration Avancée (10€/photo)
- *              Déchirures, dommages eau, pliures importantes, zones manquantes
+ * Niveaux de dommage (prix HT, TVA 20% en sus) :
+ *   'light'  → Restauration Standard   → 0,83 € HT → 1,00 € TTC
+ *              Jaunissement, poussière légère, légères taches, décoloration modérée
+ *   'medium' → Restauration Avancée    → 1,67 € HT → 2,00 € TTC
+ *              Rayures visibles, décoloration forte, pliures légères, grain important
+ *   'heavy'  → Restauration Complète   → 4,17 € HT → 5,00 € TTC
+ *              Déchirures, dommages eau, zones manquantes, moisissures, brûlures
  *
- * Si l'API est indisponible (clé manquante, quota dépassé), le service
- * retourne un verdict INCONNU qui force l'admin à valider manuellement.
+ * Coût IA estimé : ~0,005 € HT/photo (GPT-4o Vision, detail=low)
+ * Ce coût est répercuté de manière transparente sur la facture client.
  *
  * @see config/services.php — OPENAI_API_KEY
  */
 class PhotoDamageAnalyzer
 {
     /**
-     * Prix en centimes par niveau de dommage.
+     * Prix en centimes HT par niveau de dommage.
+     * TVA 20% s'applique automatiquement sur toutes les commandes.
      */
     public const PRICES = [
-        'light' => 100,   // 1,00 €
-        'heavy' => 1000,  // 10,00 €
+        'light'  => 83,    // 0,83 € HT → 1,00 € TTC
+        'medium' => 167,   // 1,67 € HT → 2,00 € TTC
+        'heavy'  => 417,   // 4,17 € HT → 5,00 € TTC
     ];
 
     /**
+     * Taux de TVA appliqué automatiquement (20%).
+     */
+    public const TVA_RATE = 20.0;
+
+    /**
+     * Coût estimé de l'analyse IA en centimes HT par photo.
+     * GPT-4o Vision (detail=low) ≈ 0,005 $ ≈ 0,005 €
+     * Affiché de manière transparente sur les devis et factures.
+     */
+    public const AI_COST_CENTS = 1; // ~0,005 € arrondi à 0,01 €
+
+    /**
      * Prompt système envoyé à GPT-4o pour l'analyse.
-     * Très directif pour éviter des réponses verboses.
      */
     private const SYSTEM_PROMPT = <<<'PROMPT'
 Tu es un expert en restauration de photographies anciennes.
@@ -43,27 +58,28 @@ Analyse cette image et réponds UNIQUEMENT avec un objet JSON valide, sans aucun
 
 Format de réponse obligatoire :
 {
-  "level": "light" ou "heavy",
+  "level": "light", "medium" ou "heavy",
   "confidence": nombre entre 0 et 100,
   "reason": "phrase courte en français (max 15 mots)"
 }
 
-Critères d'évaluation :
-- "light" : jaunissement, poussière, petites taches, légères rayures, décoloration modérée
-- "heavy" : déchirures, dommages eau importants, zones manquantes, pliures majeures, moisissures, brûlures
+Critères d'évaluation stricts :
+- "light"  : jaunissement léger, poussière, petites taches superficielles, légère décoloration → 1,00 € TTC
+- "medium" : rayures visibles, décoloration forte, pliures légères, grain photographique important, taches marquées → 2,00 € TTC
+- "heavy"  : déchirures, dommages eau importants, zones manquantes, pliures majeures, moisissures, brûlures, photo très dégradée → 5,00 € TTC
 
 Si l'image semble déjà en bon état ou n'est pas une photo ancienne, réponds avec level "light".
+En cas de doute entre deux niveaux, choisis le niveau inférieur.
 PROMPT;
 
     /**
      * Analyse une photo uploadée et retourne le verdict de dommage.
      *
      * @param  UploadedFile  $file  La photo à analyser
-     * @return array{level: string, confidence: int, reason: string, price_cents: int, ai_used: bool}
+     * @return array{level: string, confidence: int, reason: string, price_cents: int, price_ttc_cents: int, ai_used: bool}
      */
     public function analyze(UploadedFile $file): array
     {
-        // Si pas de clé API, fallback heuristique local
         if (empty(config('services.openai.key'))) {
             Log::warning('PhotoDamageAnalyzer: No OpenAI API key — using local heuristic');
             return $this->heuristicFallback($file);
@@ -76,21 +92,34 @@ PROMPT;
                 'error'    => $e->getMessage(),
                 'filename' => $file->getClientOriginalName(),
             ]);
-            // Fallback heuristique si l'API échoue
             return $this->heuristicFallback($file);
         }
     }
 
     /**
+     * Calcule le prix TTC en centimes à partir du prix HT.
+     */
+    public static function htToTtc(int $htCents): int
+    {
+        return (int) round($htCents * (1 + self::TVA_RATE / 100));
+    }
+
+    /**
+     * Retourne le prix TTC en centimes pour un niveau donné.
+     */
+    public static function priceTtcForLevel(string $level): int
+    {
+        return self::htToTtc(self::PRICES[$level] ?? self::PRICES['light']);
+    }
+
+    /**
      * Analyse avec GPT-4o Vision.
-     * Convertit la photo en base64 et envoie à l'API OpenAI.
      */
     private function analyzeWithGpt4o(UploadedFile $file): array
     {
-        // Lecture et encodage base64 de l'image
-        $imageData   = base64_encode(file_get_contents($file->getRealPath()));
-        $mimeType    = $file->getMimeType() ?? 'image/jpeg';
-        $dataUri     = "data:{$mimeType};base64,{$imageData}";
+        $imageData = base64_encode(file_get_contents($file->getRealPath()));
+        $mimeType  = $file->getMimeType() ?? 'image/jpeg';
+        $dataUri   = "data:{$mimeType};base64,{$imageData}";
 
         $response = Http::withToken(config('services.openai.key'))
             ->timeout(30)
@@ -98,19 +127,13 @@ PROMPT;
                 'model'      => config('services.openai.model', 'gpt-4o'),
                 'max_tokens' => 150,
                 'messages'   => [
-                    [
-                        'role'    => 'system',
-                        'content' => self::SYSTEM_PROMPT,
-                    ],
+                    ['role' => 'system', 'content' => self::SYSTEM_PROMPT],
                     [
                         'role'    => 'user',
                         'content' => [
                             [
                                 'type'      => 'image_url',
-                                'image_url' => [
-                                    'url'    => $dataUri,
-                                    'detail' => 'low', // 'low' = moins de tokens, suffisant pour évaluer l'état
-                                ],
+                                'image_url' => ['url' => $dataUri, 'detail' => 'low'],
                             ],
                         ],
                     ],
@@ -124,39 +147,31 @@ PROMPT;
         $content = $response->json('choices.0.message.content', '{}');
         $verdict = json_decode($content, true);
 
-        if (! isset($verdict['level']) || ! in_array($verdict['level'], ['light', 'heavy'])) {
+        if (! isset($verdict['level']) || ! in_array($verdict['level'], ['light', 'medium', 'heavy'])) {
             throw new \RuntimeException('Invalid response format from GPT-4o: ' . $content);
         }
 
+        $priceCents = self::PRICES[$verdict['level']];
+
         return [
-            'level'       => $verdict['level'],
-            'confidence'  => (int) ($verdict['confidence'] ?? 70),
-            'reason'      => $verdict['reason'] ?? 'Analyse IA effectuée',
-            'price_cents' => self::PRICES[$verdict['level']],
-            'ai_used'     => true,
+            'level'           => $verdict['level'],
+            'confidence'      => (int) ($verdict['confidence'] ?? 70),
+            'reason'          => $verdict['reason'] ?? 'Analyse IA effectuée',
+            'price_cents'     => $priceCents,
+            'price_ttc_cents' => self::htToTtc($priceCents),
+            'ai_used'         => true,
         ];
     }
 
     /**
      * Analyse heuristique locale (fallback sans API).
-     *
-     * Utilise les métadonnées EXIF et les propriétés GD de l'image pour
-     * estimer grossièrement l'état :
-     *   - Images très sombres ou très claires → probablement endommagées
-     *   - Faible résolution → souvent des scans anciens (dommages légers)
-     *
-     * NOTE: Ce fallback est intentionnellement CONSERVATEUR (préfère 'heavy')
-     * car il vaut mieux surestimer le prix et laisser l'admin réduire,
-     * plutôt que de facturer moins que prévu.
-     *
-     * En l'absence de clé OpenAI, l'admin doit valider manuellement.
+     * Score 0–100 : ≥66 → light | 33–65 → medium | <33 → heavy
      */
     private function heuristicFallback(UploadedFile $file): array
     {
-        $score = 50; // Score de base — 0-49 = heavy, 50-100 = light
+        $score = 50;
 
         try {
-            // Analyse GD si disponible
             if (extension_loaded('gd')) {
                 $img = match($file->getMimeType()) {
                     'image/jpeg' => @imagecreatefromjpeg($file->getRealPath()),
@@ -166,16 +181,13 @@ PROMPT;
 
                 if ($img !== false) {
                     [$w, $h] = [imagesx($img), imagesy($img)];
-
-                    // Échantillonner quelques pixels pour estimer la luminosité moyenne
-                    $totalLum  = 0;
-                    $samples   = 0;
-                    $step      = max(1, (int) ($w / 20)); // 20 samples sur la largeur
+                    $totalLum = 0;
+                    $samples  = 0;
+                    $step     = max(1, (int) ($w / 20));
 
                     for ($x = 0; $x < $w; $x += $step) {
                         for ($y = 0; $y < $h; $y += $step) {
                             $rgb = imagecolorsforindex($img, imagecolorat($img, $x, $y));
-                            // Luminance perçue (formule CCIR 601)
                             $totalLum += 0.299 * $rgb['red'] + 0.587 * $rgb['green'] + 0.114 * $rgb['blue'];
                             $samples++;
                         }
@@ -185,29 +197,30 @@ PROMPT;
 
                     if ($samples > 0) {
                         $avgLum = $totalLum / $samples;
-                        // Images très sombres (<30) ou très claires (>230) → probablement endommagées
-                        if ($avgLum < 30 || $avgLum > 230) {
-                            $score -= 25;
-                        }
-                        // Images modérément lumineuses → probablement OK
-                        if ($avgLum >= 80 && $avgLum <= 180) {
-                            $score += 15;
-                        }
+                        if ($avgLum < 30 || $avgLum > 230) { $score -= 30; }
+                        if ($avgLum >= 80 && $avgLum <= 180) { $score += 20; }
                     }
                 }
             }
         } catch (\Throwable) {
-            // Ignore les erreurs GD — on utilise le score de base
+            // Ignore GD errors
         }
 
-        $level = $score >= 50 ? 'light' : 'heavy';
+        $level = match(true) {
+            $score >= 66 => 'light',
+            $score >= 33 => 'medium',
+            default      => 'heavy',
+        };
+
+        $priceCents = self::PRICES[$level];
 
         return [
-            'level'       => $level,
-            'confidence'  => 40, // Confiance faible — analyse heuristique seulement
-            'reason'      => 'Analyse locale (API IA non configurée) — à valider par l\'équipe',
-            'price_cents' => self::PRICES[$level],
-            'ai_used'     => false,
+            'level'           => $level,
+            'confidence'      => 35,
+            'reason'          => "Analyse locale (API IA indisponible) — à valider par l'équipe",
+            'price_cents'     => $priceCents,
+            'price_ttc_cents' => self::htToTtc($priceCents),
+            'ai_used'         => false,
         ];
     }
 }

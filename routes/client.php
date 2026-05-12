@@ -50,6 +50,10 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     Route::get('/orders/{order}/download', [OrderDownloadController::class, 'download'])
          ->name('orders.download');
 
+    // GET /client/orders/{order}/invoice → Télécharger la facture PDF (commande payée uniquement)
+    Route::get('/orders/{order}/invoice', [\App\Http\Controllers\Client\InvoiceController::class, 'download'])
+         ->name('orders.invoice');
+
     // GET /client/orders/download/stream/{delivery} → Stream local ZIP (dev only, URL signée)
     Route::get('/orders/download/stream/{delivery}', function (\Illuminate\Http\Request $request, OrderDelivery $delivery) {
         // Vérification signature + auth (la signed URL garantit l'authenticité)

@@ -66,16 +66,23 @@ class extends Component
     }
 }; ?>
 
-<div>
+<div wire:poll.10s>
     {{-- En-tête --}}
     <div class="flex items-center justify-between mb-8">
         <div>
             <h1 class="text-2xl font-bold text-[#F5F0E8]">Dashboard</h1>
             <p class="text-[#7A6E5E] text-sm mt-1">{{ now()->format('l d F Y') }}</p>
         </div>
-        <a href="{{ route('admin.orders.index') }}" wire:navigate class="btn-gold text-sm">
-            Toutes les commandes
-        </a>
+        <div class="flex items-center gap-4">
+            {{-- Indicateur auto-refresh --}}
+            <div class="flex items-center gap-1.5 text-[#7A6E5E] text-xs">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                En direct · {{ now()->format('H:i:s') }}
+            </div>
+            <a href="{{ route('admin.orders.index') }}" wire:navigate class="btn-gold text-sm">
+                Toutes les commandes
+            </a>
+        </div>
     </div>
 
     {{-- ── KPIs ── --}}

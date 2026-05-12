@@ -16,7 +16,7 @@
 
 {{-- ========== TOP NAV ========== --}}
 <header class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
-    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
 
         <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3">
             <div class="w-7 h-7 border border-[#C9A84C] flex items-center justify-center">
@@ -50,6 +50,18 @@
                 </span>
                 @endif
             </a>
+            {{-- ── Réductions ── --}}
+            <a href="/admin/coupons" wire:navigate
+               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->is('admin/coupons*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                Réductions
+            </a>
+            {{-- ── Séparateur + Panel Admin ── --}}
+            <div class="w-px h-4 bg-[#C9A84C]/15 mx-1"></div>
+            <a href="{{ route('admin.dashboard') }}" wire:navigate
+               class="px-3 py-1.5 text-xs font-semibold rounded-sm border transition-all
+                      {{ request()->routeIs('admin.*') ? 'border-red-700/60 bg-red-900/20 text-red-400' : 'border-red-800/30 bg-red-900/10 text-red-500 hover:border-red-700/50 hover:text-red-400' }}">
+                ⚙ Panel Admin
+            </a>
             @else
             {{-- ── Nav Client ── --}}
             <a href="{{ route('client.orders.index') }}" wire:navigate
@@ -71,7 +83,7 @@
             <div class="hidden md:flex items-center gap-2">
                 <span class="text-[#7A6E5E] text-sm">{{ Auth::user()->name }}</span>
                 @if (Auth::user()->role === 'admin')
-                <span class="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/40 rounded-full">
+                <span class="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 bg-red-900/30 text-red-400 border border-red-700/40 rounded-full">
                     Admin
                 </span>
                 @endif
@@ -115,7 +127,7 @@
 </header>
 
 {{-- ========== MAIN ========== --}}
-<main class="max-w-6xl mx-auto px-6 py-10">
+<main class="max-w-7xl mx-auto px-6 py-10">
     {{-- Flash messages globaux (non affichés sur les pages Livewire qui gèrent leur propre feedback) --}}
     @unless (request()->routeIs('admin.orders.show'))
     @if (session('success'))
