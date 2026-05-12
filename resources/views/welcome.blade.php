@@ -13,12 +13,12 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="noise" x-data="{ scrolled: false }" @scroll.window="scrolled = window.scrollY > 50">
+<body class="noise" x-data="{ scrolled: window.scrollY > 50 }" @scroll.window="scrolled = window.scrollY > 50">
 
 {{-- ========== NAVIGATION ========== --}}
 <header
-    class="fixed top-0 left-0 right-0 z-50 transition-all duration-500"
-    :class="scrolled ? 'bg-[#0D0B08]/95 backdrop-blur-md border-b border-[#C9A84C]/10 py-4' : 'py-6'"
+    class="fixed top-0 left-0 right-0 z-50 transition-all duration-500 py-6"
+    :class="scrolled ? 'bg-[#0D0B08]/95 backdrop-blur-md border-b border-[#C9A84C]/10 !py-4' : ''"
 >
     <nav class="max-w-6xl mx-auto px-6 flex items-center justify-between">
         {{-- Logo --}}
