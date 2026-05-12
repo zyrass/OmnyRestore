@@ -91,11 +91,17 @@ class extends Component
     }
 
     /**
-     * Calcule le prix HT de base (en centimes) sans coupon.
+     * Calcule le prix HT de base (en centimes) : SOMME individuelle par photo.
+     * Chaque photo est tarifée selon son propre niveau d’analyse IA.
      */
     private function baseHtCents(): int
     {
-        return count($this->photos) * (PhotoDamageAnalyzer::PRICES[$this->damage_level] ?? 83);
+        if (empty($this->analysisResults)) {
+            // Fallback avant analyse : prix standard minimum
+            return count($this->photos) * (PhotoDamageAnalyzer::PRICES['light'] ?? 83);
+        }
+        // Somme des prix individuels de chaque photo
+        return (int) array_sum(array_column($this->analysisResults, 'price_cents'));
     }
 
     /**
@@ -335,20 +341,20 @@ class extends Component
                         @if ($damage_level === 'heavy')
                             <svg class="w-5 h-5 text-orange-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                             <div>
-                                <p class="text-orange-400 font-semibold text-sm">Restauration Compl&egrave;te requise</p>
-                                <p class="text-[#7A6E5E] text-sm mt-0.5">L'IA a d&eacute;tect&eacute; des dommages importants sur au moins une photo. Le tarif appliqu&eacute; sera de <strong class="text-orange-400">3&euro; / photo</strong>.</p>
+                                <p class="text-orange-400 font-semibold text-sm">Restauration Compl&egrave;te d&eacute;tect&eacute;e</p>
+                                <p class="text-[#7A6E5E] text-sm mt-0.5">Au moins une photo pr&eacute;sente des dommages importants (3&euro;). Chaque photo est factur&eacute;e <strong class="text-orange-400">individuellement selon son niveau</strong>.</p>
                             </div>
                         @elseif ($damage_level === 'medium')
                             <svg class="w-5 h-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                             <div>
                                 <p class="text-amber-400 font-semibold text-sm">Restauration Avanc&eacute;e applicable</p>
-                                <p class="text-[#7A6E5E] text-sm mt-0.5">L'IA a d&eacute;tect&eacute; une usure mod&eacute;r&eacute;e &agrave; avanc&eacute;e. Le tarif appliqu&eacute; sera de <strong class="text-amber-400">2&euro; / photo</strong>.</p>
+                                <p class="text-[#7A6E5E] text-sm mt-0.5">Usure mod&eacute;r&eacute;e &agrave; avanc&eacute;e d&eacute;tect&eacute;e. Chaque photo est factur&eacute;e <strong class="text-amber-400">individuellement selon son niveau</strong> (1&euro;, 2&euro; ou 3&euro;).</p>
                             </div>
                         @else
                             <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <div>
                                 <p class="text-emerald-400 font-semibold text-sm">Restauration Standard applicable</p>
-                                <p class="text-[#7A6E5E] text-sm mt-0.5">L'IA a &eacute;valu&eacute; vos photos comme &eacute;tant dans un &eacute;tat satisfaisant. Le tarif appliqu&eacute; sera de <strong class="text-emerald-400">1&euro; / photo</strong>.</p>
+                                <p class="text-[#7A6E5E] text-sm mt-0.5">Toutes vos photos sont en bon &eacute;tat. Le tarif appliqu&eacute; sera de <strong class="text-emerald-400">1&euro; / photo</strong>.</p>
                             </div>
                         @endif
                         </div>
@@ -393,19 +399,29 @@ class extends Component
                             <span class="text-right">
                                 @if ($analysisComplete)
                                     @php
-                                        $priceLabel = match($damage_level) {
-                                            'medium' => '2,00 &euro;',
-                                            'heavy'  => '3,00 &euro;',
-                                            default  => '1,00 &euro;',
-                                        };
-                                        $priceColor = match($damage_level) {
-                                            'medium' => 'text-amber-400',
-                                            'heavy'  => 'text-orange-400',
-                                            default  => 'text-emerald-400',
-                                        };
+                                        $allLevels   = array_column($this->analysisResults, 'level');
+                                        $uniqueLevels = array_unique($allLevels);
+                                        $isMixed     = count($uniqueLevels) > 1;
+                                        if ($isMixed) {
+                                            $priceLabel = 'Variable';
+                                            $priceColor = 'text-amber-400';
+                                            $priceSub   = '1&euro; &agrave; 3&euro; selon &eacute;tat';
+                                        } else {
+                                            $priceLabel = match($damage_level) {
+                                                'medium' => '2,00 &euro;',
+                                                'heavy'  => '3,00 &euro;',
+                                                default  => '1,00 &euro;',
+                                            };
+                                            $priceColor = match($damage_level) {
+                                                'medium' => 'text-amber-400',
+                                                'heavy'  => 'text-orange-400',
+                                                default  => 'text-emerald-400',
+                                            };
+                                            $priceSub = 'd&eacute;fini par IA';
+                                        }
                                     @endphp
-                                    <span class="{{ $priceColor }} font-semibold">{{ $priceLabel }}</span><br>
-                                    <span class="text-[10px] text-[#7A6E5E]">défini par IA</span>
+                                    <span class="{{ $priceColor }} font-semibold">{!! $priceLabel !!}</span><br>
+                                    <span class="text-[10px] text-[#7A6E5E]">{!! $priceSub !!}</span>
                                 @elseif ($analyzing)
                                     <svg class="animate-spin w-3.5 h-3.5 text-[#C9A84C] inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                                 @else
