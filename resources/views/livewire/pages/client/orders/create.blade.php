@@ -71,19 +71,22 @@ class extends Component
         $worstLevel = 'light';
         $levelPriority = ['light' => 0, 'medium' => 1, 'heavy' => 2];
 
-        foreach ($this->photos as $i => $photo) {
-            $result = $analyzer->analyze($photo);
-            $this->analysisResults[$i] = $result;
+        try {
+            foreach ($this->photos as $i => $photo) {
+                $result = $analyzer->analyze($photo);
+                $this->analysisResults[$i] = $result;
 
-            // Worst-case : niveau le plus élevé détermine le tarif de tout le lot
-            if (($levelPriority[$result['level']] ?? 0) > ($levelPriority[$worstLevel] ?? 0)) {
-                $worstLevel = $result['level'];
+                // Worst-case : niveau le plus élevé détermine le damage_level global
+                if (($levelPriority[$result['level']] ?? 0) > ($levelPriority[$worstLevel] ?? 0)) {
+                    $worstLevel = $result['level'];
+                }
             }
+        } finally {
+            // Garantit que le bouton submit est TOUJOURS débloqué, même en cas d'erreur
+            $this->damage_level     = $worstLevel;
+            $this->analyzing        = false;
+            $this->analysisComplete = true;
         }
-
-        $this->damage_level     = $worstLevel;
-        $this->analyzing        = false;
-        $this->analysisComplete = true;
 
         // Réinitialiser le coupon si les photos changent (le montant HT a pu changer)
         $this->couponResult = null;

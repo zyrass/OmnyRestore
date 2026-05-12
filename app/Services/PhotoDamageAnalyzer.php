@@ -54,24 +54,23 @@ class PhotoDamageAnalyzer
      * Prompt système envoyé à GPT-4o pour l'analyse.
      */
     private const SYSTEM_PROMPT = <<<'PROMPT'
-Tu es un expert en restauration de photographies anciennes.
-Analyse cette image et réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après.
+Tu es un expert en restauration de photographies. Ton rôle est d'évaluer l'ETAT PHYSIQUE du support photographique uniquement.
+Tu n'identifies AUCUNE personne. Tu analyses uniquement les dommages visibles sur la photo en tant que document.
 
-Format de réponse obligatoire :
-{
-  "level": "light", "medium" ou "heavy",
-  "confidence": nombre entre 0 et 100,
-  "reason": "phrase courte en français (max 15 mots)"
-}
+Réponds UNIQUEMENT avec un objet JSON valide, sans aucun texte avant ou après, sans balises markdown.
 
-Critères d'évaluation stricts :
-- "light"  : jaunissement léger, poussière, petites taches superficielles, légère décoloration → 1,00 € TTC
-- "medium" : rayures visibles, décoloration forte, pliures légères, grain photographique important, taches marquées → 2,00 € TTC
-- "heavy"  : déchirures, dommages eau importants, zones manquantes, pliures majeures, moisissures, brûlures, photo très dégradée → 3,00 € TTC
+Format obligatoire :
+{"level": "light", "confidence": 85, "reason": "phrase courte en français max 15 mots"}
 
-Si l'image semble déjà en bon état ou n'est pas une photo ancienne, réponds avec level "light".
-Sois précis : ne sous-évalue pas les dommages. Une photo ancienne typique avec usure modérée est "medium", pas "light".
-En cas de doute entre "light" et "medium", choisis "medium". En cas de doute entre "medium" et "heavy", choisis "medium".
+Critères stricts :
+- "light"  : photo nette et peu endommagée, jaunissement léger, poussiere, petites taches → 1,00 € TTC
+- "medium" : rayures visibles, décoloration forte, pliures légères, grain important, vieille photo → 2,00 € TTC
+- "heavy"  : déchirures, zones manquantes, moisissures, brûlures, dégâts eau, très dégradée → 3,00 € TTC
+
+Règles absolues :
+- Si la photo est moderne et nette → "light"
+- Si tu ne peux pas analyser l'image pour quelque raison que ce soit → réponds TOUJOURS {"level": "light", "confidence": 50, "reason": "Analyse non concluante, niveau standard appliqué"}
+- Tu ne dois JAMAIS refuser de répondre ou écrire du texte libre
 PROMPT;
 
     /**
@@ -173,10 +172,18 @@ PROMPT;
         }
 
         $content = $response->json('choices.0.message.content', '{}');
+
+        // Nettoyer les balises markdown ``` que GPT-4o peut parfois ajouter
+        $content = preg_replace('/^```(?:json)?\s*/i', '', trim($content));
+        $content = preg_replace('/\s*```$/', '', $content);
+        $content = trim($content);
+
         $verdict = json_decode($content, true);
 
+        // Si le niveau est invalide (refus de répondre, texte libre, etc.) → light par défaut
         if (! isset($verdict['level']) || ! in_array($verdict['level'], ['light', 'medium', 'heavy'])) {
-            throw new \RuntimeException('Invalid response format from GPT-4o: ' . $content);
+            Log::warning('PhotoDamageAnalyzer: réponse invalide, fallback light', ['content' => substr($content, 0, 100)]);
+            $verdict = ['level' => 'light', 'confidence' => 50, 'reason' => 'Analyse non concluante'];
         }
 
         $priceCents = self::PRICES[$verdict['level']];
