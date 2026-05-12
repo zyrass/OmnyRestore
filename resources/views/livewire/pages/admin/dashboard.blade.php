@@ -65,7 +65,8 @@ class extends Component
             // ── Tableau clients ───────────────────────────────────────────────────────
             'clients' => \App\Models\User::where('role', 'client')
                 ->withCount('orders')
-                ->withSum('orders as total_spent_cents', 'total_price_cents')
+                // Somme uniquement des commandes réellement payées (pas les DONE/PENDING/CANCELLED)
+                ->withSum(['orders as total_spent_cents' => fn($q) => $q->where('payment_status', 'paid')], 'total_price_cents')
                 ->latest()
                 ->limit(20)
                 ->get(),
@@ -204,7 +205,15 @@ class extends Component
                             <p class="text-[#7A6E5E] text-xs mt-0.5">{{ $order->paid_at?->format('d/m/Y H:i') }}</p>
                         </div>
                         <span class="text-emerald-400 font-semibold text-sm">
-                            +{{ number_format(($order->total_price_cents ?? $order->base_price_cents ?? 0) / 100, 2, ',', ' ') }} €
+                            @php
+                                $paidHt  = $order->total_price_cents ?? 0;
+                                $paidTtc = $paidHt + round($paidHt * 0.2);
+                            @endphp
+                            @if ($paidTtc === 0)
+                                Offert
+                            @else
+                                +{{ number_format($paidTtc / 100, 2, ',', ' ') }} € TTC
+                            @endif
                         </span>
                     </div>
                     @endforeach
@@ -229,7 +238,7 @@ class extends Component
                     <tr class="border-b border-[#C9A84C]/10">
                         <th class="px-5 py-3 text-left text-xs text-[#7A6E5E] uppercase tracking-widest">Client</th>
                         <th class="px-4 py-3 text-center text-xs text-[#7A6E5E] uppercase tracking-widest">Commandes</th>
-                        <th class="px-4 py-3 text-right text-xs text-[#7A6E5E] uppercase tracking-widest">Dépensé HT</th>
+                        <th class="px-4 py-3 text-right text-xs text-[#7A6E5E] uppercase tracking-widest">CA payé HT</th>
                         <th class="px-4 py-3 text-right text-xs text-[#7A6E5E] uppercase tracking-widest">Inscription</th>
                         <th class="px-4 py-3 text-right text-xs text-[#7A6E5E] uppercase tracking-widest">Actions</th>
                     </tr>
@@ -252,8 +261,12 @@ class extends Component
                             <span class="text-[#F5F0E8] text-sm font-semibold">{{ $client->orders_count }}</span>
                         </td>
                         <td class="px-4 py-3 text-right">
-                            <span class="text-[#C9A84C] text-sm font-semibold">
-                                {{ number_format(($client->total_spent_cents ?? 0) / 100, 2, ',', ' ') }} €
+                        <span class="text-[#C9A84C] text-sm font-semibold">
+                                @if (($client->total_spent_cents ?? 0) === 0)
+                                    0,00 €
+                                @else
+                                    {{ number_format(($client->total_spent_cents ?? 0) / 100, 2, ',', ' ') }} €
+                                @endif
                             </span>
                         </td>
                         <td class="px-4 py-3 text-right text-[#7A6E5E] text-xs">
