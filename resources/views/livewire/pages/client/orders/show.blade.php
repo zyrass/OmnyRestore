@@ -203,88 +203,93 @@ class extends Component
                     </div>
                 </div>
 
-                {{-- Grille sélection + modal Alpine de confirmation --}}
-                <div class="p-5 grid grid-cols-2 md:grid-cols-3 gap-4"
-                     x-data="{ pendingId: null, confirmOpen: false }">
+                {{-- Grille sélection — état modal partagé + hover CSS pur --}}
+                <div x-data="{ pendingId: null, confirmOpen: false }">
 
-                    {{-- ── Modal confirmation retrait ── --}}
+                    {{-- ── Modal confirmation retrait (téléporté hors overflow-hidden) ── --}}
                     <template x-teleport="body">
-                    <div x-show="confirmOpen" x-cloak
-                         class="fixed inset-0 z-[999] flex items-center justify-center"
-                         x-transition:enter="transition ease-out duration-150"
-                         x-transition:enter-start="opacity-0 scale-95"
-                         x-transition:enter-end="opacity-100 scale-100"
-                         x-transition:leave="transition ease-in duration-100"
-                         x-transition:leave-start="opacity-100 scale-100"
-                         x-transition:leave-end="opacity-0 scale-95">
-                        {{-- Fond sombre cliquable --}}
-                        <div class="absolute inset-0 bg-black/75 backdrop-blur-sm" @click="confirmOpen = false"></div>
-                        {{-- Carte modale --}}
-                        <div class="relative z-10 w-full max-w-sm mx-4 bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm shadow-2xl p-6 text-center">
-                            <div class="w-12 h-12 border border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-900/20">
-                                <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                            </div>
-                            <h3 class="text-[#F5F0E8] font-semibold mb-2">Retirer cette photo ?</h3>
-                            <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed">Elle sera exclue de votre commande et ne sera pas facturée. Vous pouvez la réintégrer à tout moment avant de payer.</p>
-                            <div class="flex gap-3 justify-center">
-                                <button @click="confirmOpen = false"
-                                        class="px-5 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all">
-                                    Annuler
-                                </button>
-                                <button @click="confirmOpen = false; $wire.rejectPhoto(pendingId)"
-                                        class="px-5 py-2 text-sm bg-red-700/80 text-red-100 rounded-sm hover:bg-red-600 transition-colors font-semibold">
-                                    Retirer
-                                </button>
+                        <div x-show="confirmOpen" x-cloak
+                             class="fixed inset-0 z-[999] flex items-center justify-center"
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100"
+                             x-transition:leave-end="opacity-0">
+                            <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="confirmOpen = false"></div>
+                            <div class="relative z-10 w-full max-w-sm mx-4 bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm shadow-2xl p-6 text-center">
+                                <div class="w-12 h-12 border border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-900/20">
+                                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </div>
+                                <h3 class="text-[#F5F0E8] font-semibold mb-2">Retirer cette photo ?</h3>
+                                <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed">Elle sera exclue de votre commande et ne sera pas facturée. Vous pouvez la réintégrer à tout moment avant de payer.</p>
+                                <div class="flex gap-3 justify-center">
+                                    <button @click="confirmOpen = false"
+                                            class="px-5 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all">
+                                        Annuler
+                                    </button>
+                                    <button @click="confirmOpen = false; $wire.rejectPhoto(pendingId)"
+                                            class="px-5 py-2 text-sm bg-red-700 text-white rounded-sm hover:bg-red-600 transition-colors font-semibold">
+                                        Retirer
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
                     </template>
 
-                    @forelse ($retouched as $media)
-                    @php $isRejected = $media->getCustomProperty('is_rejected', false); @endphp
-                    <div class="relative group aspect-square bg-[#1A1510] rounded-sm overflow-hidden select-none
-                                {{ $isRejected ? 'border-2 border-red-500/50' : 'border border-[#C9A84C]/15' }}"
-                         style="{{ $isRejected ? 'opacity: 0.55' : '' }}">
+                    {{-- ── Grille photos ── --}}
+                    <div class="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
+                        @forelse ($retouched as $media)
+                        @php $isRejected = $media->getCustomProperty('is_rejected', false); @endphp
 
-                        <img src="{{ $media->getUrl() }}" alt="Photo restaurée"
-                             class="w-full h-full object-cover pointer-events-none" draggable="false">
+                        {{-- Carte photo — group pour hover CSS pur --}}
+                        <div class="group relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden select-none cursor-default
+                                    {{ $isRejected ? 'border-2 border-red-500/50' : 'border border-[#C9A84C]/15' }}"
+                             style="{{ $isRejected ? 'opacity:0.55' : '' }}">
 
-                        {{-- ── CSS Watermark (inline styles = garanti rendu) ── --}}
-                        @if (! $isRejected)
-                        <div class="absolute inset-0 pointer-events-none"
-                             style="background: repeating-linear-gradient(-45deg, transparent, transparent 60px, rgba(201,168,76,0.07) 60px, rgba(201,168,76,0.07) 62px);"></div>
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span style="color:rgba(255,255,255,0.15);font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;transform:rotate(-35deg);white-space:nowrap;user-select:none;">OmnyRestore</span>
+                            <img src="{{ $media->getUrl() }}" alt="Photo restaurée"
+                                 class="w-full h-full object-cover pointer-events-none" draggable="false">
+
+                            {{-- ── Watermark SVG pattern (pleine couverture, répété en diagonale) ── --}}
+                            @if (! $isRejected)
+                            <svg class="absolute inset-0 w-full h-full pointer-events-none select-none"
+                                 xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <defs>
+                                    <pattern id="wm-{{ $media->id }}" x="0" y="0" width="130" height="52"
+                                             patternUnits="userSpaceOnUse" patternTransform="rotate(-35)">
+                                        <text x="4" y="36" font-family="Arial,sans-serif" font-size="10" font-weight="700"
+                                              letter-spacing="3" fill="rgba(255,255,255,0.18)">OmnyRestore</text>
+                                    </pattern>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#wm-{{ $media->id }})"/>
+                            </svg>
+                            {{-- Léger vignettage doré en bordure --}}
+                            <div class="absolute inset-0 pointer-events-none" style="box-shadow: inset 0 0 20px rgba(201,168,76,0.12);"></div>
+                            @endif
+
+                            {{-- ── Overlay "Retirée" ── --}}
+                            @if ($isRejected)
+                            <div class="absolute inset-0 bg-red-950/50 flex items-center justify-center pointer-events-none">
+                                <span class="text-red-200 text-xs font-bold uppercase tracking-widest bg-red-900/80 px-3 py-1 rounded">Retirée</span>
+                            </div>
+                            {{-- Bouton ↩ réintégrer — coin haut-droit, visible au survol --}}
+                            <button wire:click="restorePhoto({{ $media->id }})" title="Réintégrer"
+                                    class="absolute top-2 right-2 z-20 w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all duration-150 bg-emerald-700 text-emerald-100 opacity-0 group-hover:opacity-100 hover:bg-emerald-500 hover:scale-110">
+                                ↩
+                            </button>
+                            @else
+                            {{-- Croix ✕ — coin haut-droit, visible au survol --}}
+                            <button @click="pendingId = {{ $media->id }}; confirmOpen = true" title="Retirer cette photo"
+                                    class="absolute top-2 right-2 z-20 w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all duration-150 bg-red-700 text-white opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:scale-110">
+                                ✕
+                            </button>
+                            @endif
+
                         </div>
-                        @endif
-
-                        {{-- ── Badge "Retirée" ── --}}
-                        @if ($isRejected)
-                        <div class="absolute inset-0 bg-red-900/40 flex items-center justify-center pointer-events-none">
-                            <span class="text-red-200 text-xs font-bold uppercase tracking-wider bg-red-900/80 px-2 py-0.5 rounded">Retirée</span>
-                        </div>
-                        {{-- Bouton réintégrer — coin haut-droit --}}
-                        <button wire:click="restorePhoto({{ $media->id }})"
-                                title="Réintégrer cette photo"
-                                class="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center
-                                       bg-emerald-700/90 text-emerald-100 rounded-full text-xs font-bold
-                                       opacity-0 group-hover:opacity-100 transition-opacity hover:bg-emerald-500">
-                            ↩
-                        </button>
-                        @else
-                        {{-- Croix ✕ — coin haut-droit (visible au survol) --}}
-                        <button @click="pendingId = {{ $media->id }}; confirmOpen = true"
-                                title="Retirer cette photo"
-                                class="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center
-                                       bg-red-800/90 text-red-100 rounded-full text-xs font-bold
-                                       opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
-                            ✕
-                        </button>
-                        @endif
+                        @empty
+                        <div class="col-span-3 py-8 text-center text-[#7A6E5E] text-sm">Aucune photo disponible.</div>
+                        @endforelse
                     </div>
-                    @empty
-                    <div class="col-span-3 py-8 text-center text-[#7A6E5E] text-sm">Aucune photo disponible.</div>
-                    @endforelse
                 </div>
 
                 @if ($rejectedPhotos->count() > 0)
