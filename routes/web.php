@@ -23,8 +23,13 @@ Route::view('/mentions-legales', 'pages.legal.mentions')->name('legal.mentions')
 Route::view('/confidentialite', 'pages.legal.privacy')->name('legal.privacy');
 Route::view('/conditions-generales-de-vente', 'pages.legal.cgv')->name('legal.cgv');
 
-// ─── Stripe redirects ─────────────────────────────────────────────────────────
-Route::view('/payment/success', 'pages.payment.success')->name('payment.success');
+// ── Stripe redirects ────────────────────────────────────────────────────────
+// /payment/success : vérifie la session Stripe et marque l'ordre PAID
+// (double filet webhook — fonctionne aussi en local sans tunnel Stripe CLI)
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/payment/success', [App\Http\Controllers\Client\PaymentSuccessController::class, 'handle'])
+        ->name('payment.success');
+});
 Route::view('/payment/cancel', 'pages.payment.cancel')->name('payment.cancel');
 
 // ─── Auth Routes (Breeze) ─────────────────────────────────────────────────────
