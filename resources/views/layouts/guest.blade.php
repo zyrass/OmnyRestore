@@ -14,11 +14,12 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-{{-- h-screen + overflow-hidden = hauteur exacte du viewport, aucun scroll --}}
-<body class="h-screen flex flex-col antialiased overflow-hidden">
+{{-- CSS Grid : 1re ligne = deux colonnes (1fr) ; 2e ligne = footer (auto) --}}
+{{-- h-screen + overflow-hidden = aucun scroll possible, viewport exact --}}
+<body class="h-screen grid grid-rows-[1fr_auto] antialiased overflow-hidden">
 
-    {{-- flex-1 min-h-0 : remplit l'espace restant apres le footer sans depasser le viewport --}}
-    <div class="flex flex-1 min-h-0">
+    {{-- Pas besoin de flex-1 : le wrapper est dans la cellule grid 1fr --}}
+    <div class="flex">
 
         {{-- Colonne gauche : décor (cachée sur mobile) --}}
         {{-- Élargie à 3/5 (vs 1/2 avant) sur demande — design identique --}}
