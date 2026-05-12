@@ -67,16 +67,6 @@ class extends Component
         $media = $this->order->getMedia('retouched')->firstWhere('id', $mediaId);
         abort_if(! $media, 404, 'Photo introuvable.');
 
-        // Garde-fou : au moins 1 photo active doit rester pour le paiement
-        $activeCount = $this->order->getMedia('retouched')
-            ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
-            ->count();
-
-        if ($activeCount <= 1) {
-            session()->flash('error', 'Vous ne pouvez pas retirer votre seule photo restante. Réintégrez d\'abord une photo retirée ou annulez la commande.');
-            return;
-        }
-
         $media->setCustomProperty('is_rejected', true)
               ->setCustomProperty('rejected_at', now()->toISOString())
               ->setCustomProperty('rejected_by', 'client')
