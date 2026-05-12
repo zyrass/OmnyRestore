@@ -286,7 +286,8 @@ class extends Component
     }
 }; ?>
 
-<div>
+<div x-data="{ finalHt: {{ (float)($finalPrice ?? 0) }} }">
+
 
     {{-- Messages flash (Livewire re-render uniquement — le layout ne se met pas à jour en AJAX) --}}
     @if (session('success'))
@@ -547,15 +548,15 @@ class extends Component
                 @endif
 
                 {{-- Prix final --}}
-                <div class="mb-4" x-data="{ ht: {{ (float)($finalPrice ?? 0) }} }">
+                <div class="mb-4">
                     <label class="block text-[#7A6E5E] text-xs uppercase tracking-widest mb-1.5">
-                        Prix HT &mdash; le client sera facturé <span class="text-[#C9A84C] font-semibold" x-text="(ht * 1.2).toFixed(2) + ' € TTC'">
+                        Prix HT &mdash; le client sera facturé <span class="text-[#C9A84C] font-semibold" x-text="(finalHt * 1.2).toFixed(2).replace('.', ',') + ' € TTC'">
                             {{ number_format((float)$finalPrice * 1.2, 2, ',', ' ') }} € TTC
                         </span>
                     </label>
                     <div class="flex items-center gap-3">
                         <input wire:model="finalPrice" type="number" step="0.01" min="0"
-                               @input="ht = parseFloat($event.target.value) || 0"
+                               @input="finalHt = parseFloat($event.target.value) || 0"
                                class="w-36 bg-[#1A1510] border border-[#C9A84C]/20 text-[#C9A84C] font-bold text-lg text-center rounded-sm px-4 py-2 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
                         <div class="text-sm">
                             <p class="text-[#7A6E5E]">€ HT</p>
@@ -696,9 +697,9 @@ class extends Component
                     </div>
                     @endif
                     <div class="border-t border-[#C9A84C]/10 pt-2 space-y-1.5">
-                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT{{ $discountHt > 0 ? ' net' : '' }}</dt><dd class="text-[#F5F0E8]">{{ number_format($finalHt / 100, 2, ',', ' ') }} €</dd></div>
-                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">TVA 20%</dt><dd class="text-[#F5F0E8]">{{ number_format($tva / 100, 2, ',', ' ') }} €</dd></div>
-                        <div class="flex justify-between font-bold"><dt class="text-[#C9A84C]">TTC</dt><dd class="text-[#C9A84C]">{{ number_format($ttc / 100, 2, ',', ' ') }} €</dd></div>
+                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT{{ $discountHt > 0 ? ' net' : '' }}</dt><dd class="text-[#F5F0E8]" x-text="finalHt.toFixed(2).replace('.', ',') + ' €'">{{ number_format($finalHt / 100, 2, ',', ' ') }} €</dd></div>
+                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">TVA 20%</dt><dd class="text-[#F5F0E8]" x-text="(finalHt * 0.2).toFixed(2).replace('.', ',') + ' €'">{{ number_format($tva / 100, 2, ',', ' ') }} €</dd></div>
+                        <div class="flex justify-between font-bold"><dt class="text-[#C9A84C]">TTC</dt><dd class="text-[#C9A84C]" x-text="(finalHt * 1.2).toFixed(2).replace('.', ',') + ' €'">{{ number_format($ttc / 100, 2, ',', ' ') }} €</dd></div>
                         {{-- Coût IA : offert si coupon couvre tout, sinon mention ~0,01 €/photo --}}
                         @if ($finalHt === 0 && $discountHt > 0)
                         <div class="flex justify-between text-xs"><dt class="text-emerald-400/70">Coût IA</dt><dd class="text-emerald-400 font-medium">Offert ✓</dd></div>
@@ -719,10 +720,10 @@ class extends Component
                           class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs rounded-sm px-3 py-2 placeholder-[#7A6E5E]/50 resize-none focus:outline-none focus:border-[#C9A84C]/60 transition-all mb-3">
                 </textarea>
                 @if (!in_array($order->status, ['PAID', 'DELIVERED', 'CANCELLED']))
-                <div x-data="{ ht: {{ (float)($finalPrice ?? 0) }} }" class="mb-3">
+                <div class="mb-3">
                     <div class="flex gap-2 mb-1">
                         <input wire:model="finalPrice" type="number" step="0.01" placeholder="Prix HT (€)"
-                               @input="ht = parseFloat($event.target.value) || 0"
+                               @input="finalHt = parseFloat($event.target.value) || 0"
                                class="flex-1 bg-[#1A1510] border border-[#C9A84C]/20 text-[#C9A84C] text-sm rounded-sm px-3 py-2 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
                         <button wire:click="saveNotes" class="px-4 py-2 text-xs bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30 hover:bg-[#C9A84C]/30 rounded-sm transition-all">
                             Sauver
@@ -730,7 +731,7 @@ class extends Component
                     </div>
                     <p class="text-[#7A6E5E] text-xs">
                         HT &rarr; TTC client :
-                        <span class="text-[#C9A84C] font-semibold" x-text="(ht * 1.2).toFixed(2) + ' €'">
+                        <span class="text-[#C9A84C] font-semibold" x-text="(finalHt * 1.2).toFixed(2).replace('.', ',') + ' €'">
                             {{ number_format((float)$finalPrice * 1.2, 2, ',', ' ') }} €
                         </span>
                         <span class="text-[#7A6E5E]/60">(TVA 20% incluse)</span>
