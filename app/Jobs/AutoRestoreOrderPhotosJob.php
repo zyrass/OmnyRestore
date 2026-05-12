@@ -80,7 +80,7 @@ class AutoRestoreOrderPhotosJob implements ShouldQueue
                         'source_media_id' => $media->id,
                         'model_analysis'  => 'gpt-4o',
                         'model_generate'  => 'dall-e-3',
-                        'upscale_target'  => '8K-7680x4320',
+                        'enhancement'     => 'improved-quality',
                     ])
                     ->toMediaCollection('retouched');
 

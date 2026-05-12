@@ -218,27 +218,59 @@ table.totals tr.free-row td {
 <div class="page">
 
 @php
-    $baseHtC   = (int) ($order->base_price_cents ?? 0);
-    $discountC = (int) ($order->discount_cents   ?? 0);
-    $htNetC    = $order->total_price_cents !== null
-        ? (int) $order->total_price_cents
-        : max(0, $baseHtC - $discountC);
+    use App\Services\PhotoDamageAnalyzer;
 
-    $tvaRate  = 20;
-    $tvaC     = (int) round($htNetC * $tvaRate / 100);
-    $ttcC     = $htNetC + $tvaC;
-    $isFree   = $ttcC === 0;
+    // Prix HT par niveau (en centimes)
+    $LEVEL_PRICES = PhotoDamageAnalyzer::PRICES; // ['light'=>83, 'medium'=>167, 'heavy'=>250]
+    $LEVEL_LABELS = [
+        'light'  => 'Restauration Standard',
+        'medium' => 'Restauration Avancée',
+        'heavy'  => 'Restauration Complète',
+    ];
+    $LEVEL_DETAIL = [
+        'light'  => 'Jaunissement, poussière légère, légères décolorations',
+        'medium' => 'Rayures, décoloration forte, grain important, pliures',
+        'heavy'  => 'Déchirures, dégâts eau, zones manquantes, moisissures',
+    ];
 
-    $nPhotos  = (int) ($order->photo_count ?? 1);
-    $unitHtC  = $nPhotos > 0 ? (int) round($baseHtC / $nPhotos) : $baseHtC;
+    // ── Calcul des totaux depuis les custom_properties par photo ────────────
+    // On regroupe les photos originals (non rejetées) par niveau d'IA
+    $lineItems = $order->getMedia('originals')
+        ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
+        ->groupBy(fn($m) => $m->getCustomProperty('ai_level', 'light'))
+        ->map(fn($photos, $lvl) => [
+            'level'      => $lvl,
+            'label'      => $LEVEL_LABELS[$lvl] ?? ucfirst($lvl),
+            'detail'     => $LEVEL_DETAIL[$lvl] ?? '',
+            'count'      => $photos->count(),
+            'unit_ht_c'  => $LEVEL_PRICES[$lvl] ?? 83,
+            'total_ht_c' => $photos->count() * ($LEVEL_PRICES[$lvl] ?? 83),
+        ])
+        ->sortBy('level') // light → medium → heavy
+        ->values();
 
-    $level = $order->damage_level ?? 'light';
-    $levelLabel = match($level) {
-        'light'  => 'Standard (légère dégradation)',
-        'medium' => 'Avancée (dégradation modérée)',
-        'heavy'  => 'Complète (dégradation importante)',
-        default  => ucfirst($level),
-    };
+    // Si aucune donnée par photo (ancienne commande sans ai_level), fallback
+    if ($lineItems->isEmpty()) {
+        $fallbackLevel = $order->damage_level ?? 'light';
+        $nPhotos       = (int) ($order->photo_count ?? 1);
+        $lineItems = collect([[
+            'level'      => $fallbackLevel,
+            'label'      => $LEVEL_LABELS[$fallbackLevel] ?? 'Restauration',
+            'detail'     => $LEVEL_DETAIL[$fallbackLevel] ?? '',
+            'count'      => $nPhotos,
+            'unit_ht_c'  => $LEVEL_PRICES[$fallbackLevel] ?? 83,
+            'total_ht_c' => (int) ($order->base_price_cents ?? $nPhotos * 83),
+        ]]);
+    }
+
+    // Totaux
+    $baseHtC   = (int) $lineItems->sum('total_ht_c');
+    $discountC = (int) ($order->discount_cents ?? 0);
+    $htNetC    = max(0, $baseHtC - $discountC);
+    $tvaRate   = 20;
+    $tvaC      = (int) round($htNetC * $tvaRate / 100);
+    $ttcC      = $htNetC + $tvaC;
+    $isFree    = $ttcC === 0;
 
     $year       = $order->paid_at?->format('Y') ?? now()->format('Y');
     $seq        = str_pad(substr($order->reference, -4), 4, '0', STR_PAD_LEFT);
@@ -322,18 +354,20 @@ table.totals tr.free-row td {
             </tr>
         </thead>
         <tbody>
+            @foreach ($lineItems as $line)
             <tr>
                 <td>
-                    <div class="desc-main">Restauration photographique</div>
+                    <div class="desc-main">{{ $line['label'] }}</div>
                     <div class="desc-sub">
-                        Niveau : {{ $levelLabel }}<br>
-                        Analyse IA · retouche · upscale haute résolution
+                        {{ $line['detail'] }}<br>
+                        Analyse IA · retouche · amélioration résolution
                     </div>
                 </td>
-                <td>{{ $nPhotos }}</td>
-                <td class="r">{{ number_format($unitHtC / 100, 2, ',', ' ') }} €</td>
-                <td class="r">{{ number_format($baseHtC / 100, 2, ',', ' ') }} €</td>
+                <td>{{ $line['count'] }}</td>
+                <td class="r">{{ number_format($line['unit_ht_c'] / 100, 2, ',', ' ') }} €</td>
+                <td class="r">{{ number_format($line['total_ht_c'] / 100, 2, ',', ' ') }} €</td>
             </tr>
+            @endforeach
             @if ($discountC > 0)
             <tr class="coupon-row">
                 <td class="coupon-label">

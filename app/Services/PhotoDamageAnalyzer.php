@@ -21,8 +21,9 @@ use Illuminate\Support\Facades\Log;
  *   'heavy'  → Restauration Complète   → 2,50 € HT → 3,00 € TTC
  *              Déchirures, dommages eau, zones manquantes, moisissures, brûlures
  *
- * Coût IA estimé : ~0,005 € HT/photo (GPT-4o Vision, detail=low)
- * Ce coût est répercuté de manière transparente sur la facture client.
+ * Résultat IA : amélioration significative de la netteté, des couleurs et des détails.
+ * La qualité du résultat dépend de l'état initial de la photo et des capacités de l'IA.
+ * Aucune résolution de sortie spécifique n'est garantie.
  *
  * @see config/services.php — OPENAI_API_KEY
  */
