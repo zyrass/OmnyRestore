@@ -60,4 +60,9 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Volt::route('/revenue', 'pages.admin.revenue.index')
         ->name('revenue');
 
+    // ─── Témoignages (modération) ─────────────────────────────────────────
+    // GET /admin/testimonials — Modération (publier / rejeter / supprimer)
+    Volt::route('/testimonials', 'pages.admin.testimonials.index')
+        ->name('testimonials.index');
+
 });

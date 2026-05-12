@@ -80,6 +80,46 @@ class extends Component
     }
 
     /**
+     * Soumission d'un témoignage client après livraison.
+     * Disponible uniquement pour les commandes DELIVERED.
+     * Un seul avis par commande (contrôle en base via UNIQUE order_id).
+     */
+    public string $testimonialContent = '';
+    public int    $testimonialRating  = 5;
+
+    public function submitTestimonial(): void
+    {
+        abort_if($this->order->user_id !== auth()->id(), 403);
+        abort_if($this->order->status !== 'DELIVERED', 403, 'Les avis ne sont disponibles qu\'après livraison.');
+
+        $this->validate([
+            'testimonialContent' => 'required|string|min:20|max:500',
+            'testimonialRating'  => 'required|integer|between:1,5',
+        ]);
+
+        // Idempotent : déjà soumis pour cette commande
+        if (\App\Models\Testimonial::where('order_id', $this->order->id)->exists()) {
+            session()->flash('success', 'Vous avez déjà partagé votre avis pour cette commande. Merci !');
+            return;
+        }
+
+        $user = auth()->user();
+        \App\Models\Testimonial::create([
+            'order_id'        => $this->order->id,
+            'user_id'         => $user->id,
+            'author_name'     => $user->name,
+            'author_initials' => \App\Models\Testimonial::initialsFrom($user->name),
+            'rating'          => $this->testimonialRating,
+            'content'         => $this->testimonialContent,
+            'is_published'    => false, // en attente de modération admin
+        ]);
+
+        $this->testimonialContent = '';
+        $this->testimonialRating  = 5;
+        session()->flash('success', '⭐ Merci pour votre avis ! Il sera visible après validation par notre équipe.');
+    }
+
+    /**
      * Client rejette une photo restaurée (exclue du livrable et du calcul de prix).
      * Disponible uniquement au statut DONE (avant paiement).
      */
@@ -604,8 +644,74 @@ class extends Component
                         <svg class="w-4 h-4 text-[#7A6E5E] group-hover:text-[#C9A84C] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                     </a>
                 </div>
+
+                {{-- ✦ Laisser un avis — uniquement pour commandes DELIVERED ✦ --}}
+                @if ($order->status === 'DELIVERED')
+                @php $existingTestimonial = \App\Models\Testimonial::where('order_id', $order->id)->first(); @endphp
+                <div class="mt-6 pt-5 border-t border-[#C9A84C]/10">
+                    @if ($existingTestimonial)
+                    {{-- Avis déjà soumis --}}
+                    <div class="flex items-center justify-center gap-2 text-xs">
+                        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span class="text-emerald-400 font-medium">Votre avis a été envoyé</span>
+                        <span class="text-[#7A6E5E]">—
+                            {{ $existingTestimonial->is_published ? 'visible sur le site !' : 'en attente de modération.' }}
+                        </span>
+                    </div>
+                    @else
+                    {{-- Formulaire de soumission --}}
+                    <h4 class="text-[#F5F0E8] text-sm font-semibold mb-4 text-center">
+                        ✦ Partagez votre expérience
+                        <span class="text-[#7A6E5E] font-normal">— votre avis aide d'autres familles</span>
+                    </h4>
+
+                    {{-- Étoiles interactives (Alpine hover + Livewire model) --}}
+                    <div class="flex justify-center gap-2 mb-4" x-data="{ hovered: 0 }">
+                        @for ($s = 1; $s <= 5; $s++)
+                        <button type="button"
+                                x-on:mouseenter="hovered = {{ $s }}"
+                                x-on:mouseleave="hovered = 0"
+                                wire:click="$set('testimonialRating', {{ $s }})"
+                                class="transition-transform hover:scale-110 focus:outline-none">
+                            <svg class="w-7 h-7 transition-colors duration-150"
+                                 :class="(hovered >= {{ $s }} || ($wire.testimonialRating >= {{ $s }} && hovered === 0)) ? 'text-[#C9A84C]' : 'text-[#3A3028]'"
+                                 fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                            </svg>
+                        </button>
+                        @endfor
+                    </div>
+
+                    <textarea
+                        wire:model="testimonialContent"
+                        placeholder="Décrivez votre expérience (20 caractères minimum)..."
+                        rows="3"
+                        class="w-full bg-[#0F0C08] border border-[#3A3028] text-[#F5F0E8] rounded-sm px-4 py-3
+                               text-sm placeholder-[#4A3E2E] focus:outline-none focus:border-[#C9A84C]/50
+                               transition-colors resize-none"
+                        maxlength="500"
+                    ></textarea>
+                    @error('testimonialContent')
+                    <p class="text-red-400 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                    <div class="flex justify-between items-center mt-1 mb-3">
+                        <span class="text-[#4A3E2E] text-xs">Min. 20 caractères</span>
+                        <span class="text-[#4A3E2E] text-xs" x-data x-text="$wire.testimonialContent.length + '/500'"></span>
+                    </div>
+
+                    <button wire:click="submitTestimonial"
+                            wire:loading.attr="disabled"
+                            class="w-full btn-gold py-3 text-sm flex items-center justify-center gap-2">
+                        <svg wire:loading wire:target="submitTestimonial" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        ✦ Envoyer mon avis
+                    </button>
+                    @endif
+                </div>
+                @endif {{-- fin @if status = DELIVERED --}}
+
             </div>
             @endif
+
 
             {{-- === ÉTAT : ANNULÉ === --}}
             @if ($order->status === 'CANCELLED')
