@@ -3,77 +3,78 @@
 <head>
 <meta charset="UTF-8">
 <style>
-/* ─── Reset ────────────────────────────────────────────── */
+/* ─── Reset ──────────────────────────────────────────────── */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* ─── Page ─────────────────────────────────────────────── */
+/* ─── Page ───────────────────────────────────────────────── */
 body {
     font-family: Helvetica, Arial, sans-serif;
-    font-size: 10px;
+    font-size: 13px;
     color: #2C2418;
     background: #fff;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 .page { padding: 0; }
 
-/* ─── Header sombre ─────────────────────────────────────── */
+/* ─── Header sombre ──────────────────────────────────────── */
 .header-bg {
     background-color: #1A1208;
-    padding: 30px 50px 24px;
-    border-bottom: 3px solid #C9A84C;
+    padding: 44px 60px 36px;
+    border-bottom: 4px solid #C9A84C;
 }
 .header-logo {
     float: left;
     width: 50%;
 }
 .header-logo .brand {
-    font-size: 20px;
+    font-size: 26px;
     font-weight: bold;
-    letter-spacing: 4px;
+    letter-spacing: 5px;
     text-transform: uppercase;
     color: #C9A84C;
 }
 .header-logo .brand-sub {
-    font-size: 8px;
-    letter-spacing: 2px;
+    font-size: 10px;
+    letter-spacing: 2.5px;
     color: #7A6E5E;
-    margin-top: 3px;
+    margin-top: 5px;
     text-transform: uppercase;
 }
 .header-right {
     float: right;
-    width: 45%;
+    width: 44%;
     text-align: right;
 }
 .header-right .inv-label {
-    font-size: 8px;
+    font-size: 10px;
     letter-spacing: 2px;
     text-transform: uppercase;
     color: #7A6E5E;
 }
 .header-right .inv-ref {
-    font-size: 15px;
+    font-size: 20px;
     font-weight: bold;
     color: #F5F0E8;
-    margin-top: 2px;
+    margin-top: 3px;
     letter-spacing: 1px;
 }
 .header-right .inv-date {
-    font-size: 9px;
+    font-size: 11px;
     color: #9E9085;
-    margin-top: 4px;
+    margin-top: 6px;
+    line-height: 1.7;
 }
 .clearfix::after { content: ''; display: table; clear: both; }
 
-/* ─── Corps ─────────────────────────────────────────────── */
-.body { padding: 32px 50px; }
+/* ─── Corps ──────────────────────────────────────────────── */
+.body { padding: 44px 60px; }
 
-/* ─── Bloc parties (prestataire / client) ───────────────── */
+/* ─── Bloc parties ───────────────────────────────────────── */
 .parties-wrap {
     width: 100%;
     border-bottom: 1px solid #EDE8E0;
-    padding-bottom: 24px;
-    margin-bottom: 24px;
+    padding-bottom: 30px;
+    margin-bottom: 30px;
 }
 .party-block {
     display: inline-block;
@@ -82,124 +83,122 @@ body {
 }
 .party-block.right { text-align: right; }
 .party-section-label {
-    font-size: 7px;
-    letter-spacing: 2px;
+    font-size: 9px;
+    letter-spacing: 2.5px;
     text-transform: uppercase;
     color: #B0A090;
     border-bottom: 1px solid #EDE8E0;
-    padding-bottom: 4px;
-    margin-bottom: 8px;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
 }
 .party-name {
-    font-size: 12px;
+    font-size: 15px;
     font-weight: bold;
     color: #1A1208;
-    margin-bottom: 3px;
+    margin-bottom: 5px;
 }
 .party-detail {
-    font-size: 9px;
+    font-size: 11px;
     color: #7A6E5E;
-    line-height: 1.6;
+    line-height: 1.7;
 }
 
-/* ─── Tampon PAYÉE ──────────────────────────────────────── */
-.stamp-wrap { text-align: center; margin: 4px 0 24px; }
+/* ─── Tampon PAYÉE ───────────────────────────────────────── */
+.stamp-wrap { text-align: center; margin: 6px 0 30px; }
 .stamp {
     display: inline-block;
     border: 2px solid #1a7a3f;
     color: #1a7a3f;
-    padding: 5px 18px;
-    font-size: 10px;
+    padding: 7px 24px;
+    font-size: 13px;
     font-weight: bold;
     letter-spacing: 3px;
     text-transform: uppercase;
 }
 
-/* ─── Tableau prestations ───────────────────────────────── */
+/* ─── Tableau prestations ────────────────────────────────── */
 .section-title {
-    font-size: 7px;
+    font-size: 9px;
     letter-spacing: 2px;
     text-transform: uppercase;
     color: #B0A090;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 table.items {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
-table.items thead tr {
-    background-color: #F7F4EE;
-}
+table.items thead tr { background-color: #F7F4EE; }
 table.items thead th {
-    font-size: 8px;
+    font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 1px;
     color: #9E9085;
-    padding: 7px 10px;
+    padding: 10px 12px;
     text-align: left;
     border-bottom: 1px solid #DDD8CE;
 }
 table.items thead th.r { text-align: right; }
 table.items tbody td {
-    padding: 9px 10px;
-    font-size: 9.5px;
+    padding: 13px 12px;
+    font-size: 12px;
     border-bottom: 1px solid #F0EDE6;
     vertical-align: top;
     color: #2C2418;
 }
 table.items tbody td.r { text-align: right; }
-table.items tbody td .desc-main { font-weight: bold; font-size: 10px; }
-table.items tbody td .desc-sub { color: #9E9085; font-size: 8.5px; margin-top: 2px; }
+table.items tbody td .desc-main { font-weight: bold; font-size: 13px; }
+table.items tbody td .desc-sub { color: #9E9085; font-size: 11px; margin-top: 3px; }
 .coupon-row td { color: #1a7a3f !important; background-color: #f2fbf5; }
 .coupon-row td.coupon-label { font-weight: bold; }
 
-/* ─── Totaux ────────────────────────────────────────────── */
-.totals-wrap { text-align: right; margin-top: 4px; }
+/* ─── Totaux ──────────────────────────────────────────────── */
+.totals-wrap { text-align: right; margin-top: 8px; }
 table.totals {
     display: inline-table;
-    width: 260px;
+    width: 300px;
     border-collapse: collapse;
 }
 table.totals td {
-    padding: 4px 0;
-    font-size: 10px;
+    padding: 6px 0;
+    font-size: 12px;
     color: #7A6E5E;
 }
-table.totals td.amount { text-align: right; padding-left: 20px; }
-table.totals tr.sep td { border-top: 1px solid #EDE8E0; padding-top: 8px; }
-table.totals tr.sep-bold td { border-top: 2px solid #1A1208; padding-top: 10px; }
+table.totals td.amount { text-align: right; padding-left: 24px; }
+table.totals tr.sep td { border-top: 1px solid #EDE8E0; padding-top: 10px; }
+table.totals tr.sep-bold td { border-top: 2px solid #1A1208; padding-top: 14px; }
 table.totals tr.ttc-row td {
-    font-size: 14px;
+    font-size: 18px;
     font-weight: bold;
     color: #1A1208;
 }
 table.totals tr.free-row td {
-    font-size: 13px;
+    font-size: 17px;
     font-weight: bold;
     color: #1a7a3f;
 }
 
-/* ─── Note IA ───────────────────────────────────────────── */
+/* ─── Note IA ────────────────────────────────────────────── */
 .note-ia {
     background: #F7F4EE;
-    border-left: 3px solid #C9A84C;
-    padding: 10px 14px;
-    font-size: 8.5px;
+    border-left: 4px solid #C9A84C;
+    padding: 14px 18px;
+    font-size: 10.5px;
     color: #9E9085;
-    line-height: 1.6;
-    margin-top: 24px;
+    line-height: 1.7;
+    margin-top: 30px;
 }
 
-/* ─── Pied de page ──────────────────────────────────────── */
+/* ─── Pied de page ───────────────────────────────────────── */
 .footer {
-    margin-top: 40px;
-    padding-top: 14px;
+    margin-top: 50px;
+    padding-top: 16px;
     border-top: 1px solid #EDE8E0;
-    font-size: 8px;
+    font-size: 10px;
     color: #B0A090;
     text-align: center;
-    line-height: 1.7;
+    line-height: 1.8;
 }
 .footer strong { color: #7A6E5E; }
 </style>
