@@ -1,7 +1,7 @@
 # OmnyRestore — Technical Architecture & Developer Guide
 
 > **Stack**: TALL (Tailwind 4 / Alpine.js 3 / Laravel 12 / Livewire 3)  
-> **Version**: 1.0 — May 2026  
+> **Version**: 0.8.1 — May 2026  
 > **Author**: Alain Guillon — OmnyVia
 
 ---
@@ -132,7 +132,6 @@ erDiagram
         timestamp rgpd_consent_at "GDPR consent timestamp"
         boolean marketing_consent
         timestamp created_at
-        timestamp updated_at
         timestamp deleted_at "Soft delete for GDPR erasure"
     }
 
@@ -140,14 +139,17 @@ erDiagram
         uuid id PK
         uuid user_id FK
         string reference "ORD-2026-XXXX"
-        text description "Client restoration instructions"
+        text instructions "Client restoration notes"
         string status "PENDING | IN_PROGRESS | DONE | CANCELLED"
+        string damage_level "light | medium | heavy"
         integer photo_count
-        decimal amount_ht
-        decimal tva_rate
-        decimal amount_ttc
+        integer base_price_cents "Prix HT brut estimé par IA (avant remise)"
+        integer total_price_cents "Prix HT net final (après remise coupon + rejet photos)"
+        string coupon_code "nullable — code utilisé"
+        integer discount_cents "Remise HT en centimes (0 si pas de coupon)"
         string payment_intent_id "Stripe PaymentIntent ID"
         string payment_status "pending | paid | refunded"
+        string admin_notes
         timestamp paid_at
         timestamp delivered_at
         timestamp created_at
@@ -161,10 +163,24 @@ erDiagram
         string collection_name "originals | retouched | watermarked"
         string file_name
         string mime_type
-        string disk "s3"
+        string disk "s3 | local"
         string path
         bigint size
-        json custom_properties "AI metadata, restoration parameters"
+        json custom_properties "ai_level, ai_confidence, is_rejected, rejected_at, uploaded_by_admin"
+        timestamp created_at
+    }
+
+    COUPONS {
+        bigint id PK
+        string code "UNIQUE — ex: BIENVENUE10"
+        string description "Usage interne admin"
+        enum type "percentage | fixed"
+        integer value "% ou centimes HT"
+        integer min_order_cents "Commande minimum"
+        integer max_uses "nullable = illimité"
+        integer used_count
+        timestamp expires_at "nullable"
+        boolean is_active
         timestamp created_at
     }
 
@@ -173,6 +189,7 @@ erDiagram
         uuid order_id FK
         string zip_disk "s3"
         string zip_path "deliveries/{order_id}.zip"
+        bigint zip_size
         string signed_url "nullable — generated on demand"
         timestamp signed_url_expires_at "48h TTL"
         timestamp created_at
@@ -186,13 +203,13 @@ erDiagram
         uuid subject_id
         json payload "Full action context"
         string ip_address
-        string user_agent
         timestamp created_at "Immutable — no updated_at"
     }
 
     USERS ||--o{ ORDERS : "places"
     ORDERS ||--o{ MEDIA : "contains"
     ORDERS ||--o| ORDER_DELIVERIES : "generates"
+    ORDERS }o--o| COUPONS : "uses (nullable)"
     USERS ||--o{ AUDIT_LOGS : "generates"
     ORDERS ||--o{ AUDIT_LOGS : "referenced in"
 ```
@@ -207,32 +224,30 @@ erDiagram
 sequenceDiagram
     actor Client
     participant Browser
-    participant Livewire as Livewire<br/>OrderCreateForm
+    participant Livewire as Livewire OrderCreateForm
+    participant OpenAI as OpenAI GPT-4o Vision
     participant Laravel
-    participant S3
     participant DB as PostgreSQL
-    participant Queue as Redis Queue
-    participant Mail
 
-    Client->>Browser: Fill form + upload photos (multi-file)
-    Browser->>Livewire: wire:model + chunked upload
-    Livewire->>S3: Store to temporary disk (disk:temp)
-    S3-->>Livewire: Temporary path confirmed
+    Client->>Browser: Sélectionne 1-10 photos
+    Browser->>Livewire: wire:model.live (updatedPhotos)
+    Livewire->>OpenAI: analyze(photo) × N
+    OpenAI-->>Livewire: level (light|medium|heavy) + confidence
+    Livewire-->>Browser: Verdict IA + prix (1|2|5 € TTC/photo)
 
-    Client->>Browser: Click "Submit my order"
+    opt Coupon disponible
+        Client->>Browser: Saisit code réduction
+        Livewire->>DB: CouponService::apply(code, baseHtCents)
+        DB-->>Livewire: {valid, discount_cents, message}
+        Livewire-->>Browser: Récapitulatif mis à jour (HT/TVA/TTC)
+    end
+
+    Client->>Browser: Soumet la commande
     Browser->>Livewire: submit()
-    Livewire->>Laravel: OrderController@store()
-
-    Note over Laravel,DB: Validation: MIME type, size, count
-
-    Laravel->>DB: INSERT orders (status = PENDING)
-    Laravel->>S3: Move photos temp → disk:s3/originals/{order_id}/
-    Laravel->>DB: INSERT media (collection = originals)
-    Laravel->>Queue: Dispatch NotifyAdminNewOrderJob
-    Queue->>Mail: Email admin — New order received
-
-    Laravel-->>Browser: Redirect /client/orders/{id}
-    Browser-->>Client: Tracking page — status: PENDING
+    Livewire->>DB: INSERT orders (base_price_cents, total_price_cents, coupon_code, discount_cents)
+    Livewire->>DB: CouponService::confirm() → INCREMENT used_count
+    Livewire->>DB: INSERT media (collection = originals)
+    Livewire-->>Browser: Redirect /client/orders/{id} (status: PENDING)
 ```
 
 ### 4.2 Admin Processing (AI-Assisted Restoration)
@@ -241,38 +256,33 @@ sequenceDiagram
 sequenceDiagram
     actor Admin
     participant Browser
-    participant Livewire as Livewire<br/>AdminOrderManage
-    participant Laravel
-    participant OpenAI as OpenAI API<br/>GPT-4o Vision
-    participant S3
+    participant Livewire as Livewire AdminOrderShow
     participant DB
     participant Queue
-    participant Mail
 
-    Admin->>Browser: Open order from dashboard
-    Browser->>Livewire: Display original photos grid
-    Admin->>Browser: Click "Take charge"
-    Livewire->>Laravel: PATCH /admin/orders/{id}/status
-    Laravel->>DB: UPDATE status = IN_PROGRESS
-    Laravel->>Queue: Dispatch NotifyClientStatusJob
-    Queue->>Mail: Email client — Order in progress
+    Admin->>Browser: Ouvre commande depuis dashboard
+    Browser->>Livewire: mount(order)
+    Admin->>Browser: "Prendre en charge"
+    Livewire->>DB: UPDATE status = IN_PROGRESS
 
-    Note over Admin,OpenAI: Admin downloads originals, runs AI restoration prompt<br/>(ChatGPT 8K upscale / colorization prompt)
+    Note over Admin,Livewire: Admin restaure les photos via IA externe (ChatGPT)
 
-    Admin->>Browser: Upload AI-restored photos
-    Livewire->>S3: disk:s3/retouched/{order_id}/
+    Admin->>Browser: Upload photos restaurées
+    Livewire->>DB: INSERT media (collection = retouched)
 
-    Note over Laravel,S3: Auto-generate watermarked preview (low-res + overlay)
+    opt Contrôle qualité photo
+        Admin->>Browser: "Rejeter" photo de mauvaise qualité
+        Livewire->>DB: media.custom_properties.is_rejected = true
+        Livewire->>DB: recalcPriceFromActivePhotos()
+        Note right of DB: total_price_cents recalculé
+        Note right of DB: coupon réappliqué si présent
+    end
 
-    Admin->>Browser: Click "Mark as done"
-    Livewire->>Laravel: PATCH status = DONE
-    Laravel->>DB: UPDATE status + delivered_at
-    Laravel->>Queue: Dispatch GenerateOrderZipJob
-    Queue->>S3: Read retouched photos
-    Queue->>S3: Write ZIP (disk:s3/deliveries/{order_id}.zip)
-    Queue->>DB: INSERT order_deliveries
-    Laravel->>Queue: Dispatch NotifyClientPaymentJob
-    Queue->>Mail: Email client — Photos ready, payment link
+    Admin->>Browser: "Marquer comme terminé"
+    Livewire->>DB: UPDATE status = DONE
+    Livewire->>Queue: Dispatch GenerateOrderZipJob
+    Queue->>DB: getMedia('retouched').filter(not rejected)
+    Queue->>DB: INSERT order_deliveries (zip_path)
 ```
 
 ### 4.3 Payment & Download (Stripe Checkout)

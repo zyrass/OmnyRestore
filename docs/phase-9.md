@@ -1,6 +1,6 @@
 # OmnyRestore — Phase 9 : Guide Technique Complet
 
-> **Version** : 0.8.0 — Mai 2026
+> **Version** : 0.8.1 — Mai 2026
 > **Auteur** : Alain Guillon — OmnyVia
 > **Branche** : `test`
 
@@ -24,16 +24,15 @@
 
 ## 1. Vue d'ensemble
 
-La Phase 9 est une refonte complète du **back-office admin** et du **système de tarification**. Elle introduit :
+La Phase 9 est une refonte complète du **back-office admin** et du **système de tarification** (v0.8.0), complétée par un patch correctif (v0.8.1). Elle introduit :
 
 - Une navigation admin plus claire et distincte (rouge)
-- Un dashboard auto-actualisé en temps réel
-- Un nouveau modèle de prix à 3 niveaux IA (1/2/5 € TTC)
-- La TVA automatique (20%) affichée de façon transparente
+- Un dashboard auto-actualisé en temps réel + tableau des clients
+- Un nouveau modèle de prix à 3 niveaux IA (1/2/5 € TTC) avec TVA 20%
 - La génération de factures PDF pour les clients
-- Un système complet de codes de réduction
-- Le rejet de photos de mauvaise qualité côté admin
-- Un tableau des clients dans le dashboard
+- Un système complet de codes de réduction (admin + client)
+- Le rejet de photos de mauvaise qualité avec **recalcul automatique du prix**
+- L'exclusion des photos rejetées du livrable ZIP
 
 ---
 
@@ -409,15 +408,76 @@ public function restorePhoto(int $mediaId): void
                           border-red-500/60
 ```
 
-### Exclusion du ZIP — À implémenter (prochaine étape)
+### Exclusion du ZIP — ✅ Implémenté (v0.8.1)
 
-Le service `GenerateOrderZipJob` doit filtrer les médias rejetés :
+Le service `ZipGeneratorService` filtre automatiquement les médias rejetés :
 
 ```php
-// Dans GenerateOrderZipJob::handle()
-$retouched = $order->getMedia('retouched')
-    ->filter(fn($m) => !$m->getCustomProperty('is_rejected', false));
+// ZipGeneratorService::generate()
+$allMediaItems = $order->getMedia('retouched');
+
+// Exclure les photos rejetées
+$mediaItems = $allMediaItems->filter(
+    fn($m) => ! $m->getCustomProperty('is_rejected', false)
+);
+
+$rejectedCount = $allMediaItems->count() - $mediaItems->count();
+if ($rejectedCount > 0) {
+    Log::info("ZIP {$order->reference}: {$rejectedCount} photo(s) exclue(s).");
+}
+
+// Levée d'exception si TOUTES les photos sont rejetées
+if ($mediaItems->isEmpty()) {
+    throw new \RuntimeException('All photos were rejected by admin.');
+}
 ```
+
+Le `README.txt` inclus dans le ZIP mentionne également le nombre de photos exclues :
+
+```
+Contenu de cette archive :
+  - 3 photo(s) restaurée(s) en haute résolution
+  - 1 photo(s) exclue(s) suite à un contrôle qualité admin
+  - README.txt (ce fichier)
+```
+
+### Recalcul du prix après rejet — ✅ Implémenté (v0.8.1)
+
+Chaque action `rejectPhoto()` / `restorePhoto()` appelle `recalcPriceFromActivePhotos()` :
+
+```php
+private function recalcPriceFromActivePhotos(): void
+{
+    $pricePerPhoto = PhotoDamageAnalyzer::PRICES[$this->order->damage_level];
+
+    // 1. Compter les photos actives
+    $activeCount = $this->order->getMedia('retouched')
+        ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
+        ->count();
+
+    $newBaseHt = $activeCount * $pricePerPhoto;
+
+    // 2. Réappliquer le coupon sur la nouvelle base
+    $newDiscount = 0;
+    if ($this->order->coupon_code) {
+        $coupon = Coupon::where('code', $this->order->coupon_code)->first();
+        if ($coupon) {
+            $newDiscount = $coupon->discountCents($newBaseHt);
+        }
+    }
+
+    // 3. Mettre à jour
+    $this->order->update([
+        'total_price_cents' => max(0, $newBaseHt - $newDiscount),
+        'discount_cents'    => $newDiscount,
+    ]);
+
+    // 4. Synchroniser l'UI admin
+    $this->finalPrice = number_format(($newBaseHt - $newDiscount) / 100, 2, '.', '');
+}
+```
+
+> **Pourquoi réappliquer le coupon ?** Si la commande originale avait un coupon −10%, rejeter une photo réduit la base HT. Le coupon doit être recalculé sur la nouvelle base pour rester cohérent.
 
 ---
 
@@ -547,10 +607,92 @@ erDiagram
 
 ---
 
+## 11 bis. Patch v0.8.1 — Coupon client & corrections prix
+
+### Bug 0,83 € — Cause & correctif
+
+**Symptôme** : une commande avec coupon affichait toujours 0,83 € côté admin.
+
+**Cause** : `total_price_cents` n'était pas écrit lors de la création ; l'admin tombait sur le fallback `base_price_cents` brut (= 83 cts pour 1 photo `light`).
+
+**Correctif** :
+
+```php
+// orders/create.blade.php — Order::create()
+$order = Order::create([
+    'base_price_cents'  => $baseHtCents,   // Prix HT brut (avant remise) — inchangé
+    'total_price_cents' => $finalHtCents,  // ← FIX : Prix HT net (après coupon)
+    'coupon_code'       => $couponCode,
+    'discount_cents'    => $discountCents,
+]);
+```
+
+### Interface coupon côté client
+
+Le formulaire de création `/client/orders/create` intègre maintenant un bloc coupon :
+
+```
+┌────────────────────────────────────┐
+│  Code de réduction                 │
+│  [BIENVENUE10         ] [Appliquer]│
+├────────────────────────────────────┤
+│  ✓ BIENVENUE10 appliqué            │
+│    −10 % de réduction           ×  │
+└────────────────────────────────────┘
+```
+
+Récapitulatif dynamique avec coupon appliqué :
+
+```
+Tarif/photo  :  1,00 € (Standard)
+Sous-total HT:  3,00 €
+Réduction    : −0,30 €
+──────────────────────
+  Total HT   :  2,70 €
+  TVA 20%    :  0,54 €
+  Total TTC  :  3,24 €
+```
+
+Comportement clé :
+- `applyCoupon()` → `CouponService::apply($code, $baseHtCents)` via `wire:click`
+- `removeCoupon()` réinitialise `couponResult` et `couponCode`
+- Si les photos changent (analyse IA relancée), le coupon est réinitialisé automatiquement
+- Lors du `submit()` : `CouponService::confirm($coupon)` incrémente `used_count`
+
+### Sidebar admin — ligne Remise
+
+```
+Estim. IA HT      :  3,00 €
+Remise (BIENV10)  : −0,30 €      ← nouvelle ligne verte
+─────────────────────────────
+HT net            :  2,70 €
+TVA 20%           :  0,54 €
+TTC               :  3,24 €
+Dont coût IA      : ~0,03 €
+```
+
+### Worst-case level — algorithme corrigé
+
+L'algo `updatedPhotos()` comparait uniquement `=== 'heavy'` : le niveau `medium` n'était jamais sélectionné comme worst-case.
+
+```php
+// Avant (incorrect)
+if ($result['level'] === 'heavy') {
+    $worstLevel = 'heavy';
+}
+
+// Après (correct — supporte light / medium / heavy)
+$levelPriority = ['light' => 0, 'medium' => 1, 'heavy' => 2];
+if (($levelPriority[$result['level']] ?? 0) > ($levelPriority[$worstLevel] ?? 0)) {
+    $worstLevel = $result['level'];
+}
+```
+
+---
+
 ## Prochaines étapes (v0.9.0)
 
-- [ ] **Coupon côté client** : champ de saisie dans le formulaire de création de commande (`CouponService::apply()` déjà prêt)
-- [ ] **Exclusion ZIP** : modifier `GenerateOrderZipJob` pour filtrer les médias `is_rejected = true`
-- [ ] **Recalcul de prix** : exclure les photos rejetées du montant final de la commande
 - [ ] **Export CSV** : télécharger la liste des commandes au format CSV depuis le dashboard
 - [ ] **Conformité RGPD** : export JSON des données personnelles, anonymisation sur suppression de compte
+- [ ] **Notifications email** : alertes Resend lors des changements de statut commande
+- [ ] **MVP production** : config Forge/Envoyer, domaine, SSL, queue workers en prod
