@@ -160,30 +160,53 @@
         <p class="text-[#7A6E5E] max-w-xl mx-auto">Photos restaurées par notre IA. Textures, couleurs et netteté améliorées selon l'état de chaque photo &mdash; résultat visible avant toute décision.</p>
     </div>
 
-    {{-- Comparison cards --}}
+    {{-- Instructions --}}
+    <p class="text-center text-xs text-[#7A6E5E]/60 mb-10 tracking-wide">
+        ← Glissez le curseur pour comparer →
+    </p>
+
+    {{-- Interactive sliders --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         @foreach([
-            ['year' => '1952', 'label' => 'Portrait de famille', 'issues' => 'Déchirure, jaunissement'],
-            ['year' => '1967', 'label' => 'Photo de mariage',    'issues' => 'Taches, flou, décoloration'],
-            ['year' => '1943', 'label' => 'Portrait militaire',  'issues' => 'Dommages eau, pliures'],
+            ['year' => '1952', 'label' => 'Portrait de famille', 'issues' => 'Déchirure, jaunissement', 'h' => '30% 35%', 'c' => '60% 50%'],
+            ['year' => '1967', 'label' => 'Photo de mariage',    'issues' => 'Taches, flou, décoloration', 'h' => '45% 40%', 'c' => '55% 65%'],
+            ['year' => '1943', 'label' => 'Portrait militaire',  'issues' => 'Dommages eau, pliures', 'h' => '35% 55%', 'c' => '65% 45%'],
         ] as $ex)
-        <div class="card-glass overflow-hidden group">
-            {{-- Placeholder image (two-tone) --}}
-            <div class="relative h-56 bg-gradient-to-br from-[#241E14] to-[#1A1510] flex items-center justify-center overflow-hidden">
-                <div class="absolute inset-0 flex">
-                    <div class="w-1/2 bg-[#241E14]/80 flex items-center justify-center border-r border-[#C9A84C]/20">
-                        <span class="text-[#7A6E5E] text-xs rotate-[-90deg] tracking-widest uppercase">Avant</span>
-                    </div>
-                    <div class="w-1/2 bg-[#1A1510] flex items-center justify-center">
-                        <span class="text-[#C9A84C] text-xs rotate-[-90deg] tracking-widest uppercase">Après</span>
+        <div class="card-glass overflow-hidden">
+            {{-- Slider --}}
+            <div class="relative h-56 overflow-hidden select-none cursor-col-resize"
+                 x-data="{ pct: 50, drag: false }"
+                 @mousedown.prevent="drag = true"
+                 @mouseup.window="drag = false"
+                 @mousemove.window="drag && (() => { let r = $el.getBoundingClientRect(); pct = Math.max(3, Math.min(97, ($event.clientX - r.left) / r.width * 100)) })()"
+                 @touchstart.prevent="drag = true"
+                 @touchend.window="drag = false"
+                 @touchmove.window.prevent="drag && (() => { let r = $el.getBoundingClientRect(); pct = Math.max(3, Math.min(97, ($event.touches[0].clientX - r.left) / r.width * 100)) })()">
+
+                {{-- AFTER (restored) — warm, clear --}}
+                <div class="absolute inset-0" style="background: radial-gradient(ellipse at {{ $ex['h'] }}, rgba(201,168,76,0.35) 0%, transparent 55%), radial-gradient(ellipse at {{ $ex['c'] }}, rgba(120,80,30,0.3) 0%, transparent 45%), linear-gradient(150deg,#3D2810 0%,#5A3D1A 40%,#2A1C0C 75%,#1A130A 100%); filter: brightness(1.05) contrast(1.05) sepia(0.12);"></div>
+
+                {{-- BEFORE (damaged) — clipped left to pct --}}
+                <div class="absolute inset-0"
+                     :style="`clip-path: inset(0 ${100-pct}% 0 0); background: radial-gradient(ellipse at {{ $ex['h'] }}, rgba(100,80,40,0.25) 0%, transparent 55%), linear-gradient(150deg,#1A1510 0%,#2A1E14 40%,#120E09 75%,#0A0806 100%); filter: sepia(0.75) contrast(0.7) brightness(0.65);`"></div>
+
+                {{-- Handle --}}
+                <div class="absolute top-0 bottom-0 z-20 pointer-events-none"
+                     :style="`left: ${pct}%`">
+                    <div class="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white/80"></div>
+                    <div class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white shadow-2xl flex items-center justify-center">
+                        <svg class="w-4 h-4 text-[#1A1510]" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 4 4 4M16 9l4 4-4 4"/></svg>
                     </div>
                 </div>
-                <div class="relative z-10 w-px h-full bg-[#C9A84C]/40 absolute left-1/2"></div>
-                <svg class="relative z-10 w-12 h-12 text-[#C9A84C]/20" fill="currentColor" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+
+                {{-- Labels --}}
+                <span class="absolute top-3 left-3 z-10 px-2 py-0.5 bg-[#C9A84C] text-[#0D0B08] text-[10px] font-bold tracking-widest uppercase pointer-events-none">Après</span>
+                <span class="absolute top-3 right-3 z-10 px-2 py-0.5 bg-black/50 text-white/70 text-[10px] font-bold tracking-widest uppercase pointer-events-none">Avant</span>
             </div>
+
             <div class="p-5">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-[#F5F0E8] font-medium">{{ $ex['label'] }}</span>
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-[#F5F0E8] font-medium text-sm">{{ $ex['label'] }}</span>
                     <span class="text-[#C9A84C] text-xs border border-[#C9A84C]/30 px-2 py-0.5 rounded-full">{{ $ex['year'] }}</span>
                 </div>
                 <p class="text-[#7A6E5E] text-xs">{{ $ex['issues'] }}</p>
