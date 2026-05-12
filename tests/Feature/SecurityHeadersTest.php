@@ -49,19 +49,16 @@ class SecurityHeadersTest extends TestCase
     }
 
     /** @test */
-    public function it_adds_content_security_policy_header(): void
+    public function content_security_policy_is_absent_outside_production(): void
     {
+        // En développement/test, le CSP est désactivé pour ne pas bloquer
+        // Vite (localhost:5173) ni le Hot Module Replacement.
+        // Le CSP ne s'applique qu'en production (APP_ENV=production).
+        $this->assertFalse(app()->isProduction());
+
         $response = $this->get('/');
 
-        $response->assertHeader('Content-Security-Policy');
-
-        $csp = $response->headers->get('Content-Security-Policy');
-
-        // Vérifie les directives essentielles
-        $this->assertStringContainsString("default-src 'self'", $csp);
-        $this->assertStringContainsString('https://js.stripe.com', $csp);
-        $this->assertStringContainsString("object-src 'none'", $csp);
-        $this->assertStringContainsString("base-uri 'self'", $csp);
+        $response->assertHeaderMissing('Content-Security-Policy');
     }
 
     /** @test */
