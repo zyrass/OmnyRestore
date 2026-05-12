@@ -46,7 +46,9 @@ class extends Component
     public function mount(Order $order): void
     {
         $this->order      = $order->load(['user', 'media', 'delivery', 'auditLogs']);
-        $this->finalPrice = $this->order->total_price_cents
+        // IMPORTANT : on utilise !== null car total_price_cents peut valoir 0
+        // (coupon 100%) — une comparaison truthy ferait tomber sur base_price_cents.
+        $this->finalPrice = $this->order->total_price_cents !== null
             ? number_format($this->order->total_price_cents / 100, 2, '.', '')
             : number_format(($this->order->base_price_cents ?? 0) / 100, 2, '.', '');
         $this->adminNotes = $this->order->admin_notes ?? '';
@@ -100,7 +102,7 @@ class extends Component
         $this->validate([
             'restoredPhotos'   => ['required', 'array', 'min:1'],
             'restoredPhotos.*' => ['required', 'file', 'mimes:jpg,jpeg,png,tiff,tif,webp', 'max:51200'],
-            'finalPrice'       => ['required', 'numeric', 'min:0.5'],
+            'finalPrice'       => ['required', 'numeric', 'min:0'],
         ]);
 
         // Fixer le prix final et les notes
@@ -548,10 +550,23 @@ class extends Component
                 <div class="mb-4">
                     <label class="block text-[#7A6E5E] text-xs uppercase tracking-widest mb-1.5">Prix final (€) — révision du tarif IA</label>
                     <div class="flex items-center gap-3">
-                        <input wire:model="finalPrice" type="number" step="0.01" min="0.5"
+                        <input wire:model="finalPrice" type="number" step="0.01" min="0"
                                class="w-36 bg-[#1A1510] border border-[#C9A84C]/20 text-[#C9A84C] font-bold text-lg text-center rounded-sm px-4 py-2 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
-                        <span class="text-[#7A6E5E] text-sm">€ TTC
-                            <span class="ml-2 text-xs">(IA suggérait : {{ number_format(($order->base_price_cents ?? 0) / 100, 2, ',', ' ') }} €)</span>
+                        <span class="text-[#7A6E5E] text-sm">€ HT
+                            @php
+                                $baseHint    = ($order->base_price_cents ?? 0);
+                                $discountHint = ($order->discount_cents ?? 0);
+                                $netHint     = max(0, $baseHint - $discountHint);
+                            @endphp
+                            @if ($discountHint > 0)
+                            <span class="ml-2 text-xs text-emerald-400">
+                                Brut IA : {{ number_format($baseHint / 100, 2, ',', ' ') }} €
+                                · Remise ({{ $order->coupon_code }}) : −{{ number_format($discountHint / 100, 2, ',', ' ') }} €
+                                · Net : {{ number_format($netHint / 100, 2, ',', ' ') }} €
+                            </span>
+                            @else
+                            <span class="ml-2 text-xs">(IA suggérait : {{ number_format($baseHint / 100, 2, ',', ' ') }} €)</span>
+                            @endif
                         </span>
                     </div>
                     @error('finalPrice') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
@@ -678,7 +693,12 @@ class extends Component
                         <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT{{ $discountHt > 0 ? ' net' : '' }}</dt><dd class="text-[#F5F0E8]">{{ number_format($finalHt / 100, 2, ',', ' ') }} €</dd></div>
                         <div class="flex justify-between"><dt class="text-[#7A6E5E]">TVA 20%</dt><dd class="text-[#7A6E5E]">{{ number_format($tva / 100, 2, ',', ' ') }} €</dd></div>
                         <div class="flex justify-between font-bold"><dt class="text-[#C9A84C]">TTC</dt><dd class="text-[#C9A84C]">{{ number_format($ttc / 100, 2, ',', ' ') }} €</dd></div>
+                        {{-- Coût IA : offert si coupon couvre tout, sinon mention ~0,01 €/photo --}}
+                        @if ($finalHt === 0 && $discountHt > 0)
+                        <div class="flex justify-between text-xs"><dt class="text-emerald-400/70">Coût IA</dt><dd class="text-emerald-400 font-medium">Offert ✓</dd></div>
+                        @else
                         <div class="flex justify-between text-xs"><dt class="text-[#7A6E5E]/60">Dont coût IA</dt><dd class="text-[#7A6E5E]/60">~{{ number_format($aiCost / 100, 2, ',', ' ') }} €</dd></div>
+                        @endif
                     </div>
                     @if ($order->paid_at)
                     <div class="flex justify-between"><dt class="text-[#7A6E5E]">Payé le</dt><dd class="text-emerald-400 text-xs">{{ $order->paid_at->format('d/m/Y H:i') }}</dd></div>
