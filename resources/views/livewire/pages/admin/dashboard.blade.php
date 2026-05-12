@@ -62,6 +62,13 @@ class extends Component
                 ->latest('paid_at')
                 ->limit(5)
                 ->get(),
+            // ── Tableau clients ───────────────────────────────────────────────────────
+            'clients' => \App\Models\User::where('role', 'client')
+                ->withCount('orders')
+                ->withSum('orders as total_spent_cents', 'total_price_cents')
+                ->latest()
+                ->limit(20)
+                ->get(),
         ];
     }
 }; ?>
@@ -206,4 +213,64 @@ class extends Component
             </div>
         </div>
     </div>
+
+    {{-- ── Tableau Clients ── --}}
+    <div class="mt-8">
+        <div class="card-glass overflow-hidden">
+            <div class="px-5 py-4 border-b border-[#C9A84C]/10 flex items-center justify-between">
+                <h2 class="text-[#F5F0E8] font-semibold text-sm">Clients</h2>
+                <span class="text-[#7A6E5E] text-xs">{{ $clients->count() }} clients enregistrés</span>
+            </div>
+            @if ($clients->isEmpty())
+            <div class="px-5 py-10 text-center text-[#7A6E5E] text-sm">Aucun client pour le moment.</div>
+            @else
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-[#C9A84C]/10">
+                        <th class="px-5 py-3 text-left text-xs text-[#7A6E5E] uppercase tracking-widest">Client</th>
+                        <th class="px-4 py-3 text-center text-xs text-[#7A6E5E] uppercase tracking-widest">Commandes</th>
+                        <th class="px-4 py-3 text-right text-xs text-[#7A6E5E] uppercase tracking-widest">Dépensé HT</th>
+                        <th class="px-4 py-3 text-right text-xs text-[#7A6E5E] uppercase tracking-widest">Inscription</th>
+                        <th class="px-4 py-3 text-right text-xs text-[#7A6E5E] uppercase tracking-widest">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-[#C9A84C]/5">
+                    @foreach ($clients as $client)
+                    <tr class="hover:bg-[#C9A84C]/3 transition-colors">
+                        <td class="px-5 py-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-7 h-7 rounded-full border border-[#C9A84C]/30 bg-[#1A1510] text-[#C9A84C] text-xs font-bold flex items-center justify-center">
+                                    {{ strtoupper(substr($client->name, 0, 1)) }}
+                                </div>
+                                <div>
+                                    <div class="text-[#F5F0E8] text-sm font-medium">{{ $client->name }}</div>
+                                    <div class="text-[#7A6E5E] text-xs">{{ $client->email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <span class="text-[#F5F0E8] text-sm font-semibold">{{ $client->orders_count }}</span>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <span class="text-[#C9A84C] text-sm font-semibold">
+                                {{ number_format(($client->total_spent_cents ?? 0) / 100, 2, ',', ' ') }} €
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-right text-[#7A6E5E] text-xs">
+                            {{ $client->created_at->format('d/m/Y') }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <a href="{{ route('admin.orders.index') }}?search={{ urlencode($client->email) }}"
+                               wire:navigate class="text-xs text-[#7A6E5E] hover:text-[#C9A84C] transition-colors">
+                                Voir commandes →
+                            </a>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            @endif
+        </div>
+    </div>
+
 </div>

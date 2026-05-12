@@ -8,7 +8,69 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ## [Unreleased]
 
-> Prochaines étapes : intégration OpenAI auto, conformité RGPD complète, MVP production.
+> Prochaines étapes : champ coupon côté client, export CSV, conformité RGPD complète, MVP production.
+
+---
+
+## [0.8.0] — 2026-05-12 — Phase 9 : Admin UX, Tarification IA & Facturation
+
+### Ajouté
+
+- **Panel Admin rouge dans la navigation** :
+  - Bouton "⚙ Panel Admin" à thème rouge dans la barre de navigation
+  - Badge "Admin" rouge/bordeaux à côté du nom de l'utilisateur (remplace le badge doré)
+  - Lien "Réductions" dans le menu admin pointant vers `/admin/coupons`
+
+- **Largeur maximale `max-w-7xl`** sur tous les éléments pour un meilleur rendu sur 27"+
+
+- **Dashboard en direct (`wire:poll.10s`)** :
+  - Auto-refresh toutes les 10 secondes
+  - Indicateur visuel "● En direct · HH:MM:SS" avec point vert pulsant
+
+- **Tableau des clients dans le Dashboard admin** :
+  - Nom, email, nombre de commandes, total dépensé HT, date d'inscription
+  - Lien vers les commandes du client (recherche pré-remplie)
+
+- **Tarification IA 3 niveaux (refonte `PhotoDamageAnalyzer`)** :
+  | Niveau | Critères | HT | TTC |
+  |--------|----------|-----|-----|
+  | `light` Standard | Jaunissement, poussière, petites taches | 0,83 € | **1,00 €** |
+  | `medium` Avancée | Rayures, décoloration forte, pliures, grain | 1,67 € | **2,00 €** |
+  | `heavy` Complète | Déchirures, dommages eau, zones manquantes | 4,17 € | **5,00 €** |
+  - `PRICES`, `TVA_RATE`, `AI_COST_CENTS`, `htToTtc()`, `priceTtcForLevel()`
+  - Fallback heuristique GD mis à jour avec 3 niveaux
+
+- **Affichage TVA transparent dans la fiche commande admin** :
+  - Décomposition HT / TVA 20% / TTC dans la sidebar
+  - Ligne "Dont coût IA" pour la transparence tarifaire
+
+- **Génération de factures PDF (Phase C)** :
+  - Dépendance `barryvdh/laravel-dompdf ^3.1` installée
+  - Route `GET /client/orders/{order}/invoice` + `InvoiceController::download()`
+  - Template `pdf/invoice.blade.php` : en-tête, parties, tampon Payée, HT/TVA/TTC, note IA, remise coupon
+  - Bouton "Télécharger la facture PDF" dans l'espace client (commandes payées)
+
+- **Système de codes de réduction (Phase E)** :
+  - Table `coupons` : code, type (percentage/fixed), valeur, min_order_cents, max_uses, expires_at, is_active
+  - Champs `coupon_code` et `discount_cents` sur `orders`
+  - `Coupon` model + `CouponService::apply()` / `confirm()`
+  - Page admin `GET /admin/coupons` : créer, activer/désactiver, supprimer
+
+- **Rejet de photos restaurées (Phase D)** :
+  - Boutons "✕ Rejeter" / "↩ Réintégrer" au survol de chaque photo restaurée
+  - Via `custom_properties` Spatie MediaLibrary (`is_rejected`, `rejected_at`) — sans migration
+  - Overlay rouge "Rejetée" avec opacité réduite
+  - Actions Livewire : `rejectPhoto(int $mediaId)` et `restorePhoto(int $mediaId)`
+
+### Modifié
+
+- `layouts/app.blade.php` : max-w-7xl, Panel Admin rouge, badge Admin rouge, lien Réductions
+- `admin/dashboard.blade.php` : wire:poll.10s, indicateur live, tableau clients
+- `admin/orders/show.blade.php` : grille de rejet, décomposition TVA, labels 3 niveaux
+- `client/orders/show.blade.php` : bouton facture PDF
+- `PhotoDamageAnalyzer.php` : refonte 3 niveaux, htToTtc(), TVA_RATE, AI_COST_CENTS
+- `routes/admin.php` : route /admin/coupons
+- `routes/client.php` : route /client/orders/{order}/invoice
 
 ---
 

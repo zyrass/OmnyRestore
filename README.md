@@ -13,7 +13,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
-[![Version](https://img.shields.io/badge/version-0.6.0-blue?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.8.0-blue?style=flat-square)](CHANGELOG.md)
 
 </div>
 
@@ -41,10 +41,10 @@
 
 **OmnyRestore** est une plateforme SaaS professionnelle permettant à des clients de soumettre leurs photographies anciennes ou endommagées pour une restauration par IA. Le workflow est :
 
-1. **Client** dépose 1 à 10 photos — l'IA analyse automatiquement l'état de dégradation et calcule le prix
-2. **Admin** prend en charge la commande, restaure les photos (ChatGPT / OpenAI) et les uploade
+1. **Client** dépose 1 à 10 photos — l'IA (GPT-4o Vision) analyse automatiquement l'état de dégradation et calcule le prix sur 3 niveaux (1 / 2 / 5 € TTC)
+2. **Admin** prend en charge la commande, restaure les photos et peut rejeter les photos de mauvaise qualité avant livraison
 3. **Client** visualise un aperçu filigranné de ses photos restaurées
-4. **Client** paie via Stripe et télécharge le ZIP haute résolution
+4. **Client** paie via Stripe et télécharge le ZIP + génère sa facture PDF avec TVA
 
 > **Modèle économique** : aperçu d'abord, paiement ensuite. Le filigrane crée un déclencheur émotionnel fort avant la conversion.
 
