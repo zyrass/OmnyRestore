@@ -18,7 +18,7 @@
 
 {{-- ========== TOP NAV ========== --}}
 <header class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
-    <div class="max-w-screen-2xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="max-w-screen-xl mx-auto px-6 h-16 flex items-center justify-between">
 
         <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3">
             <div class="w-7 h-7 border border-[#C9A84C] flex items-center justify-center">
@@ -135,7 +135,7 @@
 </header>
 
 {{-- ========== MAIN ========== --}}
-<main class="max-w-screen-lg mx-auto px-6 py-10">
+<main class="max-w-screen-xl mx-auto px-6 py-10">
     {{-- Flash messages globaux (non affichés sur les pages Livewire qui gèrent leur propre feedback) --}}
     @unless (request()->routeIs('admin.orders.show'))
     @if (session('success'))
