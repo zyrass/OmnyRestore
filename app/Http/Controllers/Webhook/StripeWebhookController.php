@@ -121,16 +121,51 @@ class StripeWebhookController
      * payment_intent.payment_failed
      *
      * Le client a tenté de payer mais sa carte a été refusée.
-     * On log l'événement pour suivi admin — pas de changement de statut.
+     * On envoie un email de relance bienveillant avec les causes possibles
+     * et un lien pour réessayer le paiement.
+     *
+     * Recherche de l'ordre :
+     *   1. metadata.order_id (disponible si payment_intent_data.metadata est défini)
+     *   2. Fallback : orders.payment_intent_id (toujours renseigné au moment du checkout)
      */
     private function handlePaymentFailed(Event $event): void
     {
         $intent  = $event->data->object;
-        $orderId = $intent->metadata->order_id ?? 'unknown';
+        $orderId = $intent->metadata->order_id ?? null;
 
-        Log::warning("Stripe webhook: payment failed for order={$orderId}", [
-            'failure_message' => $intent->last_payment_error?->message ?? 'Unknown',
-            'failure_code'    => $intent->last_payment_error?->code ?? 'unknown',
+        // Recherche par metadata d'abord, puis par payment_intent_id en fallback
+        $order = $orderId
+            ? Order::find($orderId)
+            : Order::where('payment_intent_id', $intent->id)->first();
+
+        $failureMessage = $intent->last_payment_error?->message ?? null;
+        $failureCode    = $intent->last_payment_error?->code ?? 'unknown';
+
+        Log::warning("Stripe webhook: payment failed", [
+            'order_id'        => $orderId ?? 'unknown',
+            'intent_id'       => $intent->id,
+            'failure_code'    => $failureCode,
+            'failure_message' => $failureMessage,
         ]);
+
+        if (! $order) {
+            Log::error("Stripe webhook: payment_failed — commande introuvable", [
+                'order_id'  => $orderId,
+                'intent_id' => $intent->id,
+            ]);
+            return;
+        }
+
+        // Envoi asynchrone pour ne pas bloquer la réponse 200 à Stripe
+        try {
+            \Illuminate\Support\Facades\Mail::to($order->user->email)
+                ->queue(new \App\Mail\OrderPaymentFailed($order, $failureMessage));
+
+            Log::info("Stripe webhook: email OrderPaymentFailed envoyé pour {$order->reference}");
+        } catch (\Throwable $e) {
+            Log::error("Stripe webhook: échec envoi OrderPaymentFailed pour {$order->reference}", [
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

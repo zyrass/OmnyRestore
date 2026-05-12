@@ -109,6 +109,15 @@ class OrderCheckoutController extends Controller
                     'order_ref'  => $order->reference,
                     'user_id'    => $order->user_id,
                 ],
+                // Propage les métadonnées au PaymentIntent pour les webhooks payment_intent.*
+                // Sans ça, payment_intent.payment_failed ne contient pas order_id.
+                'payment_intent_data' => [
+                    'metadata' => [
+                        'order_id'  => $order->id,
+                        'order_ref' => $order->reference,
+                        'user_id'   => $order->user_id,
+                    ],
+                ],
                 'customer_email' => $order->user->email,
                 'locale'         => 'fr',
             ]);

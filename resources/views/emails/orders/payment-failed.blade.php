@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paiement refusé — OmnyRestore</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0F0C08; font-family: Georgia, 'Times New Roman', serif; color: #F5F0E8; }
+        .container { max-width: 600px; margin: 0 auto; background: #1A1510; }
+        .header { background: linear-gradient(135deg, #1A1510 0%, #2A1510 100%); padding: 40px 40px 32px; border-bottom: 2px solid rgba(239,68,68,0.4); text-align: center; }
+        .logo { font-size: 11px; letter-spacing: 4px; color: #C9A84C; text-transform: uppercase; margin-bottom: 24px; }
+        .header-icon { width: 56px; height: 56px; margin: 0 auto 20px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.4); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .header h1 { font-size: 20px; color: #F5F0E8; font-weight: normal; line-height: 1.4; }
+        .header p { color: rgba(239,68,68,0.8); font-size: 13px; margin-top: 8px; letter-spacing: 1px; }
+        .body { padding: 40px; }
+        .greeting { font-size: 16px; color: #F5F0E8; margin-bottom: 20px; }
+        .text { font-size: 14px; color: #9E9085; line-height: 1.7; margin-bottom: 16px; }
+        .order-box { background: #0F0C08; border: 1px solid rgba(201,168,76,0.2); border-radius: 2px; padding: 20px 24px; margin: 28px 0; }
+        .order-box-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(201,168,76,0.08); font-size: 13px; }
+        .order-box-row:last-child { border-bottom: none; }
+        .order-box-label { color: #7A6E5E; }
+        .order-box-value { color: #F5F0E8; font-weight: bold; }
+        .causes { background: rgba(239,68,68,0.05); border-left: 3px solid rgba(239,68,68,0.35); padding: 14px 18px; margin: 24px 0; font-size: 13px; color: #9E9085; line-height: 1.8; }
+        .causes strong { color: #F5F0E8; }
+        .causes ul { padding-left: 16px; margin-top: 8px; }
+        .causes li { margin-bottom: 4px; }
+        .cta-wrapper { text-align: center; margin: 32px 0; }
+        .cta { display: inline-block; background: linear-gradient(135deg, #C9A84C, #E8C97A); color: #0F0C08; text-decoration: none; font-size: 13px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; padding: 16px 40px; border-radius: 1px; }
+        .note { background: rgba(201,168,76,0.05); border-left: 3px solid rgba(201,168,76,0.3); padding: 14px 18px; margin: 24px 0; font-size: 12px; color: #9E9085; line-height: 1.6; }
+        .footer { background: #0F0C08; border-top: 1px solid rgba(201,168,76,0.1); padding: 28px 40px; text-align: center; }
+        .footer p { font-size: 11px; color: #4A3E2E; line-height: 1.7; }
+        .footer a { color: #C9A84C; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">OmnyRestore</div>
+        <div class="header-icon">⚠️</div>
+        <h1>Votre paiement n'a pas<br>pu être traité</h1>
+        <p>Commande {{ $order->reference }}</p>
+    </div>
+
+    <div class="body">
+        <p class="greeting">Bonjour {{ $order->user->name }},</p>
+
+        <p class="text">
+            Nous avons tenté de traiter le paiement de votre commande
+            <strong>{{ $order->reference }}</strong>, mais malheureusement votre banque a
+            refusé la transaction.
+        </p>
+
+        <p class="text">
+            Vos photos restaurées sont toujours disponibles dans votre espace client
+            et vous pouvez réessayer le paiement à tout moment.
+        </p>
+
+        <div class="order-box">
+            <div class="order-box-row">
+                <span class="order-box-label">Référence</span>
+                <span class="order-box-value">{{ $order->reference }}</span>
+            </div>
+            <div class="order-box-row">
+                <span class="order-box-label">Photos</span>
+                <span class="order-box-value">{{ $order->photo_count }}</span>
+            </div>
+            <div class="order-box-row">
+                <span class="order-box-label">Statut paiement</span>
+                <span style="color: rgb(239,68,68); font-weight: bold;">Refusé</span>
+            </div>
+            @if ($failureReason)
+            <div class="order-box-row">
+                <span class="order-box-label">Motif communiqué</span>
+                <span class="order-box-value" style="font-size:12px">{{ $failureReason }}</span>
+            </div>
+            @endif
+        </div>
+
+        <div class="causes">
+            <strong>Causes possibles d'un refus :</strong>
+            <ul>
+                <li>Fonds insuffisants sur la carte</li>
+                <li>Carte expirée ou informations incorrectes</li>
+                <li>Authentification 3D Secure non complétée</li>
+                <li>Limite de plafond journalier atteinte</li>
+                <li>Carte temporairement bloquée par votre banque</li>
+            </ul>
+        </div>
+
+        <p class="text">
+            Nous vous suggérons de vérifier les informations de votre carte ou d'utiliser
+            un autre moyen de paiement. Contactez votre banque si le problème persiste.
+        </p>
+
+        <div class="cta-wrapper">
+            <a href="{{ route('client.orders.show', $order) }}" class="cta">
+                Réessayer le paiement
+            </a>
+        </div>
+
+        <div class="note">
+            Vos aperçus filigranés restent accessibles dans votre espace client.
+            Aucun montant n'a été débité — le paiement n'a pas abouti.
+        </div>
+
+        <p class="text">
+            Une question ? Répondez directement à cet email ou contactez-nous à
+            <a href="mailto:contact@omnyrestore.fr" style="color:#C9A84C">contact@omnyrestore.fr</a>
+        </p>
+    </div>
+
+    <div class="footer">
+        <p>
+            OmnyRestore — Restauration photographique artisanale<br>
+            <a href="{{ route('legal.mentions') }}">Mentions légales</a> ·
+            <a href="{{ route('legal.privacy') }}">Confidentialité</a> ·
+            <a href="{{ route('legal.cgv') }}">CGV</a>
+        </p>
+        <p style="margin-top:12px">
+            Vous recevez cet email car vous avez passé une commande sur OmnyRestore.<br>
+            © {{ date('Y') }} OmnyRestore. Tous droits réservés.
+        </p>
+    </div>
+</div>
+</body>
+</html>

@@ -114,6 +114,16 @@
         </p>
     </div>
 
+    <div style="background:#0F0C08; border-top:1px solid rgba(201,168,76,0.1); padding:20px 40px; font-size:10px; color:#4A3E2E; line-height:1.8; text-align:center;">
+        <p><strong style="color:#7A6E5E; letter-spacing:1px; text-transform:uppercase; font-size:9px;">Informations sur la conservation de vos données (RGPD)</strong></p>
+        <p style="margin-top:6px">
+            Vos photos originales et restaurées sont conservées <strong style="color:#5A4E3E">6 mois</strong> après livraison, puis supprimées automatiquement.
+            Votre facture est conservée <strong style="color:#5A4E3E">10 ans</strong> conformément aux obligations comptables françaises (art. L. 123-22 C. com.).
+            Pour exercer votre droit à l'effacement, connectez-vous et accédez à <a href="{{ config('app.url') }}/client/account/delete" style="color:#7A6E5E">Supprimer mon compte</a>.
+            Pour toute question : <a href="mailto:contact@omnyrestore.fr" style="color:#7A6E5E">contact@omnyrestore.fr</a>
+        </p>
+    </div>
+
     <div class="footer">
         <p>
             OmnyRestore — Restauration photographique artisanale<br>
