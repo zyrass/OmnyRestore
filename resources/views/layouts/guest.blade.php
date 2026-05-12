@@ -14,126 +14,110 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-{{-- CSS Grid : 1re ligne = deux colonnes (1fr) ; 2e ligne = footer (auto) --}}
-{{-- h-screen + overflow-hidden = aucun scroll possible, viewport exact --}}
-<body class="h-screen grid grid-rows-[1fr_auto] antialiased overflow-hidden">
+{{-- min-h-screen flex : les deux colonnes sont enfants directs et remplissent l'écran naturellement --}}
+{{-- Pas de footer externe : les liens légaux sont en bas de la colonne droite --}}
+<body class="min-h-screen flex antialiased">
 
-    {{-- Pas besoin de flex-1 : le wrapper est dans la cellule grid 1fr --}}
-    <div class="flex">
+    {{-- ── Colonne gauche : décor (cachée sur mobile) ─────────────────────── --}}
+    <div class="hidden lg:flex lg:w-3/5 relative overflow-hidden bg-[#0D0B08] flex-col justify-between p-12">
 
-        {{-- Colonne gauche : décor (cachée sur mobile) --}}
-        {{-- Élargie à 3/5 (vs 1/2 avant) sur demande — design identique --}}
-        <div class="hidden lg:flex lg:w-3/5 relative overflow-hidden bg-[#0D0B08] flex-col justify-between p-12">
+        {{-- Radial glow background --}}
+        <div class="absolute inset-0">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#C9A84C]/8 rounded-full blur-[120px]"></div>
+            <div class="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#C9A84C]/5 rounded-full blur-[80px]"></div>
+        </div>
 
-            {{-- Radial glow background --}}
-            <div class="absolute inset-0">
-                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#C9A84C]/8 rounded-full blur-[120px]"></div>
-                <div class="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#C9A84C]/5 rounded-full blur-[80px]"></div>
+        {{-- Grid lines --}}
+        <div class="absolute inset-0 opacity-[0.04]"
+             style="background-image: linear-gradient(#C9A84C 1px, transparent 1px), linear-gradient(90deg, #C9A84C 1px, transparent 1px); background-size: 60px 60px;">
+        </div>
+
+        {{-- Logo --}}
+        <a href="{{ route('home') }}" wire:navigate class="relative z-10 flex items-center gap-3">
+            <div class="w-9 h-9 border border-[#C9A84C] flex items-center justify-center">
+                <span class="text-[#C9A84C] text-xs font-bold tracking-widest">OR</span>
             </div>
+            <span class="text-[#F5F0E8] font-semibold tracking-[0.15em] text-sm uppercase">OmnyRestore</span>
+        </a>
 
-            {{-- Grid lines --}}
-            <div class="absolute inset-0 opacity-[0.04]"
-                 style="background-image: linear-gradient(#C9A84C 1px, transparent 1px), linear-gradient(90deg, #C9A84C 1px, transparent 1px); background-size: 60px 60px;">
+        {{-- Central quote --}}
+        <div class="relative z-10 flex-1 flex flex-col justify-center">
+            <div class="w-64 h-80 border border-[#C9A84C]/20 mx-auto relative mb-10">
+                <div class="absolute inset-4 border border-[#C9A84C]/10 flex items-center justify-center">
+                    <div class="text-center">
+                        <svg class="w-16 h-16 text-[#C9A84C]/20 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                        </svg>
+                        <div class="w-8 h-px bg-[#C9A84C]/40 mx-auto mb-4"></div>
+                        <p class="text-[#C9A84C]/40 text-xs tracking-widest uppercase">Restauration IA</p>
+                    </div>
+                </div>
+                <div class="absolute top-0 left-0 w-4 h-4 border-t border-l border-[#C9A84C]/60"></div>
+                <div class="absolute top-0 right-0 w-4 h-4 border-t border-r border-[#C9A84C]/60"></div>
+                <div class="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-[#C9A84C]/60"></div>
+                <div class="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-[#C9A84C]/60"></div>
             </div>
+            <blockquote class="text-center max-w-xs mx-auto">
+                <p class="text-[#F5F0E8]/70 text-sm leading-relaxed italic font-light mb-4">
+                    "Vos souvenirs méritent une seconde vie.<br>
+                    Vous voyez le résultat avant de payer."
+                </p>
+                <div class="w-8 h-px bg-[#C9A84C]/40 mx-auto"></div>
+            </blockquote>
+        </div>
 
-            {{-- Logo --}}
-            <a href="{{ route('home') }}" wire:navigate class="relative z-10 flex items-center gap-3">
-                <div class="w-9 h-9 border border-[#C9A84C] flex items-center justify-center">
+        {{-- Trust badges — justify-between les colle en bas --}}
+        <div class="relative z-10 flex items-center gap-6">
+            <div class="flex items-center gap-2">
+                <svg class="w-3.5 h-3.5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                <span class="text-[#7A6E5E] text-xs">Stripe sécurisé</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-3.5 h-3.5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <span class="text-[#7A6E5E] text-xs">RGPD conforme</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <svg class="w-3.5 h-3.5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
+                <span class="text-[#7A6E5E] text-xs">Résultat garanti avant paiement</span>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── Colonne droite : formulaire ─────────────────────────────────────── --}}
+    {{-- flex flex-col : logo(top) + form(middle, flex-1+items-center) + footer(bottom) --}}
+    <div class="flex-1 flex flex-col bg-[#0D0B08] px-12 lg:px-20 py-10 relative">
+
+        {{-- Subtle glow --}}
+        <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-[#C9A84C]/4 rounded-full blur-[100px] pointer-events-none"></div>
+
+        {{-- Logo mobile (petit écran uniquement) --}}
+        <div class="lg:hidden mb-8 relative z-10">
+            <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 justify-center">
+                <div class="w-8 h-8 border border-[#C9A84C] flex items-center justify-center">
                     <span class="text-[#C9A84C] text-xs font-bold tracking-widest">OR</span>
                 </div>
                 <span class="text-[#F5F0E8] font-semibold tracking-[0.15em] text-sm uppercase">OmnyRestore</span>
             </a>
-
-            {{-- Central quote --}}
-            <div class="relative z-10 flex-1 flex flex-col justify-center">
-                {{-- Decorative photo frame --}}
-                <div class="w-64 h-80 border border-[#C9A84C]/20 mx-auto relative mb-10">
-                    <div class="absolute inset-4 border border-[#C9A84C]/10 flex items-center justify-center">
-                        <div class="text-center">
-                            {{-- Photo icon --}}
-                            <svg class="w-16 h-16 text-[#C9A84C]/20 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
-                            </svg>
-                            <div class="w-8 h-px bg-[#C9A84C]/40 mx-auto mb-4"></div>
-                            <p class="text-[#C9A84C]/40 text-xs tracking-widest uppercase">Restauration IA</p>
-                        </div>
-                    </div>
-                    {{-- Corner decorations --}}
-                    <div class="absolute top-0 left-0 w-4 h-4 border-t border-l border-[#C9A84C]/60"></div>
-                    <div class="absolute top-0 right-0 w-4 h-4 border-t border-r border-[#C9A84C]/60"></div>
-                    <div class="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-[#C9A84C]/60"></div>
-                    <div class="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-[#C9A84C]/60"></div>
-                </div>
-
-                <blockquote class="text-center max-w-xs mx-auto">
-                    <p class="text-[#F5F0E8]/70 text-sm leading-relaxed italic font-light mb-4">
-                        "Vos souvenirs méritent une seconde vie.<br>
-                        Vous voyez le résultat avant de payer."
-                    </p>
-                    <div class="w-8 h-px bg-[#C9A84C]/40 mx-auto"></div>
-                </blockquote>
-            </div>
-
-            {{-- Bottom trust badges --}}
-            <div class="relative z-10 flex items-center gap-6">
-                <div class="flex items-center gap-2">
-                    <svg class="w-3.5 h-3.5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                    <span class="text-[#7A6E5E] text-xs">Stripe sécurisé</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <svg class="w-3.5 h-3.5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                    <span class="text-[#7A6E5E] text-xs">RGPD conforme</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <svg class="w-3.5 h-3.5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
-                    <span class="text-[#7A6E5E] text-xs">Résultat garanti avant paiement</span>
-                </div>
-            </div>
         </div>
 
-        {{-- ── Colonne droite : formulaire ─────────────────────────────────────── --}}
-        {{-- items-start : le formulaire s'ancre au bord gauche de la colonne, pas centré en row --}}
-        {{-- justify-center : le formulaire reste centré verticalement dans la colonne --}}
-        <div class="flex-1 flex flex-col justify-center items-start bg-[#0D0B08] px-12 lg:px-20 py-12 relative">
-
-            {{-- Subtle glow --}}
-            <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-[#C9A84C]/4 rounded-full blur-[100px] pointer-events-none"></div>
-
-            {{-- Logo mobile (visible seulement sur petit écran) --}}
-            <div class="lg:hidden mb-10">
-                <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 justify-center">
-                    <div class="w-8 h-8 border border-[#C9A84C] flex items-center justify-center">
-                        <span class="text-[#C9A84C] text-xs font-bold tracking-widest">OR</span>
-                    </div>
-                    <span class="text-[#F5F0E8] font-semibold tracking-[0.15em] text-sm uppercase">OmnyRestore</span>
-                </a>
-            </div>
-
-            {{-- Form card --}}
-            <div class="w-full max-w-md relative z-10">
+        {{-- Form : flex-1 + items-center = occupe l'espace restant ET centre verticalement --}}
+        <div class="flex-1 flex items-center relative z-10">
+            <div class="w-full max-w-md">
                 {{ $slot }}
             </div>
-
         </div>
 
-    </div>{{-- fin deux colonnes --}}
-
-    {{-- ── Footer global ────────────────────────────────────────────────── --}}
-    <footer>
-        <div class="h-px bg-gradient-to-r from-transparent via-[#C9A84C]/30 to-transparent"></div>
-        <div class="bg-[#0A0804] py-5">
-            <div class="max-w-6xl mx-auto px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-
-                {{-- Logo --}}
-                <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2.5 group">
-                    <div class="w-6 h-6 border border-[#C9A84C] flex items-center justify-center group-hover:bg-[#C9A84C]/10 transition-colors">
+        {{-- ── Footer légal en bas de la colonne droite ───────────────────── --}}
+        <div class="relative z-10 pt-6">
+            <div class="h-px bg-gradient-to-r from-transparent via-[#C9A84C]/20 to-transparent mb-5"></div>
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+                <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2 group">
+                    <div class="w-5 h-5 border border-[#C9A84C] flex items-center justify-center group-hover:bg-[#C9A84C]/10 transition-colors">
                         <span class="text-[#C9A84C] text-[8px] font-bold tracking-widest">OR</span>
                     </div>
                     <span class="text-[#F5F0E8] font-semibold tracking-[0.12em] text-xs uppercase">OmnyRestore</span>
                 </a>
-
-                {{-- Liens légaux --}}
-                <div class="flex flex-wrap justify-center gap-5 text-[#7A6E5E] text-xs">
+                <div class="flex flex-wrap justify-center gap-4 text-[#7A6E5E] text-xs">
                     <a href="{{ route('legal.mentions') }}" wire:navigate class="hover:text-[#C9A84C] transition-colors flex items-center gap-1.5">
                         <span class="w-1 h-1 rounded-full bg-[#C9A84C]/30 shrink-0"></span>Mentions légales
                     </a>
@@ -144,15 +128,11 @@
                         <span class="w-1 h-1 rounded-full bg-[#C9A84C]/30 shrink-0"></span>CGV
                     </a>
                 </div>
-
-                {{-- Copyright --}}
-                <p class="text-[#7A6E5E] text-[11px]">
-                    © {{ date('Y') }} <span class="text-[#C9A84C]/70">OmnyRestore</span> · OmnyVia 🇫🇷
-                </p>
-
+                <p class="text-[#7A6E5E] text-[11px]">© {{ date('Y') }} <span class="text-[#C9A84C]/70">OmnyRestore</span> · OmnyVia 🇫🇷</p>
             </div>
         </div>
-    </footer>
+
+    </div>
 
 @livewireScripts
 </body>
