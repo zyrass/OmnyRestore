@@ -234,9 +234,18 @@ class extends Component
                     <svg class="w-7 h-7 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </div>
                 <h3 class="text-[#F5F0E8] font-semibold mb-2">Commande annulée</h3>
-                <p class="text-[#7A6E5E] text-sm mb-6">
+                <p class="text-[#7A6E5E] text-sm mb-4">
                     Cette commande a été annulée. Aucun montant n'a été prélevé.
                 </p>
+
+                {{-- Raison d'annulation fournie par l'équipe --}}
+                @if ($order->admin_notes)
+                <div class="mb-6 mx-auto max-w-sm text-left px-4 py-3 bg-red-900/15 border border-red-500/25 rounded-sm">
+                    <p class="text-red-400/70 text-xs uppercase tracking-widest mb-1 font-medium">Motif</p>
+                    <p class="text-[#F5F0E8] text-sm">{{ $order->admin_notes }}</p>
+                </div>
+                @endif
+
                 <a href="{{ route('client.orders.create') }}" wire:navigate class="btn-outline">
                     Créer une nouvelle commande
                 </a>
