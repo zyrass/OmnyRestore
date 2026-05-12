@@ -552,5 +552,7 @@
     </div>
 </footer>
 
+{{-- Alpine.js est fourni par @livewireScripts (Livewire 3) --}}
+@livewireScripts
 </body>
 </html>
