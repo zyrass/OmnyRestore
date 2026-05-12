@@ -34,6 +34,7 @@
             <a href="#how" class="hover:text-[#C9A84C] transition-colors duration-200">Comment ça marche</a>
             <a href="#examples" class="hover:text-[#C9A84C] transition-colors duration-200">Exemples</a>
             <a href="#pricing" class="hover:text-[#C9A84C] transition-colors duration-200">Tarifs</a>
+            <a href="#testimonials" class="hover:text-[#C9A84C] transition-colors duration-200">Témoignages</a>
         </div>
 
         {{-- CTA Auth --}}
@@ -303,6 +304,88 @@
         @endforeach
     </div>
     <p class="text-center text-xs text-[#7A6E5E]/60 mt-8">* Le niveau est déterminé automatiquement par notre IA lors de l'analyse de vos photos. TVA 20% incluse dans le prix TTC.</p>
+</section>
+
+{{-- ========== SECTION IA ========== --}}
+<section class="py-32 border-y border-[#C9A84C]/10 bg-[#1A1510]/40">
+    <div class="max-w-6xl mx-auto px-6">
+        <div class="text-center mb-16">
+            <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Technologie</p>
+            <h2 class="text-4xl font-bold text-[#F5F0E8] mb-4">Ce que l'IA peut faire pour vous</h2>
+            <div class="divider-gold my-6"></div>
+            <p class="text-[#7A6E5E] max-w-2xl mx-auto text-sm leading-relaxed">
+                L'intelligence artificielle permet d'améliorer et de rattraper drastiquement une photo abîmée.
+                Elle analyse chaque pixel, reconstitue les zones dégradées et corrige les déséquilibres de couleur —
+                <strong class="text-[#F5F0E8]">mais elle ne peut pas créer ce qui n'existe plus</strong>.
+                Le résultat dépend toujours de l'état initial de la photo.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            @foreach([
+                [
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>',
+                    'title' => 'Mémoire familiale',
+                    'desc'  => 'Redonnez vie aux photos de vos grands-parents, de votre enfance ou de moments à jamais disparus. Chaque photo restaurée est un souvenir sauvé.'
+                ],
+                [
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>',
+                    'title' => 'Restauration intelligente',
+                    'desc'  => "L'IA détecte le jaunissement, les rayures, les déchirures et les zones abîmées. Elle les corrige de façon cohérente avec le reste de l'image — sans altérer les visages ni les détails d'époque."
+                ],
+                [
+                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>',
+                    'title' => 'Transparence totale',
+                    'desc'  => "Vous voyez le résultat avant de payer. Si l'IA n'a pas pu rattraper suffisamment votre photo, vous n'êtes pas engagé. Aucune mauvaise surprise."
+                ],
+            ] as $b)
+            <div class="card-glass p-8 text-center group hover:border-[#C9A84C]/30 transition-colors duration-300">
+                <div class="w-14 h-14 border border-[#C9A84C]/30 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:border-[#C9A84C] group-hover:bg-[#C9A84C]/10 transition-all duration-300">
+                    <svg class="w-6 h-6 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">{!! $b['icon'] !!}</svg>
+                </div>
+                <h3 class="text-[#F5F0E8] font-semibold mb-3">{{ $b['title'] }}</h3>
+                <p class="text-[#7A6E5E] text-sm leading-relaxed">{{ $b['desc'] }}</p>
+            </div>
+            @endforeach
+        </div>
+    </div>
+</section>
+
+{{-- ========== TESTIMONIALS ========== --}}
+<section id="testimonials" class="py-32 max-w-6xl mx-auto px-6">
+    <div class="text-center mb-16">
+        <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Témoignages</p>
+        <h2 class="text-4xl font-bold text-[#F5F0E8] mb-4">Ce que nos clients disent</h2>
+        <div class="divider-gold my-6"></div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        @foreach([
+            ['name' => 'Marie L.',      'initials' => 'ML', 'stars' => 5, 'text' => "J'avais une photo de mariage de mes grands-parents datant de 1958, déchirée en deux. Le résultat est incroyable — on distingue maintenant chaque détail de leurs visages. Un vrai cadeau de famille."],
+            ['name' => 'Jean-Pierre D.','initials' => 'JD', 'stars' => 5, 'text' => "Très satisfait du résultat sur mes 8 photos de famille des années 40. L'IA a fait un excellent travail sur les zones abîmées. Le fait de voir l'aperçu avant de payer est vraiment rassurant."],
+            ['name' => 'Sophie M.',     'initials' => 'SM', 'stars' => 4, 'text' => "Rapide et efficace. J'aurais aimé pouvoir zoomer davantage sur l'aperçu, mais le rendu final est excellent. Je recommande pour toute photo de famille précieuse."],
+            ['name' => 'Thomas B.',     'initials' => 'TB', 'stars' => 5, 'text' => "Mes photos de montagne des années 70 ont été complètement transformées. Service professionnel, communication claire, résultat au-delà de mes espérances."],
+            ['name' => 'Isabelle C.',   'initials' => 'IC', 'stars' => 4, 'text' => "Le principe « aperçu avant paiement » est vraiment rassurant. On peut choisir de ne payer que les photos qui nous conviennent. Parfait pour une vieille collection hétérogène."],
+            ['name' => 'Laurent R.',    'initials' => 'LR', 'stars' => 5, 'text' => "J'ai fait restaurer un portrait de mon arrière-grand-père de 1932. Résultat bluffant. L'équipe est sérieuse et le processus entièrement en ligne, très pratique."],
+        ] as $t)
+        <div class="card-glass p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-[#C9A84C]/20 border border-[#C9A84C]/40 flex items-center justify-center shrink-0">
+                    <span class="text-[#C9A84C] text-xs font-bold">{{ $t['initials'] }}</span>
+                </div>
+                <div>
+                    <p class="text-[#F5F0E8] text-sm font-medium">{{ $t['name'] }}</p>
+                    <div class="flex gap-0.5 mt-0.5">
+                        @for($s = 1; $s <= 5; $s++)
+                        <svg class="w-3 h-3 {{ $s <= $t['stars'] ? 'text-[#C9A84C]' : 'text-[#7A6E5E]/30' }}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                        @endfor
+                    </div>
+                </div>
+            </div>
+            <p class="text-[#7A6E5E] text-sm leading-relaxed italic">"{{ $t['text'] }}"</p>
+        </div>
+        @endforeach
+    </div>
 </section>
 
 {{-- ========== CTA FINAL ========== --}}
