@@ -63,6 +63,17 @@
                class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.revenue') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                 CA
             </a>
+            {{-- ── Avis clients ── --}}
+            <a href="{{ route('admin.testimonials.index') }}" wire:navigate
+               class="px-4 py-2 text-sm rounded-sm transition-colors relative {{ request()->routeIs('admin.testimonials.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                Avis
+                @php $pendingAvis = \App\Models\Testimonial::pending()->count(); @endphp
+                @if ($pendingAvis > 0)
+                <span class="absolute -top-1 -right-1 w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
+                    {{ $pendingAvis > 9 ? '9+' : $pendingAvis }}
+                </span>
+                @endif
+            </a>
             {{-- ── Séparateur + Panel Admin (Dashboard) ── --}}
             <div class="w-px h-4 bg-[#C9A84C]/15 mx-1"></div>
             <a href="{{ route('admin.dashboard') }}" wire:navigate
@@ -111,6 +122,19 @@
                        class="flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:text-red-400 hover:bg-red-400/5 transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                         ⚙ Panel Admin
+                    </a>
+                    <a href="{{ route('admin.testimonials.index') }}" wire:navigate
+                       class="flex items-center justify-between px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 transition-colors">
+                        <span class="flex items-center gap-3">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                            Avis clients
+                        </span>
+                        @php $pendingDropdown = \App\Models\Testimonial::pending()->count(); @endphp
+                        @if ($pendingDropdown > 0)
+                        <span class="w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
+                            {{ $pendingDropdown > 9 ? '9+' : $pendingDropdown }}
+                        </span>
+                        @endif
                     </a>
                     @else
                     <a href="{{ route('client.profile') }}" wire:navigate
