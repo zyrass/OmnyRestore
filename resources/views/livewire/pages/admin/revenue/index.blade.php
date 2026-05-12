@@ -29,18 +29,29 @@ class extends Component
             $months->push(now()->subMonths($i)->startOfMonth());
         }
 
+        // PostgreSQL : TO_CHAR() — MySQL utilisait DATE_FORMAT() qui n'existe pas en PG
+        // GROUP BY doit répéter l'expression (PG ne supporte pas les alias dans GROUP BY)
+        $pgExpr = "TO_CHAR(paid_at, 'YYYY-MM')";
+
         $rawData = Order::where('payment_status', 'paid')
             ->whereNotNull('paid_at')
             ->where('paid_at', '>=', now()->subMonths(11)->startOfMonth())
             ->select(
-                DB::raw("DATE_FORMAT(paid_at, '%Y-%m') as month_key"),
+                DB::raw("{$pgExpr} as month_key"),
                 DB::raw('SUM(total_price_cents) as total_ht_cents'),
                 DB::raw('COUNT(*) as order_count')
             )
-            ->groupBy('month_key')
-            ->orderBy('month_key')
+            ->groupBy(DB::raw($pgExpr))
+            ->orderBy(DB::raw($pgExpr))
             ->get()
             ->keyBy('month_key');
+
+        // Mois en français (sans dépendance à Carbon locale)
+        $moisFr = [
+            1 => 'Janvier', 2 => 'Février',  3 => 'Mars',     4 => 'Avril',
+            5 => 'Mai',     6 => 'Juin',      7 => 'Juillet',  8 => 'Août',
+            9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre',
+        ];
 
         $chartLabels  = [];
         $chartHt      = [];
@@ -48,11 +59,11 @@ class extends Component
         $tableRows    = [];
 
         foreach ($months as $m) {
-            $key    = $m->format('Y-m');
-            $label  = ucfirst($m->translatedFormat('M Y'));
-            $htCents  = $rawData[$key]->total_ht_cents ?? 0;
-            $ttcCents = $htCents + round($htCents * 0.2);
-            $orders   = $rawData[$key]->order_count ?? 0;
+            $key      = $m->format('Y-m');
+            $label    = $moisFr[(int) $m->format('n')] . ' ' . $m->format('Y');
+            $htCents  = (int) ($rawData[$key]->total_ht_cents ?? 0);
+            $ttcCents = $htCents + (int) round($htCents * 0.2);
+            $orders   = (int) ($rawData[$key]->order_count ?? 0);
 
             $chartLabels[] = $label;
             $chartHt[]     = round($htCents / 100, 2);
@@ -67,8 +78,8 @@ class extends Component
 
         // ── KPIs globaux (all time) ───────────────────────────────────────
         $allTimePaid = Order::where('payment_status', 'paid');
-        $totalHt  = (int) (clone $allTimePaid)->sum('total_price_cents');
-        $totalTtc = $totalHt + round($totalHt * 0.2);
+        $totalHt     = (int) (clone $allTimePaid)->sum('total_price_cents');
+        $totalTtc    = $totalHt + (int) round($totalHt * 0.2);
         $totalOrders = (clone $allTimePaid)->count();
 
         return compact('chartLabels', 'chartHt', 'chartTtc', 'tableRows', 'totalHt', 'totalTtc', 'totalOrders');
