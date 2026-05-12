@@ -127,3 +127,24 @@
     @apply py-3 border-b border-[#C9A84C]/10 align-top;
 }
 
+/* ── Layout padding responsive (garanti — indépendant du JIT Tailwind) ── */
+/*
+ * Sur le header et le main dans layouts/app.blade.php
+ * CSS natif = toujours présent dans le bundle compilé, pas de souci de JIT.
+ */
+.app-layout {
+    padding-left:  1.5rem;
+    padding-right: 1.5rem;
+}
+@media (min-width: 768px) {
+    .app-layout {
+        padding-left:  3rem;
+        padding-right: 3rem;
+    }
+}
+@media (min-width: 1280px) {
+    .app-layout {
+        padding-left:  5rem;
+        padding-right: 5rem;
+    }
+}

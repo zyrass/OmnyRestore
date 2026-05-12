@@ -18,7 +18,7 @@
 
 {{-- ========== TOP NAV ========== --}}
 <header class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
-    <div class="max-w-[1400px] mx-auto px-8 md:px-12 xl:px-16 h-16 flex items-center justify-between">
+    <div class="max-w-[1400px] mx-auto app-layout h-16 flex items-center justify-between">
 
         <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3">
             <div class="w-7 h-7 border border-[#C9A84C] flex items-center justify-center">
@@ -135,7 +135,7 @@
 </header>
 
 {{-- ========== MAIN ========== --}}
-<main class="max-w-[1400px] mx-auto px-8 md:px-12 xl:px-16 py-10">
+<main class="max-w-[1400px] mx-auto app-layout py-10">
     {{-- Flash messages globaux (non affichés sur les pages Livewire qui gèrent leur propre feedback) --}}
     @unless (request()->routeIs('admin.orders.show') || request()->routeIs('client.orders.show'))
     @if (session('success'))
@@ -157,7 +157,7 @@
 
 {{-- ========== FOOTER ========== --}}
 <footer class="border-t border-[#C9A84C]/10 py-8 mt-10">
-    <div class="max-w-[1400px] mx-auto px-8 md:px-12 xl:px-16 flex flex-col md:flex-row items-center justify-between gap-3">
+    <div class="max-w-[1400px] mx-auto app-layout flex flex-col md:flex-row items-center justify-between gap-3">
         <div class="flex items-center gap-3">
             <div class="w-5 h-5 border border-[#C9A84C]/50 flex items-center justify-center">
                 <span class="text-[#C9A84C] text-[8px] font-bold">OR</span>
