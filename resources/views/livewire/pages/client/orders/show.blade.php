@@ -238,10 +238,16 @@ class extends Component
                     </div>
                 </div>
 
-                {{-- Grille sélection — état modal partagé + hover CSS pur --}}
-                <div x-data="{ pendingId: null, confirmOpen: false, deleteOpen: false }">
+                {{-- Grille sélection — hover Alpine + modals via $dispatch ── --}}
+                <div x-data="{
+                        pendingId: null,
+                        confirmOpen: false,
+                        deleteOpen: false
+                     }"
+                     @omr-reject.window="pendingId = $event.detail.id; confirmOpen = true"
+                     @omr-delete.window="pendingId = $event.detail.id; deleteOpen = true">
 
-                    {{-- ── Modal confirmation retrait (téléporté hors overflow-hidden) ── --}}
+                    {{-- ── Modal : Retirer (réversible) ── --}}
                     <template x-teleport="body">
                         <div x-show="confirmOpen" x-cloak
                              class="fixed inset-0 z-[999] flex items-center justify-center"
@@ -271,7 +277,7 @@ class extends Component
                             </div>
                         </div>
 
-                        {{-- ── Modal suppression définitive ── --}}
+                        {{-- ── Modal : Suppression définitive ── --}}
                         <div x-show="deleteOpen" x-cloak
                              class="fixed inset-0 z-[999] flex items-center justify-center"
                              x-transition:enter="transition ease-out duration-150"
@@ -287,7 +293,7 @@ class extends Component
                                 </div>
                                 <h3 class="text-red-300 font-bold mb-1">Suppression définitive</h3>
                                 <p class="text-[#7A6E5E] text-xs mb-1 uppercase tracking-widest">Action irréversible</p>
-                                <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed mt-3">Cette photo sera <strong class="text-red-400">supprimée définitivement</strong> et ne pourra pas être récupérée. Confirmez uniquement si vous êtes certain.</p>
+                                <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed mt-3">Cette photo sera <strong class="text-red-400">supprimée définitivement</strong> et ne pourra pas être récupérée.</p>
                                 <div class="flex gap-3 justify-center">
                                     <button @click="deleteOpen = false"
                                             class="px-5 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all">
@@ -307,15 +313,17 @@ class extends Component
                         @forelse ($retouched as $media)
                         @php $isRejected = $media->getCustomProperty('is_rejected', false); @endphp
 
-                        {{-- Carte photo — group pour hover CSS pur --}}
-                        <div class="group relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden select-none cursor-default
-                                    {{ $isRejected ? 'border-2 border-red-500/50' : 'border border-[#C9A84C]/15' }}"
-                             style="{{ $isRejected ? 'opacity:0.55' : '' }}">
+                        {{-- Carte : hover géré par Alpine (pas de group-hover Tailwind) --}}
+                        <div x-data="{ h: false }"
+                             @mouseenter="h = true"
+                             @mouseleave="h = false"
+                             class="relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden select-none cursor-default {{ $isRejected ? 'border-2 border-red-500/50' : 'border border-[#C9A84C]/15' }}"
+                             style="{{ $isRejected ? 'opacity:0.6' : '' }}">
 
                             <img src="{{ $media->getUrl() }}" alt="Photo restaurée"
                                  class="w-full h-full object-cover pointer-events-none" draggable="false">
 
-                            {{-- ── Watermark SVG pattern (pleine couverture, répété en diagonale) ── --}}
+                            {{-- ── Watermark SVG pattern pleine couverture ── --}}
                             @if (! $isRejected)
                             <svg class="absolute inset-0 w-full h-full pointer-events-none select-none"
                                  xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -328,28 +336,43 @@ class extends Component
                                 </defs>
                                 <rect width="100%" height="100%" fill="url(#wm-{{ $media->id }})"/>
                             </svg>
-                            {{-- Léger vignettage doré en bordure --}}
-                            <div class="absolute inset-0 pointer-events-none" style="box-shadow: inset 0 0 20px rgba(201,168,76,0.12);"></div>
+                            <div class="absolute inset-0 pointer-events-none" style="box-shadow:inset 0 0 20px rgba(201,168,76,0.12);"></div>
                             @endif
 
-                            {{-- ── Overlay "Retirée" ── --}}
+                            {{-- ── Overlay photo retirée ── --}}
                             @if ($isRejected)
                             <div class="absolute inset-0 bg-red-950/60 flex items-center justify-center pointer-events-none">
                                 <span class="text-red-200 text-xs font-bold uppercase tracking-widest bg-red-900/80 px-3 py-1 rounded">Retirée</span>
                             </div>
-                            {{-- Boutons sur photo retirée : ↩ réintégrer (haut-droit) + 🗑️ supprimer (haut-gauche) --}}
-                            <button wire:click="restorePhoto({{ $media->id }})" title="Réintégrer cette photo"
-                                    class="absolute top-2 right-2 z-20 w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all duration-150 bg-emerald-700 text-emerald-100 opacity-0 group-hover:opacity-100 hover:bg-emerald-500 hover:scale-110">
+                            {{-- Bouton ↩ Réintégrer (haut-droit) --}}
+                            <button x-show="h"
+                                    x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="opacity-0 scale-75"
+                                    x-transition:enter-end="opacity-100 scale-100"
+                                    wire:click="restorePhoto({{ $media->id }})"
+                                    title="Réintégrer cette photo"
+                                    class="absolute top-2 right-2 z-20 w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold bg-emerald-600 text-white shadow-lg hover:bg-emerald-500">
                                 ↩
                             </button>
-                            <button @click="pendingId = {{ $media->id }}; deleteOpen = true" title="Supprimer définitivement"
-                                    class="absolute top-2 left-2 z-20 w-7 h-7 flex items-center justify-center rounded-full text-[10px] font-bold transition-all duration-150 bg-red-900/90 text-red-300 border border-red-600/40 opacity-0 group-hover:opacity-100 hover:bg-red-800 hover:scale-110">
+                            {{-- Bouton 🗑️ Supprimer (haut-gauche) --}}
+                            <button x-show="h"
+                                    x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="opacity-0 scale-75"
+                                    x-transition:enter-end="opacity-100 scale-100"
+                                    @click="$dispatch('omr-delete', { id: {{ $media->id }} })"
+                                    title="Supprimer définitivement"
+                                    class="absolute top-2 left-2 z-20 w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold bg-red-900 text-red-300 border border-red-600/50 shadow-lg hover:bg-red-800">
                                 🗑
                             </button>
                             @else
-                            {{-- Croix ✕ — coin haut-droit, visible au survol --}}
-                            <button @click="pendingId = {{ $media->id }}; confirmOpen = true" title="Retirer cette photo"
-                                    class="absolute top-2 right-2 z-20 w-7 h-7 flex items-center justify-center rounded-full text-xs font-bold transition-all duration-150 bg-red-700 text-white opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:scale-110">
+                            {{-- Bouton ✕ Retirer (haut-droit) --}}
+                            <button x-show="h"
+                                    x-transition:enter="transition ease-out duration-100"
+                                    x-transition:enter-start="opacity-0 scale-75"
+                                    x-transition:enter-end="opacity-100 scale-100"
+                                    @click="$dispatch('omr-reject', { id: {{ $media->id }} })"
+                                    title="Retirer cette photo"
+                                    class="absolute top-2 right-2 z-20 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold bg-red-600 text-white shadow-lg hover:bg-red-500">
                                 ✕
                             </button>
                             @endif
@@ -360,6 +383,7 @@ class extends Component
                         @endforelse
                     </div>
                 </div>
+
 
                 @if ($rejectedPhotos->count() > 0)
                 <p class="px-5 pb-3 text-xs text-red-400/70">
