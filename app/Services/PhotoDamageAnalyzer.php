@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -76,23 +77,41 @@ PROMPT;
     /**
      * Analyse une photo uploadée et retourne le verdict de dommage.
      *
+     * Le résultat est mis en cache permanent par empreinte MD5 du fichier :
+     * la même photo retournera toujours le même verdict, empêchant
+     * les ré-uploads frauduleux pour obtenir un tarif plus bas.
+     *
      * @param  UploadedFile  $file  La photo à analyser
      * @return array{level: string, confidence: int, reason: string, price_cents: int, price_ttc_cents: int, ai_used: bool}
      */
     public function analyze(UploadedFile $file): array
     {
+        // ── Empreinte du fichier — même contenu = même hash = même résultat ──
+        $hash     = md5_file($file->getRealPath());
+        $cacheKey = 'photo_dmg_' . $hash;
+
+        if (Cache::has($cacheKey)) {
+            Log::info('PhotoDamageAnalyzer: cache hit', ['hash' => substr($hash, 0, 8)]);
+            return Cache::get($cacheKey);
+        }
+
         if (empty(config('services.openai.key'))) {
             Log::warning('PhotoDamageAnalyzer: No OpenAI API key — using local heuristic');
+            // Le fallback heuristique n'est PAS mis en cache (moins fiable)
             return $this->heuristicFallback($file);
         }
 
         try {
-            return $this->analyzeWithGpt4o($file);
+            $result = $this->analyzeWithGpt4o($file);
+            // Cache permanent — la photo ne changera jamais d'état
+            Cache::forever($cacheKey, $result);
+            return $result;
         } catch (\Throwable $e) {
             Log::error('PhotoDamageAnalyzer: GPT-4o failed', [
                 'error'    => $e->getMessage(),
                 'filename' => $file->getClientOriginalName(),
             ]);
+            // Fallback non mis en cache — on réessaiera l'IA au prochain upload
             return $this->heuristicFallback($file);
         }
     }
