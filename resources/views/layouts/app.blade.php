@@ -156,20 +156,158 @@
 </main>
 
 {{-- ========== FOOTER ========== --}}
-<footer class="border-t border-[#C9A84C]/10 py-8 mt-10">
-    <div class="max-w-[1400px] mx-auto app-layout flex flex-col md:flex-row items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-            <div class="w-5 h-5 border border-[#C9A84C]/50 flex items-center justify-center">
-                <span class="text-[#C9A84C] text-[8px] font-bold">OR</span>
+<footer class="mt-16">
+
+    {{-- Séparateur dégradé doré --}}
+    <div class="h-px bg-gradient-to-r from-transparent via-[#C9A84C]/30 to-transparent"></div>
+
+    <div class="bg-[#0A0804] pt-12 pb-6">
+        <div class="max-w-[1400px] mx-auto app-layout">
+
+            {{-- ── Grille principale ── --}}
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-10 pb-10 border-b border-[#C9A84C]/8">
+
+                {{-- Colonne 1 : Marque --}}
+                <div class="md:col-span-1 space-y-4">
+                    <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 group">
+                        <div class="w-8 h-8 border border-[#C9A84C] flex items-center justify-center group-hover:bg-[#C9A84C]/10 transition-colors">
+                            <span class="text-[#C9A84C] text-[9px] font-bold tracking-widest">OR</span>
+                        </div>
+                        <span class="text-[#F5F0E8] font-semibold tracking-[0.12em] text-sm uppercase">OmnyRestore</span>
+                    </a>
+                    <p class="text-[#7A6E5E] text-xs leading-relaxed">
+                        Restauration de photographies anciennes par intelligence artificielle.
+                        Voyez le résultat <em>avant</em> de payer.
+                    </p>
+                    {{-- Badges de confiance --}}
+                    <div class="space-y-1.5">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5 text-[#C9A84C] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            <span class="text-[#7A6E5E] text-[11px]">Paiement sécurisé Stripe PCI-DSS</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5 text-[#C9A84C] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            <span class="text-[#7A6E5E] text-[11px]">RGPD conforme · Données en France</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Colonne 2 : Navigation --}}
+                <div>
+                    <h4 class="text-[#C9A84C] text-[10px] tracking-widest uppercase mb-4 font-semibold">Navigation</h4>
+                    <ul class="space-y-2.5">
+                        <li>
+                            <a href="{{ route('home') }}" wire:navigate
+                               class="text-[#7A6E5E] text-xs hover:text-[#F5F0E8] transition-colors flex items-center gap-2">
+                                <span class="w-1 h-1 rounded-full bg-[#C9A84C]/40 shrink-0"></span>
+                                Accueil
+                            </a>
+                        </li>
+                        @auth
+                        <li>
+                            <a href="{{ route('client.orders.index') }}" wire:navigate
+                               class="text-[#7A6E5E] text-xs hover:text-[#F5F0E8] transition-colors flex items-center gap-2">
+                                <span class="w-1 h-1 rounded-full bg-[#C9A84C]/40 shrink-0"></span>
+                                Mes commandes
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('client.profile') }}" wire:navigate
+                               class="text-[#7A6E5E] text-xs hover:text-[#F5F0E8] transition-colors flex items-center gap-2">
+                                <span class="w-1 h-1 rounded-full bg-[#C9A84C]/40 shrink-0"></span>
+                                Mon profil
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('client.tickets.index') }}" wire:navigate
+                               class="text-[#7A6E5E] text-xs hover:text-[#F5F0E8] transition-colors flex items-center gap-2">
+                                <span class="w-1 h-1 rounded-full bg-[#C9A84C]/40 shrink-0"></span>
+                                Mes tickets
+                            </a>
+                        </li>
+                        @endauth
+                    </ul>
+                </div>
+
+                {{-- Colonne 3 : Légal --}}
+                <div>
+                    <h4 class="text-[#C9A84C] text-[10px] tracking-widest uppercase mb-4 font-semibold">Informations légales</h4>
+                    <ul class="space-y-2.5">
+                        <li>
+                            <a href="{{ route('legal.mentions') }}" wire:navigate
+                               class="text-[#7A6E5E] text-xs hover:text-[#F5F0E8] transition-colors flex items-center gap-2">
+                                <span class="w-1 h-1 rounded-full bg-[#C9A84C]/40 shrink-0"></span>
+                                Mentions légales
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('legal.privacy') }}" wire:navigate
+                               class="text-[#7A6E5E] text-xs hover:text-[#F5F0E8] transition-colors flex items-center gap-2">
+                                <span class="w-1 h-1 rounded-full bg-[#C9A84C]/40 shrink-0"></span>
+                                Politique de confidentialité
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('legal.cgv') }}" wire:navigate
+                               class="text-[#7A6E5E] text-xs hover:text-[#F5F0E8] transition-colors flex items-center gap-2">
+                                <span class="w-1 h-1 rounded-full bg-[#C9A84C]/40 shrink-0"></span>
+                                Conditions Générales de Vente
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                {{-- Colonne 4 : Contact & Support --}}
+                <div>
+                    <h4 class="text-[#C9A84C] text-[10px] tracking-widest uppercase mb-4 font-semibold">Contact & Support</h4>
+                    <ul class="space-y-2.5">
+                        <li>
+                            <a href="mailto:contact@omnyrestore.fr"
+                               class="text-[#7A6E5E] text-xs hover:text-[#F5F0E8] transition-colors flex items-center gap-2">
+                                <svg class="w-3.5 h-3.5 text-[#C9A84C]/60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
+                                contact@omnyrestore.fr
+                            </a>
+                        </li>
+                        @auth
+                        <li>
+                            <a href="{{ route('client.tickets.create') }}" wire:navigate
+                               class="text-[#7A6E5E] text-xs hover:text-[#F5F0E8] transition-colors flex items-center gap-2">
+                                <svg class="w-3.5 h-3.5 text-[#C9A84C]/60 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                                </svg>
+                                Ouvrir un ticket support
+                            </a>
+                        </li>
+                        @endauth
+                        <li class="pt-2">
+                            <p class="text-[#7A6E5E] text-[11px] leading-relaxed">
+                                Réponse sous 24–48h ouvrées.<br>
+                                Du lundi au vendredi.
+                            </p>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>{{-- fin grille --}}
+
+            {{-- ── Barre de bas de page ── --}}
+            <div class="pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <p class="text-[#7A6E5E] text-[11px]">
+                    © {{ date('Y') }} <span class="text-[#C9A84C]/70">OmnyRestore</span> — une branche d'<span class="text-[#C9A84C]/70">OmnyVia</span> · Alain GUILLON
+                </p>
+                <p class="text-[#7A6E5E] text-[11px] flex items-center gap-1.5">
+                    Conçu et hébergé en France
+                    <span class="text-base leading-none">🇫🇷</span>
+                </p>
             </div>
-            <span class="text-[#7A6E5E] text-xs tracking-widest uppercase">OmnyRestore</span>
+
         </div>
-        <div class="flex gap-5 text-[#7A6E5E] text-xs">
-            <a href="{{ route('legal.mentions') }}" wire:navigate class="hover:text-[#C9A84C] transition-colors">Mentions légales</a>
-            <a href="{{ route('legal.privacy') }}" wire:navigate class="hover:text-[#C9A84C] transition-colors">Confidentialité</a>
-            <a href="{{ route('legal.cgv') }}" wire:navigate class="hover:text-[#C9A84C] transition-colors">CGV</a>
-        </div>
-        <p class="text-[#7A6E5E] text-xs">© {{ date('Y') }} OmnyRestore — OmnyVia</p>
     </div>
 </footer>
 
