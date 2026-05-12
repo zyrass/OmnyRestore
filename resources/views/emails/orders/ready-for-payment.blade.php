@@ -89,15 +89,17 @@
         </div>
 
         <div class="cta-wrapper">
-            <a href="{{ route('client.orders.show', $order) }}" class="{{ $isFree ? 'cta-free' : 'cta' }}">
+            <a href="{{ $signedUrl }}" class="{{ $isFree ? 'cta-free' : 'cta' }}">
                 {{ $isFree ? '↓ Télécharger mes photos' : "Voir l'aperçu & Payer" }}
             </a>
         </div>
 
         @if (!$isFree)
         <div class="note">
-            <strong>Rappel :</strong> Les aperçus sont filigranés et resteront disponibles 30 jours.
-            Le téléchargement des photos originales en haute qualité est débloqué immédiatement après le paiement.
+            <strong>Ce lien est votre clé d'accès :</strong> il déverrouille l'aperçu filigrané de vos
+            photos dans votre espace client. Il est valable <strong>7 jours</strong> et ne fonctionne
+            qu'une seule fois. Si vous en avez besoin d'un nouveau, connectez-vous et cliquez sur
+            « Renvoyer l'email » depuis votre page commande.
         </div>
         @else
         <div class="note-free">
@@ -105,6 +107,7 @@
             Un email vous sera envoyé dès que le téléchargement sera prêt.
         </div>
         @endif
+
 
         <p class="text">
             Une question ? Répondez directement à cet email ou contactez-nous à

@@ -33,6 +33,30 @@ class extends Component
     }
 
     /**
+     * Renvoie l'email de déverrouillage (OrderReadyForPayment) avec une nouvelle URL signée.
+     * Limité à 1 envoi toutes les 5 minutes pour éviter le spam.
+     */
+    public function resendUnlockEmail(): void
+    {
+        abort_if($this->order->user_id !== auth()->id(), 403);
+        abort_if($this->order->status !== 'DONE', 403);
+
+        // Garde-fou : 1 envoi max par 5 minutes (basé sur preview_email_resent_at stocké en session)
+        $sessionKey = "resend_unlock_{$this->order->id}";
+        if (session()->has($sessionKey) && now()->diffInSeconds(session($sessionKey)) < 300) {
+            $remaining = 300 - now()->diffInSeconds(session($sessionKey));
+            session()->flash('error', "Patientez encore {$remaining} secondes avant de renvoyer l'email.");
+            return;
+        }
+
+        \Illuminate\Support\Facades\Mail::to($this->order->user->email)
+            ->queue(new \App\Mail\OrderReadyForPayment($this->order));
+
+        session()->put($sessionKey, now());
+        session()->flash('success', '📧 Email renvoyé ! Vérifiez votre boîte mail (et vos spams).');
+    }
+
+    /**
      * Sondage Livewire : détecte quand le ZIP est prêt après paiement.
      * Activé via wire:poll.5000ms seulement si status=PAID et zip_path=null.
      * Quand le job GenerateOrderZipJob termine (status→DELIVERED), on rafraîchit
@@ -294,6 +318,36 @@ class extends Component
 
             {{-- === ÉTAT : APERÇU PRÊT (DONE) — Sélection + Paiement === --}}
             @if ($order->status === 'DONE')
+
+            {{-- ── Email-gate : vérification que le client a cliqué le lien email ── --}}
+            @if (! $order->preview_unlocked_at)
+            <div class="card-glass p-10 text-center">
+                {{-- Icône enveloppe animée --}}
+                <div class="relative w-20 h-20 mx-auto mb-6">
+                    <div class="absolute inset-0 border-2 border-[#C9A84C]/20 rounded-full"></div>
+                    <div class="absolute inset-0 border-t-2 border-[#C9A84C] rounded-full animate-spin" style="animation-duration:3s"></div>
+                    <svg class="absolute inset-0 m-auto w-8 h-8 text-[#C9A84C]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <h3 class="text-[#F5F0E8] text-lg font-semibold mb-2">Vos photos sont prêtes !</h3>
+                <p class="text-[#7A6E5E] text-sm max-w-sm mx-auto leading-relaxed mb-2">
+                    Un email vous a été envoyé à <span class="text-[#C9A84C]">{{ $order->user->email }}</span>
+                    avec un lien pour accéder à vos photos restaurées.
+                </p>
+                <p class="text-[#7A6E5E] text-xs max-w-sm mx-auto mb-8">
+                    Cliquez sur le bouton dans l'email pour déverrouiller l'aperçu.
+                    Si vous ne le trouvez pas, vérifiez vos spams.
+                </p>
+                <button wire:click="resendUnlockEmail"
+                        wire:loading.attr="disabled"
+                        class="btn-outline text-sm px-8 py-3 flex items-center gap-2 mx-auto">
+                    <svg wire:loading wire:target="resendUnlockEmail" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    <svg wire:loading.remove wire:target="resendUnlockEmail" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                    Renvoyer l'email
+                </button>
+            </div>
+            @else
             @php
                 $retouched      = $order->getMedia('retouched');
                 $activePhotos   = $retouched->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
@@ -502,7 +556,8 @@ class extends Component
                     @endif
                 </div>
             </div>
-            @endif
+            @endif {{-- fin @if (! $order->preview_unlocked_at) --}}
+            @endif {{-- fin @if ($order->status === 'DONE') --}}
 
             {{-- === ÉTAT : PAYÉ / LIVRÉ === --}}
             @if (in_array($order->status, ['PAID', 'DELIVERED']))
