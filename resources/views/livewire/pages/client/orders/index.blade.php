@@ -66,7 +66,7 @@ class extends Component
                     <th class="text-left text-[#7A6E5E] text-xs tracking-widest uppercase px-6 py-4 font-medium">Référence</th>
                     <th class="text-left text-[#7A6E5E] text-xs tracking-widest uppercase px-6 py-4 font-medium hidden md:table-cell">Photos</th>
                     <th class="text-left text-[#7A6E5E] text-xs tracking-widest uppercase px-6 py-4 font-medium">Statut</th>
-                    <th class="text-left text-[#7A6E5E] text-xs tracking-widests uppercase px-6 py-4 font-medium hidden lg:table-cell">Montant TTC</th>
+                    <th class="text-left text-[#7A6E5E] text-xs tracking-widests uppercase px-6 py-4 font-medium hidden lg:table-cell">Montant</th>
                     <th class="text-left text-[#7A6E5E] text-xs tracking-widest uppercase px-6 py-4 font-medium hidden lg:table-cell">Date</th>
                     <th class="px-6 py-4"></th>
                 </tr>
@@ -102,21 +102,42 @@ class extends Component
                         </span>
                     </td>
 
-                    {{-- Montant TTC --}}
-                    <td class="px-6 py-4 text-[#F5F0E8] hidden lg:table-cell">
+                    {{-- Montant : prévu (gris) + payé (blanc) si réglé --}}
+                    <td class="px-6 py-4 hidden lg:table-cell">
                         @php
-                            // !== null obligatoire : total_price_cents = 0 (coupon 100%) est falsy
-                            $listHt  = $order->total_price_cents !== null
+                            // Montant prévu : total_price_cents (après coupon) → TTC
+                            // !== null obligatoire : 0 (coupon 100%) est falsy
+                            $mHt  = $order->total_price_cents !== null
                                 ? $order->total_price_cents
                                 : ($order->base_price_cents ?? null);
-                            $listTtc = $listHt !== null ? $listHt + round($listHt * 0.2) : null;
+                            $mTtc = $mHt !== null ? $mHt + round($mHt * 0.2) : null;
+                            $isPaid = in_array($order->status, ['PAID', 'DELIVERED']);
                         @endphp
-                        @if ($listTtc === null)
+
+                        @if ($mTtc === null)
+                            {{-- Prix inconnu (commande très ancienne ou pas encore évalué) --}}
                             <span class="text-[#7A6E5E]">—</span>
-                        @elseif ($listTtc === 0)
-                            <span class="text-emerald-400 text-xs font-medium">Offert ✓</span>
                         @else
-                            {{ number_format($listTtc / 100, 2, ',', ' ') }} €
+                            <div class="flex flex-col gap-0.5">
+                                {{-- Ligne 1 : montant prévu (gris, petit) --}}
+                                <span class="text-[#7A6E5E] text-xs">
+                                    @if ($mTtc === 0)
+                                        Offert ✓
+                                    @else
+                                        Prévu : {{ number_format($mTtc / 100, 2, ',', ' ') }} €
+                                    @endif
+                                </span>
+                                {{-- Ligne 2 : montant payé (blanc, affiché seulement si réglé) --}}
+                                @if ($isPaid)
+                                <span class="text-emerald-400 font-semibold text-sm">
+                                    @if ($mTtc === 0)
+                                        Gratuit ✓
+                                    @else
+                                        ✓ {{ number_format($mTtc / 100, 2, ',', ' ') }} € payé
+                                    @endif
+                                </span>
+                                @endif
+                            </div>
                         @endif
                     </td>
 
