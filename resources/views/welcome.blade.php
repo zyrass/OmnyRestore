@@ -174,31 +174,35 @@
             ['year' => '1943', 'label' => 'Portrait militaire',  'issues' => 'Dommages eau, pliures, contraste perdu', 'slug' => 'militaire'],
         ] as $ex)
         <div class="card-glass overflow-hidden">
-            {{-- Slider interactif --}}
-            <div class="relative h-64 overflow-hidden select-none"
-                 x-data="{ pct: 50 }">
+            {{-- Slider interactif — événements Alpine.js natifs sur le conteneur --}}
+            <div class="relative h-64 overflow-hidden select-none cursor-col-resize"
+                 x-data="{ pct: 50, dragging: false }"
+                 @mousedown.prevent="dragging = true"
+                 @mouseup.window="dragging = false"
+                 @mouseleave="dragging = false"
+                 @mousemove="if(dragging){ let r=$el.getBoundingClientRect(); pct=Math.max(0,Math.min(100,($event.clientX-r.left)/r.width*100)) }"
+                 @click="let r=$el.getBoundingClientRect(); pct=Math.max(0,Math.min(100,($event.clientX-r.left)/r.width*100))"
+                 @touchstart.prevent="dragging = true"
+                 @touchend.window="dragging = false"
+                 @touchmove.prevent="if(dragging){ let r=$el.getBoundingClientRect(); pct=Math.max(0,Math.min(100,($event.touches[0].clientX-r.left)/r.width*100)) }">
 
                 {{-- APRÈS (restaurée) — pleine largeur en fond --}}
                 <img src="/images/samples/apres-{{ $ex['slug'] }}.png"
                      alt="Après restauration — {{ $ex['label'] }} {{ $ex['year'] }}"
-                     class="absolute inset-0 w-full h-full object-cover object-top">
+                     class="absolute inset-0 w-full h-full object-cover object-top pointer-events-none"
+                     draggable="false">
 
-                {{-- AVANT (endommagée) — révélée à gauche par le slider --}}
-                <div class="absolute inset-0 z-10"
+                {{-- AVANT (endommagée) — révélée à gauche, pointer-events-none --}}
+                <div class="absolute inset-0 z-10 pointer-events-none"
                      :style="{ clipPath: `inset(0 ${100 - pct}% 0 0)` }">
                     <img src="/images/samples/avant-{{ $ex['slug'] }}.png"
                          alt="Avant restauration — {{ $ex['label'] }} {{ $ex['year'] }}"
                          class="w-full h-full object-cover object-top"
-                         style="filter: sepia(0.8) contrast(0.65) brightness(0.55);">
+                         style="filter: sepia(0.8) contrast(0.65) brightness(0.55);"
+                         draggable="false">
                 </div>
 
-                {{-- Input range transparent — capture tous les événements souris + tactile --}}
-                <input type="range" min="0" max="100"
-                       x-model="pct"
-                       class="absolute inset-0 w-full h-full z-30 m-0 cursor-col-resize"
-                       style="opacity:0; appearance:none; -webkit-appearance:none; padding:0; margin:0; border:none; background:transparent;">
-
-                {{-- Handle (pointer-events:none, au-dessus du visuel) --}}
+                {{-- Handle visuel — pointer-events-none (le conteneur capte tout) --}}
                 <div class="absolute inset-y-0 z-20 pointer-events-none flex items-center"
                      :style="`left: ${pct}%`">
                     <div class="absolute inset-y-0 w-px -translate-x-1/2 bg-white/90"></div>
@@ -209,7 +213,7 @@
                     </div>
                 </div>
 
-                {{-- Labels : Avant à gauche (endommagée), Après à droite (restaurée) --}}
+                {{-- Labels --}}
                 <span class="absolute top-3 left-3 z-10 px-2 py-0.5 bg-black/60 text-white/80 text-[10px] font-bold tracking-widest uppercase pointer-events-none">Avant</span>
                 <span class="absolute top-3 right-3 z-10 px-2 py-0.5 bg-[#C9A84C] text-[#0D0B08] text-[10px] font-bold tracking-widest uppercase pointer-events-none">Après</span>
             </div>
