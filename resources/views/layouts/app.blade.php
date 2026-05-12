@@ -18,7 +18,7 @@
 
 {{-- ========== TOP NAV ========== --}}
 <header class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
-    <div class="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="max-w-[1400px] mx-auto px-8 md:px-12 xl:px-16 h-16 flex items-center justify-between">
 
         <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3">
             <div class="w-7 h-7 border border-[#C9A84C] flex items-center justify-center">
@@ -135,9 +135,9 @@
 </header>
 
 {{-- ========== MAIN ========== --}}
-<main class="max-w-[1400px] mx-auto px-6 py-10">
+<main class="max-w-[1400px] mx-auto px-8 md:px-12 xl:px-16 py-10">
     {{-- Flash messages globaux (non affichés sur les pages Livewire qui gèrent leur propre feedback) --}}
-    @unless (request()->routeIs('admin.orders.show'))
+    @unless (request()->routeIs('admin.orders.show') || request()->routeIs('client.orders.show'))
     @if (session('success'))
     <div class="flex items-center gap-3 bg-emerald-950/50 border border-emerald-500/30 text-emerald-400 rounded-sm px-4 py-3 mb-6 text-sm">
         <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -154,6 +154,24 @@
 
     {!! isset($slot) ? $slot : $__env->yieldContent('content') !!}
 </main>
+
+{{-- ========== FOOTER ========== --}}
+<footer class="border-t border-[#C9A84C]/10 py-8 mt-10">
+    <div class="max-w-[1400px] mx-auto px-8 md:px-12 xl:px-16 flex flex-col md:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <div class="w-5 h-5 border border-[#C9A84C]/50 flex items-center justify-center">
+                <span class="text-[#C9A84C] text-[8px] font-bold">OR</span>
+            </div>
+            <span class="text-[#7A6E5E] text-xs tracking-widest uppercase">OmnyRestore</span>
+        </div>
+        <div class="flex gap-5 text-[#7A6E5E] text-xs">
+            <a href="{{ route('legal.mentions') }}" wire:navigate class="hover:text-[#C9A84C] transition-colors">Mentions légales</a>
+            <a href="{{ route('legal.privacy') }}" wire:navigate class="hover:text-[#C9A84C] transition-colors">Confidentialité</a>
+            <a href="{{ route('legal.cgv') }}" wire:navigate class="hover:text-[#C9A84C] transition-colors">CGV</a>
+        </div>
+        <p class="text-[#7A6E5E] text-xs">© {{ date('Y') }} OmnyRestore — OmnyVia</p>
+    </div>
+</footer>
 
 {{-- ═══ Modal de confirmation global ══════════════════════════════════ --}}
 <div x-data

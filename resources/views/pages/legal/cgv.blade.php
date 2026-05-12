@@ -28,9 +28,8 @@
 </p>
 <ul>
     <li>Correction des artefacts de compression et dommages physiques (déchirures, pliures, taches)</li>
-    <li>Upscaling intelligent en résolution jusqu'à 8K</li>
-    <li>Reconstruction des textures et micro-détails</li>
-    <li>Optimisation du contraste et de la netteté (rendu Studio Professionnel)</li>
+    <li>Amélioration intelligente de la résolution et reconstruction des textures</li>
+    <li>Optimisation du contraste, de la netteté et des couleurs</li>
     <li>Conservation de la géométrie, des traits et de l'éclairage d'origine</li>
 </ul>
 
@@ -45,42 +44,42 @@
 {{-- Tarifs --}}
 <h2>Article 2 — Tarifs</h2>
 
-<p>Tous les prix sont indiqués en euros (€), <strong>hors taxes</strong>. La TVA applicable est de 20 %.</p>
+<p>Tous les prix sont indiqués en euros (€), <strong>toutes taxes comprises (TVA 20 %)</strong>. Le niveau de restauration de chaque photo est déterminé automatiquement par notre IA lors de l'analyse.</p>
 
 <table>
     <thead>
         <tr>
-            <th>Prestation</th>
-            <th>Prix HT</th>
-            <th>Prix TTC</th>
-            <th>Description</th>
+            <th>Niveau de restauration</th>
+            <th>Prix HT / photo</th>
+            <th>Prix TTC / photo</th>
+            <th>Cas typique</th>
         </tr>
     </thead>
     <tbody>
         <tr>
-            <td><strong>Restauration Standard</strong></td>
-            <td>à partir de 1,00 €</td>
-            <td>à partir de 1,20 €</td>
-            <td>1 photo, dommages légers (jaunissement, poussière)</td>
+            <td><strong>Standard</strong></td>
+            <td>0,83 €</td>
+            <td><strong>1,00 €</strong></td>
+            <td>Dommages légers : jaunissement, poussière, légère décoloration</td>
         </tr>
         <tr>
-            <td><strong>Restauration Avancée</strong></td>
-            <td>à partir de 10,00 €</td>
-            <td>à partir de 12,00 €</td>
-            <td>Photo très endommagée (déchirures majeures, dommages eau, pliures)</td>
+            <td><strong>Avancée</strong></td>
+            <td>1,67 €</td>
+            <td><strong>2,00 €</strong></td>
+            <td>Dommages modérés : taches, flou, pliures, bords abîmés</td>
         </tr>
         <tr>
-            <td><strong>Lot de photos</strong></td>
-            <td>Sur devis</td>
-            <td>Sur devis</td>
-            <td>À partir de 50 photos — tarif dégressif</td>
+            <td><strong>Complète</strong></td>
+            <td>2,50 €</td>
+            <td><strong>3,00 €</strong></td>
+            <td>Dommages importants : déchirures majeures, dommages eau, image très dégradée</td>
         </tr>
     </tbody>
 </table>
 
 <p>
-    Le tarif définitif est évalué par le Prestataire après analyse des photos soumises.
-    Le Client est informé du prix exact via la plateforme avant tout paiement.
+    Le tarif par photo est déterminé automatiquement par notre IA lors de l'analyse.
+    Le Client est informé du prix exact de chaque photo avant tout paiement.
     <strong>Aucune somme n'est prélevée sans accord explicite du Client.</strong>
 </p>
 <p>
@@ -94,9 +93,10 @@
 <ul>
     <li><strong>Étape 1 — Dépôt :</strong> Le Client crée un compte et dépose ses photos sur la plateforme.</li>
     <li><strong>Étape 2 — Traitement :</strong> Le Prestataire analyse et restaure les photos par IA.</li>
-    <li><strong>Étape 3 — Aperçu :</strong> Le Client reçoit un aperçu filigranné basse résolution du résultat.</li>
-    <li><strong>Étape 4 — Paiement :</strong> Le Client valide le paiement via Stripe pour débloquer le téléchargement haute résolution.</li>
-    <li><strong>Étape 5 — Livraison :</strong> Un lien de téléchargement sécurisé (ZIP) est envoyé par email et disponible dans l'espace client.</li>
+    <li><strong>Étape 3 — Aperçu :</strong> Le Client reçoit un email avec un lien sécurisé pour consulter l'aperçu filigranné basse résolution du résultat.</li>
+    <li><strong>Étape 4 — Sélection :</strong> Le Client choisit les photos qui lui conviennent et retire celles qu'il ne souhaite pas conserver.</li>
+    <li><strong>Étape 5 — Paiement :</strong> Le Client valide le paiement via Stripe pour débloquer le téléchargement haute résolution.</li>
+    <li><strong>Étape 6 — Livraison :</strong> Un lien de téléchargement sécurisé (archive ZIP) est envoyé par email et disponible dans l'espace client, accompagné de la facture PDF.</li>
 </ul>
 
 <p>
@@ -127,15 +127,15 @@
 
 <p>
     La livraison est exclusivement <strong>numérique</strong>. Après confirmation du paiement,
-    le Client reçoit un lien de téléchargement sécurisé vers une archive ZIP contenant les
-    photos restaurées en haute résolution (jusqu'à 8K), sans filigrane.
+    le Client reçoit par email un lien de téléchargement sécurisé vers une archive ZIP contenant les
+    photos restaurées en haute résolution, sans filigrane.
 </p>
 
 <h3>Délais indicatifs</h3>
 <ul>
     <li>Restauration Standard : <strong>24 à 48 heures</strong> ouvrées</li>
     <li>Restauration Avancée : <strong>48 à 72 heures</strong> ouvrées</li>
-    <li>Lot de photos : selon devis</li>
+    <li>Restauration Complète : <strong>48 à 96 heures</strong> ouvrées</li>
 </ul>
 
 <p>
@@ -146,8 +146,9 @@
 <h3>Disponibilité du lien de téléchargement</h3>
 <p>
     Le lien de téléchargement est actif pendant <strong>6 mois</strong> à compter de la livraison.
-    Passé ce délai, les photos sont supprimées de nos serveurs conformément à notre politique RGPD.
+    Passé ce délai, les photos restaurées sont supprimées de nos serveurs conformément à notre politique RGPD.
     Il appartient au Client de télécharger et sauvegarder ses photos dans ce délai.
+    La facture PDF reste accessible dans l'espace client pendant la durée légale (10 ans).
 </p>
 
 {{-- Rétractation --}}

@@ -87,7 +87,7 @@
     </div>
 
     {{-- ── Colonne droite : formulaire ─────────────────────────────────────── --}}
-    <div class="flex-1 flex flex-col justify-center items-center min-h-screen bg-[#0D0B08] px-6 py-12 relative">
+    <div class="flex-1 flex flex-col justify-center items-center min-h-screen bg-[#0D0B08] px-12 lg:px-20 py-12 relative">
 
         {{-- Subtle glow --}}
         <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-[#C9A84C]/4 rounded-full blur-[100px] pointer-events-none"></div>
@@ -103,7 +103,7 @@
         </div>
 
         {{-- Form card --}}
-        <div class="w-full max-w-sm relative z-10">
+        <div class="w-full max-w-md relative z-10">
             {{ $slot }}
         </div>
 
