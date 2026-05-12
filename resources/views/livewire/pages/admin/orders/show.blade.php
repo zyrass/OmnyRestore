@@ -231,7 +231,12 @@ class extends Component
 
     /**
      * Recalcule total_price_cents d'après le nombre de photos actives (non rejetées).
-     * Le tarif par photo est déterminé par le damage_level de la commande.
+     *
+     * Logique :
+     *   1. Nouveau prix HT brut = photos_actives × prix_par_photo (selon damage_level)
+     *   2. Si un coupon est attaché à la commande → recalculer la remise sur la nouvelle base
+     *   3. total_price_cents = brut − remise  (net HT, jamais négatif)
+     *   4. discount_cents mis à jour pour refléter la nouvelle remise
      *
      * Prix HT par photo :
      *   light  →  83 cts (1,00 € TTC)
@@ -240,21 +245,42 @@ class extends Component
      */
     private function recalcPriceFromActivePhotos(): void
     {
-        $pricesHt = \App\Services\PhotoDamageAnalyzer::PRICES;
+        $pricesHt      = \App\Services\PhotoDamageAnalyzer::PRICES;
         $pricePerPhoto = $pricesHt[$this->order->damage_level] ?? $pricesHt['light'];
 
-        // Recharger les médias après la modification de custom_property
+        // 1. Compter les photos actives (non rejetées)
         $activeCount = $this->order->getMedia('retouched')
             ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
             ->count();
 
-        $newPriceHt = $activeCount * $pricePerPhoto;
+        $newBaseHt = $activeCount * $pricePerPhoto;
 
-        $this->order->update(['total_price_cents' => $newPriceHt]);
+        // 2. Réappliquer le coupon sur la nouvelle base HT
+        $newDiscount = 0;
+        if ($this->order->coupon_code) {
+            $coupon = \App\Models\Coupon::where('code', $this->order->coupon_code)->first();
+            if ($coupon) {
+                $newDiscount = $coupon->discountCents($newBaseHt);
+            }
+        }
+
+        $newTotalHt = max(0, $newBaseHt - $newDiscount);
+
+        // 3. Sauvegarder : base_price_cents reste intacte (estimation d'origine),
+        //    seuls total_price_cents et discount_cents sont recalculés.
+        $this->order->update([
+            'total_price_cents' => $newTotalHt,
+            'discount_cents'    => $newDiscount,
+        ]);
 
         \Illuminate\Support\Facades\Log::info(
-            "Prix recalculé pour {$this->order->reference}: {$activeCount} photo(s) active(s) × {$pricePerPhoto} cts = {$newPriceHt} cts HT."
+            "Prix recalculé {$this->order->reference}: {$activeCount} photo(s) × {$pricePerPhoto} cts = {$newBaseHt} cts brut" .
+            ($newDiscount > 0 ? " − {$newDiscount} cts remise ({$this->order->coupon_code})" : '') .
+            " = {$newTotalHt} cts HT net."
         );
+
+        // 4. Synchroniser finalPrice dans l'interface admin
+        $this->finalPrice = number_format($newTotalHt / 100, 2, '.', '');
     }
 }; ?>
 
@@ -634,21 +660,26 @@ class extends Component
                     </div>
                     {{-- Estimation IA : HT + TVA --}}
                     @php
-                        $baseHt  = $order->base_price_cents ?? 0;
-                        $finalHt = $order->total_price_cents ?? $baseHt;
-                        $tva     = round($finalHt * 0.2);
-                        $ttc     = $finalHt + $tva;
-                        $aiCost  = ($order->photo_count ?? 1) * 1; // ~0,01 €/photo
+                        $baseHt      = $order->base_price_cents ?? 0;
+                        $discountHt  = $order->discount_cents ?? 0;
+                        $finalHt     = $order->total_price_cents ?? max(0, $baseHt - $discountHt);
+                        $tva         = round($finalHt * 0.2);
+                        $ttc         = $finalHt + $tva;
+                        $aiCost      = ($order->photo_count ?? 1) * 1; // ~0,01 €/photo
                     @endphp
                     <div class="flex justify-between"><dt class="text-[#7A6E5E]">Estim. IA HT</dt><dd class="text-[#C9A84C]">{{ number_format($baseHt / 100, 2, ',', ' ') }} €</dd></div>
-                    @if ($order->total_price_cents)
+                    @if ($discountHt > 0)
+                    <div class="flex justify-between">
+                        <dt class="text-emerald-400/80 text-xs">Remise ({{ $order->coupon_code }})</dt>
+                        <dd class="text-emerald-400 text-xs">−{{ number_format($discountHt / 100, 2, ',', ' ') }} €</dd>
+                    </div>
+                    @endif
                     <div class="border-t border-[#C9A84C]/10 pt-2 space-y-1.5">
-                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT</dt><dd class="text-[#F5F0E8]">{{ number_format($finalHt / 100, 2, ',', ' ') }} €</dd></div>
+                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT{{ $discountHt > 0 ? ' net' : '' }}</dt><dd class="text-[#F5F0E8]">{{ number_format($finalHt / 100, 2, ',', ' ') }} €</dd></div>
                         <div class="flex justify-between"><dt class="text-[#7A6E5E]">TVA 20%</dt><dd class="text-[#7A6E5E]">{{ number_format($tva / 100, 2, ',', ' ') }} €</dd></div>
                         <div class="flex justify-between font-bold"><dt class="text-[#C9A84C]">TTC</dt><dd class="text-[#C9A84C]">{{ number_format($ttc / 100, 2, ',', ' ') }} €</dd></div>
                         <div class="flex justify-between text-xs"><dt class="text-[#7A6E5E]/60">Dont coût IA</dt><dd class="text-[#7A6E5E]/60">~{{ number_format($aiCost / 100, 2, ',', ' ') }} €</dd></div>
                     </div>
-                    @endif
                     @if ($order->paid_at)
                     <div class="flex justify-between"><dt class="text-[#7A6E5E]">Payé le</dt><dd class="text-emerald-400 text-xs">{{ $order->paid_at->format('d/m/Y H:i') }}</dd></div>
                     @endif

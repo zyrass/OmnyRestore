@@ -145,15 +145,15 @@ class extends Component
         $finalHtCents = max(0, $baseHtCents - $discountCents);
 
         $order = Order::create([
-            'user_id'          => auth()->id(),
-            'status'           => 'PENDING',
-            'photo_count'      => count($this->photos),
-            'damage_level'     => $this->damage_level,
-            'instructions'     => $this->instructions,
-            'base_price_cents' => $baseHtCents,
-            'coupon_code'      => $couponCode,
-            'discount_cents'   => $discountCents,
-            // total_price_cents sera fixé par l'admin lors de la validation
+            'user_id'           => auth()->id(),
+            'status'            => 'PENDING',
+            'photo_count'       => count($this->photos),
+            'damage_level'      => $this->damage_level,
+            'instructions'      => $this->instructions,
+            'base_price_cents'  => $baseHtCents,         // Prix HT brut (avant remise)
+            'total_price_cents' => $finalHtCents,         // Prix HT net (après remise coupon)
+            'coupon_code'       => $couponCode,
+            'discount_cents'    => $discountCents,
         ]);
 
         // Confirmer l'utilisation du coupon (incrémenter le compteur)
