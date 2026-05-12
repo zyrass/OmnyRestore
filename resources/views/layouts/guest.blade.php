@@ -14,11 +14,11 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-{{-- body en flex-col pour pouvoir positionner le footer en bas --}}
-<body class="min-h-screen flex flex-col antialiased">
+{{-- h-screen + overflow-hidden = hauteur exacte du viewport, aucun scroll --}}
+<body class="h-screen flex flex-col antialiased overflow-hidden">
 
-    {{-- ── Zone principale : deux colonnes — min-h-screen pour que le panneau gauche se déploie pleinement ──── --}}
-    <div class="flex flex-1 min-h-screen">
+    {{-- flex-1 min-h-0 : remplit l'espace restant apres le footer sans depasser le viewport --}}
+    <div class="flex flex-1 min-h-0">
 
         {{-- Colonne gauche : décor (cachée sur mobile) --}}
         {{-- Élargie à 3/5 (vs 1/2 avant) sur demande — design identique --}}
