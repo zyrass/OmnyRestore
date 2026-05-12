@@ -13,7 +13,8 @@
    BASE — taille volontairement grande pour remplir l'A4
    ══════════════════════════════════════════════════════════ */
 body {
-    font-family: Helvetica, Arial, sans-serif;
+    /* DejaVu Sans est bundlé avec DomPDF et supporte l'Unicode étendu (✓, ·, −, ©) */
+    font-family: 'DejaVu Sans', sans-serif;
     font-size: 16px;
     color: #1A1208;
     background: #FFFFFF;
@@ -246,9 +247,9 @@ table.totals tr.free-row td {
      FOOTER FIXE
      ══════════════════════════════════════════════════ --}}
 <div class="footer-fixed">
-    <strong>OmnyRestore</strong> · contact@omnyrestore.fr · omnyrestore.fr &nbsp;|&nbsp;
-    Facture <strong>{{ $invoiceNum }}</strong> · Commande {{ $order->reference }}<br>
-    Générée le {{ now()->format('d/m/Y à H:i') }} · Document officiel de règlement · © {{ date('Y') }} OmnyRestore
+    <strong>OmnyRestore</strong> &mdash; contact@omnyrestore.fr &mdash; omnyrestore.fr &nbsp;|&nbsp;
+    Facture <strong>{{ $invoiceNum }}</strong> &mdash; Commande {{ $order->reference }}<br>
+    G&eacute;n&eacute;r&eacute;e le {{ now()->format('d/m/Y') }} &mdash; Document officiel de r&egrave;glement &mdash; &copy; {{ date('Y') }} OmnyRestore
 </div>
 
 {{-- ══════════════════════════════════════════════════
@@ -298,7 +299,7 @@ table.totals tr.free-row td {
          TAMPON PAYÉE
          ══════════════════════════════════════════════ --}}
     <div class="stamp-wrap">
-        <span class="stamp">✓ Payée — {{ $order->paid_at?->format('d/m/Y') ?? now()->format('d/m/Y') }}</span>
+        <span class="stamp">&#10003; Payée &mdash; {{ $order->paid_at?->format('d/m/Y') ?? now()->format('d/m/Y') }}</span>
     </div>
 
     {{-- ══════════════════════════════════════════════
@@ -335,7 +336,7 @@ table.totals tr.free-row td {
                 </td>
                 <td>—</td>
                 <td class="r">—</td>
-                <td class="r">−{{ number_format($discountC / 100, 2, ',', ' ') }} €</td>
+                <td class="r">-{{ number_format($discountC / 100, 2, ',', ' ') }} €</td>
             </tr>
             @endif
         </tbody>
@@ -353,7 +354,7 @@ table.totals tr.free-row td {
             </tr>
             <tr>
                 <td style="color:#1a7a3f">Remise</td>
-                <td class="amount" style="color:#1a7a3f">−{{ number_format($discountC / 100, 2, ',', ' ') }} €</td>
+                <td class="amount" style="color:#1a7a3f">-{{ number_format($discountC / 100, 2, ',', ' ') }} €</td>
             </tr>
             @endif
             <tr class="{{ $discountC > 0 ? 'sep' : '' }}">
@@ -367,8 +368,8 @@ table.totals tr.free-row td {
             <tr class="sep-bold {{ $isFree ? 'free-row' : 'ttc-row' }}">
                 <td>Total TTC</td>
                 <td class="amount">
-                    @if ($isFree) Offert ✓
-                    @else {{ number_format($ttcC / 100, 2, ',', ' ') }} €
+                    @if ($isFree) OFFERT
+                    @else {{ number_format($ttcC / 100, 2, ',', ' ') }} &euro;
                     @endif
                 </td>
             </tr>
