@@ -258,7 +258,7 @@ class extends Component
                     {{-- Loading upload --}}
                     <div wire:loading wire:target="photos" class="mt-4 flex items-center gap-2 text-[#7A6E5E] text-sm">
                         <svg class="animate-spin w-4 h-4 text-[#C9A84C]" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                        Chargement des photos…
+                        Chargement des photos&hellip; g&eacute;n&eacute;ration des prix par IA en cours
                     </div>
 
                     {{-- Grille photos + résultats IA --}}
@@ -270,8 +270,8 @@ class extends Component
                         <div class="flex items-center gap-3 bg-[#C9A84C]/10 border border-[#C9A84C]/25 rounded-sm px-4 py-3">
                             <svg class="animate-spin w-4 h-4 text-[#C9A84C] shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                             <div>
-                                <p class="text-[#C9A84C] text-sm font-medium">Analyse IA en cours…</p>
-                                <p class="text-[#7A6E5E] text-xs">Notre algorithme examine l'état de chaque photo pour définir le tarif exact</p>
+                                <p class="text-[#C9A84C] text-sm font-medium">Analyse IA en cours&hellip;</p>
+                                <p class="text-[#7A6E5E] text-sm">GPT-4o Vision examine chaque photo pour g&eacute;n&eacute;rer le tarif exact selon l'&eacute;tat r&eacute;el</p>
                             </div>
                         </div>
                         @endif
