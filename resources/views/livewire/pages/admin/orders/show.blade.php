@@ -547,27 +547,33 @@ class extends Component
                 @endif
 
                 {{-- Prix final --}}
-                <div class="mb-4">
-                    <label class="block text-[#7A6E5E] text-xs uppercase tracking-widest mb-1.5">Prix final (€) — révision du tarif IA</label>
+                <div class="mb-4" x-data="{ ht: {{ (float)($finalPrice ?? 0) }} }">
+                    <label class="block text-[#7A6E5E] text-xs uppercase tracking-widest mb-1.5">
+                        Prix HT &mdash; le client sera facturé <span class="text-[#C9A84C] font-semibold" x-text="(ht * 1.2).toFixed(2) + ' € TTC'">
+                            {{ number_format((float)$finalPrice * 1.2, 2, ',', ' ') }} € TTC
+                        </span>
+                    </label>
                     <div class="flex items-center gap-3">
                         <input wire:model="finalPrice" type="number" step="0.01" min="0"
+                               @input="ht = parseFloat($event.target.value) || 0"
                                class="w-36 bg-[#1A1510] border border-[#C9A84C]/20 text-[#C9A84C] font-bold text-lg text-center rounded-sm px-4 py-2 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
-                        <span class="text-[#7A6E5E] text-sm">€ HT
+                        <div class="text-sm">
+                            <p class="text-[#7A6E5E]">€ HT</p>
                             @php
                                 $baseHint    = ($order->base_price_cents ?? 0);
                                 $discountHint = ($order->discount_cents ?? 0);
                                 $netHint     = max(0, $baseHint - $discountHint);
                             @endphp
                             @if ($discountHint > 0)
-                            <span class="ml-2 text-xs text-emerald-400">
-                                Brut IA : {{ number_format($baseHint / 100, 2, ',', ' ') }} €
-                                · Remise ({{ $order->coupon_code }}) : −{{ number_format($discountHint / 100, 2, ',', ' ') }} €
-                                · Net : {{ number_format($netHint / 100, 2, ',', ' ') }} €
-                            </span>
+                            <p class="text-emerald-400 text-xs mt-0.5">
+                                Brut IA : {{ number_format($baseHint / 100, 2, ',', ' ') }} €
+                                &middot; Remise ({{ $order->coupon_code }}) : &minus;{{ number_format($discountHint / 100, 2, ',', ' ') }} €
+                                &middot; Net : {{ number_format($netHint / 100, 2, ',', ' ') }} €
+                            </p>
                             @else
-                            <span class="ml-2 text-xs">(IA suggérait : {{ number_format($baseHint / 100, 2, ',', ' ') }} €)</span>
+                            <p class="text-[#7A6E5E]/60 text-xs mt-0.5">IA suggérait : {{ number_format($baseHint / 100, 2, ',', ' ') }} € HT</p>
                             @endif
-                        </span>
+                        </div>
                     </div>
                     @error('finalPrice') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
                 </div>
@@ -713,14 +719,22 @@ class extends Component
                           class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs rounded-sm px-3 py-2 placeholder-[#7A6E5E]/50 resize-none focus:outline-none focus:border-[#C9A84C]/60 transition-all mb-3">
                 </textarea>
                 @if (!in_array($order->status, ['PAID', 'DELIVERED', 'CANCELLED']))
-                <div class="flex gap-2 mb-3">
-                    <input wire:model="finalPrice" type="number" step="0.01" placeholder="Prix HT (€)"
-                           title="Montant hors taxes — TVA 20% s'ajoute automatiquement"
-                           class="flex-1 bg-[#1A1510] border border-[#C9A84C]/20 text-[#C9A84C] text-sm rounded-sm px-3 py-2 focus:outline-none focus:border-[#C9A84C]/60 transition-all"
-                           x-data x-tooltip="'HT — TTC = ' + (parseFloat($el.value || 0) * 1.2).toFixed(2) + ' €'">
-                    <button wire:click="saveNotes" class="px-4 py-2 text-xs bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30 hover:bg-[#C9A84C]/30 rounded-sm transition-all">
-                        Sauver
-                    </button>
+                <div x-data="{ ht: {{ (float)($finalPrice ?? 0) }} }" class="mb-3">
+                    <div class="flex gap-2 mb-1">
+                        <input wire:model="finalPrice" type="number" step="0.01" placeholder="Prix HT (€)"
+                               @input="ht = parseFloat($event.target.value) || 0"
+                               class="flex-1 bg-[#1A1510] border border-[#C9A84C]/20 text-[#C9A84C] text-sm rounded-sm px-3 py-2 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
+                        <button wire:click="saveNotes" class="px-4 py-2 text-xs bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30 hover:bg-[#C9A84C]/30 rounded-sm transition-all">
+                            Sauver
+                        </button>
+                    </div>
+                    <p class="text-[#7A6E5E] text-xs">
+                        HT &rarr; TTC client :
+                        <span class="text-[#C9A84C] font-semibold" x-text="(ht * 1.2).toFixed(2) + ' €'">
+                            {{ number_format((float)$finalPrice * 1.2, 2, ',', ' ') }} €
+                        </span>
+                        <span class="text-[#7A6E5E]/60">(TVA 20% incluse)</span>
+                    </p>
                 </div>
                 @endif
             </div>
