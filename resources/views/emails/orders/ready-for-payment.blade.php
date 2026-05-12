@@ -21,9 +21,12 @@
         .order-box-label { color: #7A6E5E; }
         .order-box-value { color: #F5F0E8; font-weight: bold; }
         .order-box-price { color: #C9A84C; font-size: 18px; font-weight: bold; }
+        .order-box-free { color: #34d399; font-size: 18px; font-weight: bold; }
         .cta-wrapper { text-align: center; margin: 32px 0; }
         .cta { display: inline-block; background: linear-gradient(135deg, #C9A84C, #E8C97A); color: #0F0C08; text-decoration: none; font-size: 13px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; padding: 16px 40px; border-radius: 1px; }
+        .cta-free { display: inline-block; background: linear-gradient(135deg, #059669, #34d399); color: #0F0C08; text-decoration: none; font-size: 13px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; padding: 16px 40px; border-radius: 1px; }
         .note { background: rgba(201,168,76,0.06); border-left: 3px solid rgba(201,168,76,0.4); padding: 14px 18px; margin: 24px 0; font-size: 12px; color: #9E9085; line-height: 1.6; }
+        .note-free { background: rgba(52,211,153,0.06); border-left: 3px solid rgba(52,211,153,0.4); padding: 14px 18px; margin: 24px 0; font-size: 12px; color: #9E9085; line-height: 1.6; }
         .footer { background: #0F0C08; border-top: 1px solid rgba(201,168,76,0.1); padding: 28px 40px; text-align: center; }
         .footer p { font-size: 11px; color: #4A3E2E; line-height: 1.7; }
         .footer a { color: #C9A84C; text-decoration: none; }
@@ -31,15 +34,28 @@
 </head>
 <body>
 <div class="container">
+    @php
+        $htCents  = (int) ($order->total_price_cents ?? $order->base_price_cents ?? 0);
+        $ttcCents = $htCents + (int) round($htCents * 0.20);
+        $isFree   = $ttcCents === 0;
+    @endphp
+
     <div class="header">
         <div class="logo">OmnyRestore</div>
         <h1>Vos photos restaurées<br>sont prêtes ✨</h1>
-        <p>Aperçu disponible — paiement requis pour télécharger</p>
+        <p>{{ $isFree ? 'Offert grâce à votre coupon — téléchargement disponible' : 'Aperçu disponible — paiement requis pour télécharger' }}</p>
     </div>
 
     <div class="body">
         <p class="greeting">Bonjour {{ $order->user->name }},</p>
 
+        @if ($isFree)
+        <p class="text">
+            Notre équipe a terminé la restauration de vos photos. Grâce à votre coupon,
+            votre commande est <strong>entièrement offerte</strong> ! Vous pouvez télécharger
+            vos photos en haute résolution directement depuis votre espace client.
+        </p>
+        @else
         <p class="text">
             Notre équipe a terminé la restauration de vos photos. Vous pouvez maintenant
             consulter un <strong>aperçu filigrané</strong> du résultat directement dans votre espace client.
@@ -49,6 +65,7 @@
             Si le rendu vous satisfait, procédez au paiement pour recevoir vos photos
             en haute résolution, sans filigrane.
         </p>
+        @endif
 
         <div class="order-box">
             <div class="order-box-row">
@@ -64,23 +81,30 @@
                 <span class="order-box-value">{{ $order->damage_level === 'heavy' ? 'Avancée' : 'Standard' }}</span>
             </div>
             <div class="order-box-row">
-                <span class="order-box-label">Montant à régler</span>
-                <span class="order-box-price">
-                    {{ number_format(($order->total_price_cents ?? $order->base_price_cents ?? 0) / 100, 2, ',', ' ') }} €
+                <span class="order-box-label">{{ $isFree ? 'Montant' : 'Montant TTC' }}</span>
+                <span class="{{ $isFree ? 'order-box-free' : 'order-box-price' }}">
+                    {{ $isFree ? 'Offert ✓' : number_format($ttcCents / 100, 2, ',', ' ') . ' €' }}
                 </span>
             </div>
         </div>
 
         <div class="cta-wrapper">
-            <a href="{{ route('client.orders.show', $order) }}" class="cta">
-                Voir l'aperçu &amp; Payer
+            <a href="{{ route('client.orders.show', $order) }}" class="{{ $isFree ? 'cta-free' : 'cta' }}">
+                {{ $isFree ? '↓ Télécharger mes photos' : "Voir l'aperçu & Payer" }}
             </a>
         </div>
 
+        @if (!$isFree)
         <div class="note">
             <strong>Rappel :</strong> Les aperçus sont filigranés et resteront disponibles 30 jours.
             Le téléchargement des photos originales en haute qualité est débloqué immédiatement après le paiement.
         </div>
+        @else
+        <div class="note-free">
+            <strong>Archive en cours de préparation :</strong> Votre ZIP sera disponible dans quelques minutes.
+            Un email vous sera envoyé dès que le téléchargement sera prêt.
+        </div>
+        @endif
 
         <p class="text">
             Une question ? Répondez directement à cet email ou contactez-nous à
