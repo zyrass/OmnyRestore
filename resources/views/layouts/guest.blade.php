@@ -17,8 +17,8 @@
 {{-- body en flex-col pour pouvoir positionner le footer en bas --}}
 <body class="min-h-screen flex flex-col antialiased">
 
-    {{-- ── Zone principale : deux colonnes ────────────────────────────────── --}}
-    <div class="flex flex-1">
+    {{-- ── Zone principale : deux colonnes — min-h-screen pour que le panneau gauche se déploie pleinement ──── --}}
+    <div class="flex flex-1 min-h-screen">
 
         {{-- Colonne gauche : décor (cachée sur mobile) --}}
         {{-- Élargie à 3/5 (vs 1/2 avant) sur demande — design identique --}}
@@ -91,7 +91,9 @@
         </div>
 
         {{-- ── Colonne droite : formulaire ─────────────────────────────────────── --}}
-        <div class="flex-1 flex flex-col justify-center items-center bg-[#0D0B08] px-12 lg:px-20 py-12 relative">
+        {{-- items-start : le formulaire s'ancre au bord gauche de la colonne, pas centré en row --}}
+        {{-- justify-center : le formulaire reste centré verticalement dans la colonne --}}
+        <div class="flex-1 flex flex-col justify-center items-start bg-[#0D0B08] px-12 lg:px-20 py-12 relative">
 
             {{-- Subtle glow --}}
             <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-[#C9A84C]/4 rounded-full blur-[100px] pointer-events-none"></div>
