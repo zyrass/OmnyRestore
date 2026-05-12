@@ -3,184 +3,397 @@
 <head>
 <meta charset="UTF-8">
 <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; }
-    .page { padding: 40px 50px; }
+/* ─── Reset ────────────────────────────────────────────── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-    /* En-tête */
-    .header { border-bottom: 2px solid #1a1a1a; padding-bottom: 20px; margin-bottom: 30px; }
-    .header-top { display: flex; justify-content: space-between; align-items: flex-start; }
-    .brand { font-size: 22px; font-weight: bold; letter-spacing: 3px; text-transform: uppercase; }
-    .brand-sub { font-size: 9px; letter-spacing: 2px; color: #666; margin-top: 2px; }
-    .invoice-meta { text-align: right; }
-    .invoice-meta .label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #999; }
-    .invoice-meta .value { font-size: 13px; font-weight: bold; }
-    .invoice-meta .date { font-size: 10px; color: #555; margin-top: 4px; }
+/* ─── Page ─────────────────────────────────────────────── */
+body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 10px;
+    color: #2C2418;
+    background: #fff;
+    line-height: 1.5;
+}
+.page { padding: 0; }
 
-    /* Parties */
-    .parties { display: flex; justify-content: space-between; margin-bottom: 30px; }
-    .party { width: 48%; }
-    .party-label { font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px; color: #999; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-    .party-name { font-size: 12px; font-weight: bold; margin-bottom: 2px; }
-    .party-detail { font-size: 10px; color: #555; line-height: 1.5; }
+/* ─── Header sombre ─────────────────────────────────────── */
+.header-bg {
+    background-color: #1A1208;
+    padding: 30px 50px 24px;
+    border-bottom: 3px solid #C9A84C;
+}
+.header-logo {
+    float: left;
+    width: 50%;
+}
+.header-logo .brand {
+    font-size: 20px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #C9A84C;
+}
+.header-logo .brand-sub {
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #7A6E5E;
+    margin-top: 3px;
+    text-transform: uppercase;
+}
+.header-right {
+    float: right;
+    width: 45%;
+    text-align: right;
+}
+.header-right .inv-label {
+    font-size: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #7A6E5E;
+}
+.header-right .inv-ref {
+    font-size: 15px;
+    font-weight: bold;
+    color: #F5F0E8;
+    margin-top: 2px;
+    letter-spacing: 1px;
+}
+.header-right .inv-date {
+    font-size: 9px;
+    color: #9E9085;
+    margin-top: 4px;
+}
+.clearfix::after { content: ''; display: table; clear: both; }
 
-    /* Tableau */
-    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    thead th { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #999; padding: 8px 10px; border-bottom: 1px solid #ddd; text-align: left; }
-    thead th:last-child, td:last-child { text-align: right; }
-    tbody td { padding: 10px; border-bottom: 1px solid #f0f0f0; font-size: 10px; line-height: 1.5; }
-    tbody tr:last-child td { border-bottom: none; }
+/* ─── Corps ─────────────────────────────────────────────── */
+.body { padding: 32px 50px; }
 
-    /* Totaux */
-    .totals { margin-left: auto; width: 280px; }
-    .total-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 10px; color: #555; }
-    .total-row.ht { border-top: 1px solid #eee; padding-top: 8px; }
-    .total-row.tva { color: #777; }
-    .total-row.ttc { border-top: 2px solid #1a1a1a; margin-top: 4px; padding-top: 8px; font-size: 14px; font-weight: bold; color: #1a1a1a; }
-    .total-row.discount { color: #1a7a3f; }
+/* ─── Bloc parties (prestataire / client) ───────────────── */
+.parties-wrap {
+    width: 100%;
+    border-bottom: 1px solid #EDE8E0;
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+}
+.party-block {
+    display: inline-block;
+    width: 48%;
+    vertical-align: top;
+}
+.party-block.right { text-align: right; }
+.party-section-label {
+    font-size: 7px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #B0A090;
+    border-bottom: 1px solid #EDE8E0;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+}
+.party-name {
+    font-size: 12px;
+    font-weight: bold;
+    color: #1A1208;
+    margin-bottom: 3px;
+}
+.party-detail {
+    font-size: 9px;
+    color: #7A6E5E;
+    line-height: 1.6;
+}
 
-    /* Pied */
-    .footer { margin-top: 50px; padding-top: 15px; border-top: 1px solid #eee; font-size: 9px; color: #999; text-align: center; line-height: 1.6; }
-    .paid-stamp { display: inline-block; border: 2px solid #1a7a3f; color: #1a7a3f; padding: 4px 14px; font-weight: bold; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px; }
-    .ai-note { background: #f9f9f9; border-left: 3px solid #ddd; padding: 8px 12px; font-size: 9px; color: #888; margin-bottom: 20px; line-height: 1.5; }
+/* ─── Tampon PAYÉE ──────────────────────────────────────── */
+.stamp-wrap { text-align: center; margin: 4px 0 24px; }
+.stamp {
+    display: inline-block;
+    border: 2px solid #1a7a3f;
+    color: #1a7a3f;
+    padding: 5px 18px;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+/* ─── Tableau prestations ───────────────────────────────── */
+.section-title {
+    font-size: 7px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #B0A090;
+    margin-bottom: 8px;
+}
+table.items {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 8px;
+}
+table.items thead tr {
+    background-color: #F7F4EE;
+}
+table.items thead th {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #9E9085;
+    padding: 7px 10px;
+    text-align: left;
+    border-bottom: 1px solid #DDD8CE;
+}
+table.items thead th.r { text-align: right; }
+table.items tbody td {
+    padding: 9px 10px;
+    font-size: 9.5px;
+    border-bottom: 1px solid #F0EDE6;
+    vertical-align: top;
+    color: #2C2418;
+}
+table.items tbody td.r { text-align: right; }
+table.items tbody td .desc-main { font-weight: bold; font-size: 10px; }
+table.items tbody td .desc-sub { color: #9E9085; font-size: 8.5px; margin-top: 2px; }
+.coupon-row td { color: #1a7a3f !important; background-color: #f2fbf5; }
+.coupon-row td.coupon-label { font-weight: bold; }
+
+/* ─── Totaux ────────────────────────────────────────────── */
+.totals-wrap { text-align: right; margin-top: 4px; }
+table.totals {
+    display: inline-table;
+    width: 260px;
+    border-collapse: collapse;
+}
+table.totals td {
+    padding: 4px 0;
+    font-size: 10px;
+    color: #7A6E5E;
+}
+table.totals td.amount { text-align: right; padding-left: 20px; }
+table.totals tr.sep td { border-top: 1px solid #EDE8E0; padding-top: 8px; }
+table.totals tr.sep-bold td { border-top: 2px solid #1A1208; padding-top: 10px; }
+table.totals tr.ttc-row td {
+    font-size: 14px;
+    font-weight: bold;
+    color: #1A1208;
+}
+table.totals tr.free-row td {
+    font-size: 13px;
+    font-weight: bold;
+    color: #1a7a3f;
+}
+
+/* ─── Note IA ───────────────────────────────────────────── */
+.note-ia {
+    background: #F7F4EE;
+    border-left: 3px solid #C9A84C;
+    padding: 10px 14px;
+    font-size: 8.5px;
+    color: #9E9085;
+    line-height: 1.6;
+    margin-top: 24px;
+}
+
+/* ─── Pied de page ──────────────────────────────────────── */
+.footer {
+    margin-top: 40px;
+    padding-top: 14px;
+    border-top: 1px solid #EDE8E0;
+    font-size: 8px;
+    color: #B0A090;
+    text-align: center;
+    line-height: 1.7;
+}
+.footer strong { color: #7A6E5E; }
 </style>
 </head>
 <body>
 <div class="page">
 
-    {{-- En-tête --}}
-    <div class="header">
-        <div class="header-top">
-            <div>
-                <div class="brand">OmnyRestore</div>
-                <div class="brand-sub">Restauration photographique professionnelle</div>
-            </div>
-            <div class="invoice-meta">
-                <div class="label">Facture</div>
-                <div class="value">{{ $order->reference }}</div>
-                <div class="date">Émise le {{ $order->paid_at?->format('d/m/Y') ?? now()->format('d/m/Y') }}</div>
-            </div>
+@php
+    // ── Source de vérité ───────────────────────────────────────
+    // total_price_cents = HT net après remise (fixé par l'admin)
+    $baseHtC  = (int) ($order->base_price_cents ?? 0);
+    $discountC= (int) ($order->discount_cents   ?? 0);
+
+    // Si total_price_cents est renseigné, c'est la valeur de référence
+    // Sinon on le calcule (base - remise)
+    $htNetC   = $order->total_price_cents !== null
+        ? (int) $order->total_price_cents
+        : max(0, $baseHtC - $discountC);
+
+    $tvaRate  = 20; // TVA FR 20%
+    $tvaC     = (int) round($htNetC * $tvaRate / 100);
+    $ttcC     = $htNetC + $tvaC;
+    $isFree   = $ttcC === 0;
+
+    $nPhotos  = (int) ($order->photo_count ?? 1);
+    $unitHtC  = $nPhotos > 0 ? (int) round($baseHtC / $nPhotos) : $baseHtC;
+
+    $level = $order->damage_level ?? 'light';
+    $levelLabel = match($level) {
+        'light'  => 'Standard (légère dégradation)',
+        'medium' => 'Avancée (dégradation modérée)',
+        'heavy'  => 'Complète (dégradation importante)',
+        default  => ucfirst($level),
+    };
+
+    $invoiceNum = 'FAC-' . ($order->paid_at?->format('Y') ?? now()->format('Y'))
+                . '-' . str_pad(substr($order->reference, -4), 4, '0', STR_PAD_LEFT);
+@endphp
+
+{{-- ══════════════════════════════════════════════════
+     EN-TÊTE SOMBRE
+     ══════════════════════════════════════════════════ --}}
+<div class="header-bg clearfix">
+    <div class="header-logo">
+        <div class="brand">OmnyRestore</div>
+        <div class="brand-sub">Restauration photographique IA</div>
+    </div>
+    <div class="header-right">
+        <div class="inv-label">Facture</div>
+        <div class="inv-ref">{{ $invoiceNum }}</div>
+        <div class="inv-date">
+            Émise le {{ $order->paid_at?->format('d/m/Y') ?? now()->format('d/m/Y') }}<br>
+            Réf. commande : {{ $order->reference }}
         </div>
     </div>
+</div>
 
-    {{-- Parties --}}
-    <div class="parties">
-        <div class="party">
-            <div class="party-label">Prestataire</div>
+<div class="body">
+
+    {{-- ══════════════════════════════════════════════════
+         PARTIES : PRESTATAIRE / CLIENT
+         ══════════════════════════════════════════════════ --}}
+    <div class="parties-wrap clearfix">
+        <div class="party-block">
+            <div class="party-section-label">Prestataire</div>
             <div class="party-name">OmnyRestore</div>
             <div class="party-detail">
-                Service de restauration photographique IA<br>
-                contact@omnyrestore.fr
+                Service de restauration photographique par IA<br>
+                contact@omnyrestore.fr<br>
+                omnyrestore.fr
             </div>
         </div>
-        <div class="party">
-            <div class="party-label">Client</div>
+        <div class="party-block right">
+            <div class="party-section-label">Facturé à</div>
             <div class="party-name">{{ $order->user->name }}</div>
             <div class="party-detail">
-                {{ $order->user->email }}
+                {{ $order->user->email }}<br>
+                Client depuis {{ $order->user->created_at->format('d/m/Y') }}
             </div>
         </div>
     </div>
 
-    {{-- Tampon payé --}}
-    <div style="text-align:center; margin-bottom: 20px;">
-        <span class="paid-stamp">✓ Payée</span>
+    {{-- ══════════════════════════════════════════════════
+         TAMPON PAYÉE
+         ══════════════════════════════════════════════════ --}}
+    <div class="stamp-wrap">
+        <span class="stamp">✓ Payée — {{ $order->paid_at?->format('d/m/Y') ?? now()->format('d/m/Y') }}</span>
     </div>
 
-    {{-- Tableau des prestations --}}
-    @php
-        $baseHt   = ($order->base_price_cents ?? 0);
-        $discount = ($order->discount_cents ?? 0);
-        $ht       = max(0, $baseHt - $discount);
-        $tvaRate  = $order->tva_rate ?? 20;
-        $tva      = round($ht * $tvaRate / 100);
-        $ttc      = $ht + $tva;
-        $nPhotos  = $order->photo_count ?? 1;
-        $aiCost   = $nPhotos * 1; // 0,01 € HT par photo estimé
-        $level    = $order->damage_level ?? 'standard';
-        $levelLabel = match($level) {
-            'light'  => 'Standard (légère dégradation)',
-            'medium' => 'Avancée (dégradation modérée)',
-            'heavy'  => 'Complète (dégradation importante)',
-            default  => 'Standard',
-        };
-    @endphp
-
-    <table>
+    {{-- ══════════════════════════════════════════════════
+         TABLEAU PRESTATIONS
+         ══════════════════════════════════════════════════ --}}
+    <div class="section-title">Détail de la prestation</div>
+    <table class="items">
         <thead>
             <tr>
-                <th>Description</th>
-                <th>Qté</th>
-                <th>Prix unitaire HT</th>
-                <th>Total HT</th>
+                <th style="width:52%">Description</th>
+                <th style="width:10%">Qté</th>
+                <th class="r" style="width:19%">Prix unit. HT</th>
+                <th class="r" style="width:19%">Total HT</th>
             </tr>
         </thead>
         <tbody>
+            {{-- Ligne principale --}}
             <tr>
                 <td>
-                    <strong>Restauration photographique — Niveau {{ $levelLabel }}</strong><br>
-                    <span style="color:#888;">Analyse IA + restauration + upscale haute résolution</span>
+                    <div class="desc-main">Restauration photographique</div>
+                    <div class="desc-sub">
+                        Niveau : {{ $levelLabel }}<br>
+                        Analyse IA + retouche + upscale haute résolution 8K
+                    </div>
                 </td>
                 <td>{{ $nPhotos }}</td>
-                <td>{{ number_format($baseHt / $nPhotos / 100, 2, ',', ' ') }} €</td>
-                <td>{{ number_format($baseHt / 100, 2, ',', ' ') }} €</td>
+                <td class="r">{{ number_format($unitHtC / 100, 2, ',', ' ') }} €</td>
+                <td class="r">{{ number_format($baseHtC / 100, 2, ',', ' ') }} €</td>
             </tr>
-            @if ($discount > 0)
-            <tr>
-                <td>
-                    <strong style="color:#1a7a3f;">Code de réduction</strong>
-                    @if ($order->coupon_code)
-                    <span style="color:#888;"> — {{ $order->coupon_code }}</span>
-                    @endif
+
+            {{-- Ligne coupon (si applicable) --}}
+            @if ($discountC > 0)
+            <tr class="coupon-row">
+                <td class="coupon-label">
+                    Code de réduction{{ $order->coupon_code ? ' · ' . strtoupper($order->coupon_code) : '' }}
+                    <div class="desc-sub">Remise appliquée sur la prestation</div>
                 </td>
                 <td>—</td>
-                <td>—</td>
-                <td style="color:#1a7a3f;">-{{ number_format($discount / 100, 2, ',', ' ') }} €</td>
+                <td class="r">—</td>
+                <td class="r">−{{ number_format($discountC / 100, 2, ',', ' ') }} €</td>
             </tr>
             @endif
         </tbody>
     </table>
 
-    {{-- Note IA --}}
-    <div class="ai-note">
-        <strong>À propos du coût IA :</strong> Chaque photo bénéficie d'une analyse par intelligence artificielle (GPT-4o Vision)
-        pour déterminer le niveau de restauration optimal. Ce coût (~0,01 € HT/photo) est inclus dans le tarif de restauration.
-        Il garantit une évaluation précise et un rendu adapté à l'état réel de votre photo.
+    {{-- ══════════════════════════════════════════════════
+         TOTAUX
+         ══════════════════════════════════════════════════ --}}
+    <div class="totals-wrap">
+        <table class="totals">
+            @if ($discountC > 0)
+            <tr>
+                <td>Sous-total HT</td>
+                <td class="amount">{{ number_format($baseHtC / 100, 2, ',', ' ') }} €</td>
+            </tr>
+            <tr>
+                <td style="color:#1a7a3f">Remise</td>
+                <td class="amount" style="color:#1a7a3f">−{{ number_format($discountC / 100, 2, ',', ' ') }} €</td>
+            </tr>
+            @endif
+            <tr class="{{ $discountC > 0 ? 'sep' : '' }}">
+                <td>Total HT net</td>
+                <td class="amount">{{ number_format($htNetC / 100, 2, ',', ' ') }} €</td>
+            </tr>
+            <tr>
+                <td style="color:#B0A090">TVA {{ $tvaRate }}%</td>
+                <td class="amount" style="color:#B0A090">{{ number_format($tvaC / 100, 2, ',', ' ') }} €</td>
+            </tr>
+            <tr class="sep-bold {{ $isFree ? 'free-row' : 'ttc-row' }}">
+                <td>Total TTC</td>
+                <td class="amount">
+                    @if ($isFree)
+                        Offert ✓
+                    @else
+                        {{ number_format($ttcC / 100, 2, ',', ' ') }} €
+                    @endif
+                </td>
+            </tr>
+            @if ($order->payment_intent_id && !str_starts_with($order->payment_intent_id, 'coupon_free_'))
+            <tr>
+                <td style="color:#B0A090; font-size:8px">Réf. paiement</td>
+                <td class="amount" style="color:#B0A090; font-size:8px">{{ $order->payment_intent_id }}</td>
+            </tr>
+            @endif
+        </table>
     </div>
 
-    {{-- Totaux --}}
-    <div class="totals">
-        @if ($discount > 0)
-        <div class="total-row discount">
-            <span>Sous-total HT avant remise</span>
-            <span>{{ number_format($baseHt / 100, 2, ',', ' ') }} €</span>
-        </div>
-        <div class="total-row discount">
-            <span>Réduction appliquée</span>
-            <span>-{{ number_format($discount / 100, 2, ',', ' ') }} €</span>
-        </div>
-        @endif
-        <div class="total-row ht">
-            <span>Total HT</span>
-            <span>{{ number_format($ht / 100, 2, ',', ' ') }} €</span>
-        </div>
-        <div class="total-row tva">
-            <span>TVA {{ $tvaRate }}%</span>
-            <span>{{ number_format($tva / 100, 2, ',', ' ') }} €</span>
-        </div>
-        <div class="total-row ttc">
-            <span>Total TTC</span>
-            <span>{{ number_format($ttc / 100, 2, ',', ' ') }} €</span>
-        </div>
+    {{-- ══════════════════════════════════════════════════
+         NOTE IA (transparence tarifaire)
+         ══════════════════════════════════════════════════ --}}
+    <div class="note-ia">
+        <strong>Transparence tarifaire :</strong> Le tarif inclut l'analyse de chaque photo par intelligence artificielle
+        (GPT-4o Vision) pour évaluer l'état de dégradation et adapter le traitement. Ce coût d'analyse (~0,01 € HT/photo)
+        est intégré au prix global de la restauration et n'est pas facturé séparément.
     </div>
 
-    {{-- Pied de page --}}
+    {{-- ══════════════════════════════════════════════════
+         PIED DE PAGE
+         ══════════════════════════════════════════════════ --}}
     <div class="footer">
-        OmnyRestore · contact@omnyrestore.fr<br>
-        Facture générée automatiquement le {{ now()->format('d/m/Y à H:i') }}<br>
-        Cette facture fait foi de règlement complet de la commande {{ $order->reference }}.
+        <strong>OmnyRestore</strong> · contact@omnyrestore.fr · omnyrestore.fr<br>
+        Cette facture fait foi de règlement complet de la commande <strong>{{ $order->reference }}</strong>.<br>
+        Générée automatiquement le {{ now()->format('d/m/Y à H:i') }} · Conservez ce document pour votre comptabilité.<br>
+        © {{ date('Y') }} OmnyRestore — Tous droits réservés.
     </div>
 
-</div>
+</div>{{-- /.body --}}
+</div>{{-- /.page --}}
 </body>
 </html>

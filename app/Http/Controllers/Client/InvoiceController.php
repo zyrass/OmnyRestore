@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
  * InvoiceController — Génération de facture PDF client
  *
  * Route: GET /client/orders/{order}/invoice
- * Middleware: auth, verified, client (ou owner)
+ * Middleware: auth, verified
  */
 class InvoiceController extends Controller
 {
@@ -24,22 +24,27 @@ class InvoiceController extends Controller
         // Vérifier que la commande est payée
         abort_if($order->payment_status !== 'paid', 403, 'La facture n\'est disponible qu\'après paiement.');
 
+        // Charger les relations nécessaires au template
         $order->load('user');
 
         $pdf = Pdf::loadView('pdf.invoice', compact('order'))
-            ->setPaper('A4')
+            ->setPaper('A4', 'portrait')
             ->setOptions([
-                'defaultFont' => 'helvetica',
-                'isHtml5ParserEnabled' => true,
-                'isRemoteEnabled' => false,
-                'dpi' => 150,
+                'defaultFont'           => 'helvetica',
+                'isHtml5ParserEnabled'  => true,
+                'isRemoteEnabled'       => false,
+                'isFontSubsettingEnabled' => true,
+                'defaultMediaType'      => 'print',
+                'dpi'                   => 150,
+                'enable_php'            => false,
             ]);
 
-        $filename = 'facture-' . $order->reference . '.pdf';
+        $filename = 'facture-omnyrestore-' . $order->reference . '.pdf';
 
+        // inline = s'ouvre dans le navigateur (téléchargeable via le bouton du PDF viewer)
         return response($pdf->output(), 200, [
             'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Content-Disposition' => "inline; filename=\"{$filename}\"",
         ]);
     }
 }
