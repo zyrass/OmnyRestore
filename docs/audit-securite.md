@@ -1,4 +1,4 @@
-# 🔐 Audit de Sécurité — OmnyRestore v0.15.0
+# 🔐 Audit de Sécurité — OmnyRestore v0.19.0
 
 > **Date** : 2026-05-13 | **Auditeur** : Antigravity AI | **Scope** : Application Laravel 12, infrastructure VPS OVH, pipeline CI/CD
 
@@ -14,14 +14,14 @@
 | Sécurité des paiements Stripe | ✅ Solide | Bon |
 | Sécurité des fichiers S3 | ⚠️ À renforcer | Moyen |
 | Variables d'environnement | ✅ Bien géré | Bon |
-| Headers HTTP | ⚠️ Manquants | À corriger |
+| Headers HTTP | ✅ Configurés | Excellent |
 | Rate Limiting | ⚠️ Partiel | À compléter |
-| Tests de sécurité | ❌ Absents | Critique |
+| Tests de sécurité | ⚠️ En cours | Moyen |
 | HTTPS / TLS | ⚠️ Non configuré | À faire |
 | Logs & Monitoring | ⚠️ Basique | À renforcer |
 | Dépendances | ⚠️ Non audités | À vérifier |
 
-**Score global : 6.5/10 — Bon niveau pour une beta, des ajouts critiques requis avant production.**
+**Score global : 7.5/10 — L'application est structurellement très sécurisée (Headers OK, workflow livraison robuste). Reste l'infrastructure de production à verrouiller.**
 
 ---
 
@@ -174,21 +174,23 @@ aws s3api put-public-access-block \
 
 > Ne JAMAIS utiliser les credentials root AWS. Créer un utilisateur IAM dédié avec le minimum de permissions.
 
-**Problème 3 : URLs signées — durée à vérifier**
+**Problème 3 : URLs signées et Expiration ZIP — Durée à vérifier**
 
 ```php
-// Les URLs signées S3 doivent avoir une durée limitée
-// Vérifier dans OrderDownloadController que l'expiration est cohérente (max 7 jours)
-$url = Storage::disk('s3')->temporaryUrl($path, now()->addDays(7));
+// Les URLs signées S3 ont une durée limitée à 48h
+$url = Storage::disk('s3')->temporaryUrl($path, now()->addHours(48));
+
+// ✅ Bonne pratique : L'archive ZIP elle-même expire physiquement après 90 jours
+// Ce mécanisme est géré de manière robuste par markAsDelivered()
 ```
 
 ---
 
 ## 7. HEADERS HTTP DE SÉCURITÉ
 
-### ❌ Non configurés — Action requise
+### ✅ Configurés — Sécurisation renforcée en v0.15.0
 
-Ajouter un middleware `SecurityHeaders` :
+Le middleware `SecurityHeaders` est actif sur toutes les requêtes web :
 
 ```php
 // app/Http/Middleware/SecurityHeaders.php
@@ -407,7 +409,7 @@ SÉCURITÉ APPLICATION
 [ ] APP_ENV=production
 [ ] SESSION_ENCRYPT=true
 [ ] SESSION_SECURE_COOKIE=true
-[ ] Middleware SecurityHeaders ajouté
+[x] Middleware SecurityHeaders ajouté
 [ ] Rate limiting sur création commandes
 [ ] Rotation de APP_KEY documentée
 

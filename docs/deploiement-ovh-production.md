@@ -1,6 +1,42 @@
-﻿# 🚀 Guide de déploiement Production — OmnyRestore
+# 🚀 Guide de déploiement Production — OmnyRestore
 
 > OVH VPS · PostgreSQL 16 · Nginx · Redis · Let's Encrypt · CI/CD GitHub Actions
+
+> [!NOTE] L'approche pédagogique
+> Ce document décrit pas-à-pas la mise en production de l'application sur un environnement VPS OVH. Il est conçu non seulement comme une suite de commandes à exécuter, mais surtout comme un **guide explicatif** pour comprendre les choix d'architecture.
+
+---
+
+## 🏗️ Architecture Cible
+
+```mermaid
+graph TD
+    Client((Client HTTP/HTTPS))
+    subgraph "VPS OVH (Ubuntu 24.04)"
+        Nginx[Nginx Web Server]
+        PHP[PHP-FPM 8.3]
+        App[Laravel Application]
+        Worker[Supervisor Workers]
+        DB[(PostgreSQL 16)]
+        Cache[(Redis 7)]
+    end
+    S3[(Buckets S3 AWS/Scaleway)]
+    Stripe[API Stripe]
+
+    Client -->|HTTPS / 443| Nginx
+    Nginx -->|FastCGI| PHP
+    PHP --> App
+    App --> DB
+    App --> Cache
+    App --> Stripe
+    App --> S3
+    Worker --> App
+```
+
+> [!TIP] Pourquoi ces composants ?
+> - **Nginx + PHP-FPM** : Nginx excelle dans le service de fichiers statiques (images, CSS) et agit comme reverse-proxy. Il confie l'exécution du code à PHP-FPM, garantissant des performances optimales et une isolation propre.
+> - **PostgreSQL** : Plus strict et conforme aux standards SQL que MySQL. Idéal pour gérer une machine d'état complexe et des données transactionnelles (facturation).
+> - **Redis** : Base de données clé/valeur en mémoire ultra-rapide. Utilisé ici pour stocker les sessions utilisateurs (sécurité accrue) et gérer la file d'attente des tâches asynchrones (génération des ZIP, envois d'emails).
 
 ---
 
@@ -39,6 +75,12 @@ DNS TXT  _dmarc      → "v=DMARC1; p=quarantine; rua=mailto:dmarc@omnyrestore.f
 ---
 
 ## 2. CONFIGURATION INITIALE DU VPS
+
+> [!IMPORTANT] Pourquoi ces étapes de sécurité initiales ?
+> Un serveur tout juste provisionné et exposé sur Internet subit des scans et attaques par force brute dans les minutes qui suivent. 
+> 1. Créer un utilisateur non-root évite de donner les pleins pouvoirs en cas de faille.
+> 2. Désactiver l'authentification par mot de passe bloque 99% des attaques SSH.
+> 3. Le pare-feu (UFW) ferme silencieusement les ports non requis (base de données, Redis) pour les isoler d'Internet.
 
 ```bash
 # Connexion initiale
@@ -330,6 +372,10 @@ BCRYPT_ROUNDS=12
 ---
 
 ## 9. WORKERS (QUEUES + SCHEDULER)
+
+> [!NOTE] À quoi sert Supervisor ?
+> L'application OmnyRestore utilise des processus asynchrones (Jobs) pour effectuer des tâches lourdes en arrière-plan sans bloquer la navigation du client (comme l'envoi d'emails ou la génération d'archives ZIP de 2 Go).
+> **Supervisor** est un gestionnaire Linux qui s'assure que le "worker" Laravel tourne 24h/24, 7j/7, et le redémarre instantanément en cas de crash.
 
 ### Supervisor pour Laravel Horizon
 

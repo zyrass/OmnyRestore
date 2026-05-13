@@ -134,23 +134,44 @@ flowchart TB
 | Etape | Detail |
 |---|---|
 | Dispatch | `GenerateOrderZipJob::dispatch()->onQueue('default')` — dispatche par webhook ET fallback (idempotent) |
-| Creation | `ZipArchive` — photos HD + `README.txt` |
-| Stockage | `storage/app/orders/zips/` — hors dossier `public/`, non accessible directement |
+| Creation | `ZipArchive` — photos HD + `README.txt`. Les images sont dynamiquement renommées `[nom-original]-HD.[ext]`. |
+| Stockage | `storage/app/orders/zips/` (ou S3) — hors dossier `public/`, non accessible publiquement |
 | Transition | `forceFill(['status' => 'DELIVERED'])->save()` — declenche l'Observer |
 | Email | `OrderDeliveryReady` — liens ZIP + facture — declenche par Observer (status → DELIVERED) |
 
-> [!NOTE]
-> Le ZIP expire apres **90 jours** (`zip_expires_at`). Le telechargement passe par `OrderDownloadController` qui verifie `payment_status = paid` et l'existence du fichier.
+> [!NOTE] Expiration et Integrité
+> Le ZIP expire apres **90 jours** (`zip_expires_at` calculé dans `markAsDelivered()`). 
+> Le telechargement passe par `OrderDownloadController` qui verifie l'appartenance au client, que `payment_status = paid`, et que la date d'expiration n'est pas dépassée.
 
-### Phase 6 — Livraison
+### Phase 6 — Livraison & Facturation
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant App
+    participant Storage
+    participant DomPDF
+
+    Client->>App: GET /client/orders/{id}/download
+    App->>App: OrderPolicy::download()
+    App->>Storage: Verify zip_expires_at
+    Storage-->>App: OK (Non expiré)
+    App-->>Client: Stream ZIP File
+
+    Client->>App: GET /client/orders/{id}/invoice
+    App->>App: OrderPolicy::viewInvoice()
+    App->>DomPDF: loadView('pdf.invoice', data)
+    Note over DomPDF: Calcule les tarifs<br/>P.U. TTC (1€, 2€, 3€)
+    DomPDF-->>App: binary PDF
+    App-->>Client: Stream invoice.pdf
+```
 
 | Etape | Detail |
 |---|---|
-| Page confirmation | `payment-success` — poll 5s — detecte `DELIVERED` — affiche bouton telechargement |
-| Email livraison | `OrderDeliveryReady` — bouton ZIP + bouton facture PDF |
-| Telechargement ZIP | `OrderDownloadController` — local: `response()->download()` — prod: URL S3 pre-signee 48h |
-| Facture PDF | `InvoiceController` — PDF genere a la volee |
-| Renvoi admin | Bouton `sendDeliveryEmail()` — style gold dans le panel admin — limite 1 envoi / 5 min |
+| Page confirmation | `payment-success` — poll 5s — detecte `DELIVERED` — affiche les blocs ZIP et Facture. |
+| Separation UX | Le client voit clairement un encart pour l'Archive ZIP (avec date d'expiration), et un bloc distinct pour la facture. |
+| Facture PDF | `InvoiceController` — PDF genere a la volee via `DomPDF`. Affiche les colonnes P.U. TTC et Total TTC pour une transparence financiere totale. Optimise CSS pour l'impression A4 noir et blanc. |
+| Renvoi admin | Bouton `Renvoyer la notification si perdue` — dans le panel admin — limite 1 envoi / 5 min. Redéclenche l'email `OrderDeliveryReady`. |
 
 ---
 

@@ -6,6 +6,53 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.19.3] — 2026-05-13 — Documentation Refactoring & Security Audit
+
+### 📚 Documentation & Conformité
+
+- **Refonte Documentaire Complète** :
+  - **Déploiement OVH** : Le guide a été refondu avec une approche pédagogique (explications sur Nginx, Supervisor, Redis, sécurisation UFW) et un diagramme d'architecture réseau complet.
+  - **Cycle de Vie** : Ajout d'un diagramme de séquence dédié à la phase de livraison, illustrant la facturation (DomPDF), l'expiration des ZIP, et le téléchargement S3.
+  - **Architecture** : Intégration du statut final `DELIVERED` et des règles d'expiration des données à 90 jours.
+  - Archivage du document historique `phase-9.md` vers `docs/archives/`.
+- **Audits** :
+  - Création du rapport `audit-integral-v0.19.0.md` validant une architecture de livraison saine et une séparation UX côté client. Le score global passe à **82/100**.
+  - Validation du middleware `SecurityHeaders` dans `audit-securite.md` (visant le grade A).
+
+---
+
+## [0.19.2] — 2026-05-13 — Delivery UX & Professional Filenaming
+
+### ✨ Nouveautés & Améliorations
+
+- **Livrables Professionnels** :
+  - Modification du nommage des fichiers dans l'archive ZIP livrée au client. Les photos restaurées reprennent désormais le nom du fichier d'origine avec le suffixe `-HD` (ex: `photo_vacances-HD.jpg`), évitant les noms techniques.
+- **Espace Client (Téléchargement)** :
+  - Refonte UI de la section "LIVRÉ" pour plus de clarté.
+  - Mise en évidence du bouton de téléchargement ZIP et affichage explicite de la date d'expiration de l'archive (90 jours).
+  - Séparation visuelle de la section "Facture" dans un encadré distinct.
+- **Admin & Processus de Livraison** :
+  - Mise à jour du libellé du bouton de livraison final : "Envoyer le mail comprenant la facture et le lien pour télécharger le fichier".
+  - Ajout de la méthode `markAsDelivered()` sur le modèle `Order` pour tracer formellement la transition d'état et initialiser la date `zip_expires_at` à 90 jours lors du premier envoi.
+
+## [0.19.1] — 2026-05-13 — Pricing Display Fixes & Label Consistency
+
+### 🛠️ Maintenance & Correctifs
+
+- **Admin : Correction de l'Incohérence Tarifaire** :
+  - Rectification d'une erreur d'affichage dans les détails de commande : le niveau "Complète" est désormais correctement affiché à **3,00 € TTC** (au lieu de 5 €).
+  - Harmonisation des libellés de niveaux de dommage (Standard, Avancée, Complète) sur l'ensemble de l'interface admin (Dashboard, Index des commandes, Panel détails).
+  - **Réactivité accrue** : Augmentation de la fréquence de rafraîchissement automatique (**polling 5s** au lieu de 10s) sur le Dashboard et la vue Commande pour un suivi du paiement Stripe en "quasi temps réel".
+  - **UX Notification** : Modification du libellé du bouton de rappel pour plus de clarté : "Renvoyer la notification si elle a été perdue".
+- **Transparence Financière** :
+  - **Décomposition Mixte** : Implémentation d'un affichage dynamique dans la vue admin pour les commandes à tarifs multiples (ex: "Mixte (2 Compl., 5 Std)").
+  - Ajout d'une méthode `getDamageBreakdown()` dans le modèle `Order` pour faciliter l'analyse granulaire des commandes.
+- **Emails & Docs** :
+  - Mise à jour des templates d'emails de paiement pour supporter les 3 niveaux de prix.
+  - Mise à jour de la documentation technique (`architecture.mdx` et `phase-9.md`) avec les tarifs définitifs.
+
+---
+
 ## [0.19.0] — 2026-05-13 — UI Password Toggle, AI Pricing Sensitivity & PDF Branding
 
 ### ✨ Nouvelles fonctionnalités
@@ -609,7 +656,13 @@ Le droit de valider / rejeter les photos restaurées est désormais **exclusivem
 ---
 
 <!-- Liens -->
-[Unreleased]: https://github.com/zyrass/OmnyRestore/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/zyrass/OmnyRestore/compare/v0.19.3...HEAD
+[0.19.3]: https://github.com/zyrass/OmnyRestore/compare/v0.19.2...v0.19.3
+[0.19.2]: https://github.com/zyrass/OmnyRestore/compare/v0.19.1...v0.19.2
+[0.19.1]: https://github.com/zyrass/OmnyRestore/compare/v0.19.0...v0.19.1
+[0.19.0]: https://github.com/zyrass/OmnyRestore/compare/v0.18.0...v0.19.0
+[0.18.0]: https://github.com/zyrass/OmnyRestore/compare/v0.17.0...v0.18.0
+[0.17.0]: https://github.com/zyrass/OmnyRestore/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/zyrass/OmnyRestore/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/zyrass/OmnyRestore/compare/v0.10.0...v0.15.0
 [0.10.0]: https://github.com/zyrass/OmnyRestore/compare/v0.9.0...v0.10.0

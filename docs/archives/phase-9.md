@@ -28,7 +28,7 @@ La Phase 9 est une refonte complète du **back-office admin** et du **système d
 
 - Une navigation admin plus claire et distincte (rouge)
 - Un dashboard auto-actualisé en temps réel + tableau des clients
-- Un nouveau modèle de prix à 3 niveaux IA (1/2/5 € TTC) avec TVA 20%
+- Un nouveau modèle de prix à 3 niveaux IA (1/2/3 € TTC) avec TVA 20%
 - La génération de factures PDF pour les clients
 - Un système complet de codes de réduction (admin + client)
 - Le rejet de photos de mauvaise qualité avec **recalcul automatique du prix**

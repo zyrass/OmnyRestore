@@ -1,7 +1,7 @@
 # OmnyRestore — Technical Architecture & Developer Guide
 
 > **Stack**: TALL (Tailwind 4 / Alpine.js 3 / Laravel 12 / Livewire 3)  
-> **Version**: 0.8.1 — May 2026  
+> **Version**: 0.19.0 — Mai 2026  
 > **Author**: Alain Guillon — OmnyVia
 
 ---
@@ -192,6 +192,7 @@ erDiagram
         bigint zip_size
         string signed_url "nullable — generated on demand"
         timestamp signed_url_expires_at "48h TTL"
+        timestamp zip_expires_at "90 days TTL (NEW)"
         timestamp created_at
     }
 
@@ -233,7 +234,7 @@ sequenceDiagram
     Browser->>Livewire: wire:model.live (updatedPhotos)
     Livewire->>OpenAI: analyze(photo) × N
     OpenAI-->>Livewire: level (light|medium|heavy) + confidence
-    Livewire-->>Browser: Verdict IA + prix (1|2|5 € TTC/photo)
+    Livewire-->>Browser: Verdict IA + prix (1|2|3 € TTC/photo)
 
     opt Coupon disponible
         Client->>Browser: Saisit code réduction
@@ -338,10 +339,10 @@ stateDiagram-v2
     IN_PROGRESS --> CANCELLED : Admin cancels (unrestorable photos)
 
     DONE --> PAID : Stripe webhook payment_intent.succeeded
-    PAID --> DOWNLOADED : Client downloads ZIP
+    PAID --> DELIVERED : GenerateOrderZipJob & Client Delivery
 
     CANCELLED --> [*]
-    DOWNLOADED --> [*]
+    DELIVERED --> [*]
 
     note right of PENDING
         Triggers:
@@ -364,15 +365,16 @@ stateDiagram-v2
 
     note right of PAID
         Triggers:
-        → Signed download URL generated (48h TTL)
-        → Download email sent to client
+        → Async ZIP generation job
+        → Signed download URL generated
         → Audit log: PAYMENT
     end note
 
-    note right of DOWNLOADED
+    note right of DELIVERED
         Triggers:
-        → Audit log: DOWNLOAD
-        → (Future) Media cleanup scheduled
+        → Download email sent to client
+        → Audit log: DOWNLOAD (upon access)
+        → ZIP auto-expires in 90 days
     end note
 ```
 
@@ -459,11 +461,11 @@ graph TB
     B --> C[Fetch all retouched media<br/>from Spatie Media Library]
     C --> D[PHP ZipArchive:<br/>add each file to ZIP in memory]
     D --> E[Upload ZIP to S3<br/>disk:deliveries/ORD-2026-XXXX.zip]
-    E --> F[INSERT order_deliveries<br/>zip_disk + zip_path]
+    E --> F[INSERT order_deliveries<br/>zip_disk + zip_path + zip_expires_at]
     F --> G[GenerateSignedDownloadUrlJob]
     G --> H[S3 presigned URL<br/>TTL: 48 hours]
     H --> I[UPDATE order_deliveries.signed_url]
-    I --> J[Email client: Download link]
+    I --> J[Email client: Download link + Facture PDF]
 ```
 
 **File access policy (IDOR + payment prevention):**
@@ -472,6 +474,7 @@ GET /client/orders/{id}/download
     → Authenticate (auth middleware)
     → OrderPolicy::download() — verifies user owns the order
     → Checks: payment_status = paid
+    → Verify zip_expires_at is not past 90 days
     → If signed_url expired: regenerate it on the fly
     → 302 Redirect to fresh presigned S3 URL
     → INSERT audit_logs (action = DOWNLOAD)
@@ -527,6 +530,7 @@ graph LR
 | A08 | Software Integrity | `composer.lock` + `package-lock.json` version-pinned |
 | A09 | Logging & Monitoring | `AUDIT_LOGS` table + Laravel Telescope + Slack alerts |
 | A10 | SSRF | No user-controlled HTTP requests; S3 signed URLs are server-generated |
+| A11 | Security Headers | `SecurityHeaders` middleware: HSTS, CSP, X-Frame-Options |
 
 ---
 
