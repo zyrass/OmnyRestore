@@ -431,8 +431,8 @@
             <div class="absolute inset-0 flex items-center justify-center text-center p-8 pointer-events-none">
                 <div class="max-w-3xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-1000">
                     <div class="w-16 h-px bg-[#C9A84C]/40 mx-auto mb-8"></div>
-                    <h3 class="text-2xl md:text-3xl font-medium italic text-[#F5F0E8] leading-relaxed mb-6 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
-                        &ldquo;Parce que chaque souvenir mérite d'être transmis dans sa plus belle lumière.&rdquo;
+                    <h3 class="text-3xl md:text-4xl font-medium italic text-[#F5F0E8] leading-relaxed mb-6 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+                        &ldquo;Parce que chaque souvenir pr&eacute;cieux m&eacute;rite d'&ecirc;tre transmis aux g&eacute;n&eacute;rations futures dans sa plus belle et authentique lumi&egrave;re.&rdquo;
                     </h3>
                     <p class="text-[#C9A84C] text-[11px] tracking-[0.5em] uppercase font-bold drop-shadow-md">L'art de la restauration</p>
                 </div>
