@@ -404,6 +404,16 @@ class Order extends Model implements HasMedia
                     ->where('subject_type', self::class);
     }
 
+    /**
+     * Avis client associé à cette commande (1 seul avis par commande).
+     *
+     * @return HasOne<\App\Models\Testimonial, $this>
+     */
+    public function testimonial(): HasOne
+    {
+        return $this->hasOne(\App\Models\Testimonial::class, 'order_id');
+    }
+
     // =========================================================================
     // ELOQUENT SCOPES
     // =========================================================================

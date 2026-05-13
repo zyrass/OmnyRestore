@@ -45,7 +45,7 @@ class extends Component
 
     public function mount(Order $order): void
     {
-        $this->order      = $order->load(['user', 'media', 'delivery', 'auditLogs']);
+        $this->order      = $order->load(['user', 'media', 'delivery', 'auditLogs', 'testimonial']);
         // IMPORTANT : on utilise !== null car total_price_cents peut valoir 0
         // (coupon 100%) — une comparaison truthy ferait tomber sur base_price_cents.
         $this->finalPrice = $this->order->total_price_cents !== null
@@ -304,12 +304,79 @@ class extends Component
             ->queue(new \App\Mail\OrderReadyForPayment($this->order));
 
         session()->put($sessionKey, now());
-        session()->flash('success', "\uD83D\uDCE7 Email de notification envoyé à {$this->order->user->email}.");
+        session()->flash('success', "📧 Email de notification envoyé à {$this->order->user->email}.");
+    }
+    /**
+     * Envoie l'email de livraison (ZIP + facture PDF) au client.
+     * Disponible uniquement pour les commandes PAID ou DELIVERED.
+     * Rate limité : 1 envoi par 5 minutes.
+     */
+    public function sendDeliveryEmail(): void
+    {
+        abort_if(! in_array($this->order->status, ['PAID', 'DELIVERED']), 403, 'Livraison disponible uniquement après paiement.');
+
+        $sessionKey = "admin_delivery_{$this->order->id}";
+        if (session()->has($sessionKey) && now()->diffInSeconds(session($sessionKey)) < 300) {
+            $remaining = 300 - now()->diffInSeconds(session($sessionKey));
+            session()->flash('error', "Patientez encore {$remaining} secondes avant de renvoyer.");
+            return;
+        }
+
+        \Illuminate\Support\Facades\Mail::to($this->order->user->email)
+            ->queue(new \App\Mail\OrderDeliveryReady($this->order));
+
+        session()->put($sessionKey, now());
+        session()->flash('success', "📦 Email de livraison (ZIP + facture) envoyé à {$this->order->user->email}.");
+        $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs', 'testimonial']);
+    }
+
+    /**
+     * Polling 10s sur la page admin — détecte quand le paiement Stripe arrive
+     * pendant que l'admin a la commande ouverte (statut DONE → PAID).
+     */
+    public function pollPaymentStatus(): void
+    {
+        if ($this->order->status !== 'DONE') {
+            return;
+        }
+
+        $fresh = $this->order->fresh();
+
+        if ($fresh->status === 'PAID') {
+            $this->order = $fresh->load(['user', 'media', 'delivery', 'auditLogs', 'testimonial']);
+            $this->dispatch('payment-received');
+        }
     }
 }; ?>
 
-<div x-data="{ finalHt: {{ (float)($finalPrice ?? 0) }} }">
+<div x-data="{ finalHt: {{ (float)($finalPrice ?? 0) }}, showPaymentToast: false }"
+     @payment-received.window="showPaymentToast = true">
 
+    {{-- Toast Paiement reçu (déclenché par pollPaymentStatus) --}}
+    <template x-teleport="body">
+        <div x-show="showPaymentToast" x-cloak
+             x-transition:enter="transition ease-out duration-500"
+             x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             class="fixed bottom-6 right-6 z-[9999] max-w-sm w-full"
+             style="filter: drop-shadow(0 20px 40px rgba(0,0,0,0.6));">
+            <div class="relative bg-[#1A1510] border border-emerald-500/50 rounded-sm overflow-hidden">
+                <div class="h-0.5 bg-gradient-to-r from-emerald-500 to-[#C9A84C]"></div>
+                <div class="p-5 flex items-start gap-4">
+                    <div class="shrink-0 w-10 h-10 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-[#F5F0E8] text-sm font-semibold">Paiement reçu !</p>
+                        <p class="text-[#7A6E5E] text-xs mt-1">Le client vient de régler la commande. Vous pouvez maintenant envoyer le ZIP.</p>
+                    </div>
+                    <button @click="showPaymentToast = false" class="shrink-0 text-[#7A6E5E] hover:text-[#F5F0E8]">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
 
     {{-- Messages flash (Livewire re-render uniquement — le layout ne se met pas à jour en AJAX) --}}
     @if (session('success'))
@@ -660,6 +727,71 @@ class extends Component
             </div>
             @endif
 
+            {{-- === STATUT PAIEMENT + LIVRAISON ZIP === --}}
+            @if ($order->getMedia('retouched')->isNotEmpty())
+            <div class="card-glass overflow-hidden"
+                 {{ in_array($order->status, ['DONE']) ? 'wire:poll.10000ms="pollPaymentStatus"' : '' }}>
+
+                <div class="px-5 py-4 border-b border-[#C9A84C]/10 flex items-center justify-between">
+                    <h2 class="text-[#F5F0E8] font-semibold">Statut paiement &amp; livraison</h2>
+                    @if (in_array($order->status, ['PAID', 'DELIVERED']))
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 text-xs rounded-full">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        Paiement effectué
+                    </span>
+                    @else
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 bg-yellow-900/20 border border-yellow-500/20 text-yellow-400/80 text-xs rounded-full">
+                        <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 12h4z"/></svg>
+                        Paiement en attente
+                    </span>
+                    @endif
+                </div>
+
+                <div class="p-5">
+                    @if (in_array($order->status, ['PAID', 'DELIVERED']))
+                    {{-- Paiement reçu : afficher info + bouton livraison --}}
+                    <div class="flex items-center gap-3 mb-5 px-4 py-3 bg-emerald-900/15 border border-emerald-500/20 rounded-sm">
+                        <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div>
+                            <p class="text-emerald-300 text-sm font-medium">Paiement effectué avec succès</p>
+                            @if ($order->paid_at)
+                            <p class="text-[#7A6E5E] text-xs mt-0.5">Le {{ $order->paid_at->format('d/m/Y \u00e0 H:i') }} &mdash; {{ number_format(($order->total_price_cents + round($order->total_price_cents * 0.2)) / 100, 2, ',', ' ') }}&nbsp;€ TTC</p>
+                            @endif
+                        </div>
+                    </div>
+
+                    <p class="text-[#7A6E5E] text-xs mb-3">
+                        Envoyez l’email de livraison au client avec le lien de téléchargement du ZIP et la facture PDF.
+                        <span class="text-[#C9A84C]/70 block mt-0.5">Limité à 1 envoi toutes les 5 minutes.</span>
+                    </p>
+
+                    <button wire:click="sendDeliveryEmail"
+                            wire:loading.attr="disabled"
+                            class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-300 hover:text-emerald-200 text-sm rounded-sm transition-all font-medium">
+                        <span wire:loading.remove wire:target="sendDeliveryEmail" class="flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Envoyer le ZIP + Facture PDF
+                        </span>
+                        <span wire:loading wire:target="sendDeliveryEmail" class="flex items-center gap-2">
+                            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 12h4z"/></svg>
+                            Envoi…
+                        </span>
+                    </button>
+
+                    @if ($order->status === 'DELIVERED' && $order->delivered_at)
+                    <p class="text-emerald-400/60 text-[11px] mt-2 text-center">Livré le {{ $order->delivered_at->format('d/m H:i') }}</p>
+                    @endif
+
+                    @else
+                    {{-- Paiement en attente --}}
+                    <p class="text-[#7A6E5E] text-sm text-center py-4">
+                        En attente du règlement client…
+                        <span class="block text-xs mt-1 text-[#7A6E5E]/60">La page se mettra à jour automatiquement dès la réception du paiement Stripe.</span>
+                    </p>
+                    @endif
+                </div>
+            </div>
+            @endif
 
         </div>
 
@@ -817,6 +949,30 @@ class extends Component
                     <span class="text-[#7A6E5E]">({{ $order->preview_unlocked_at->format('d/m H:i') }})</span>
                 </p>
                 @endif
+            </div>
+            @endif
+
+            {{-- ⭐ Avis client --}}
+            @if ($order->testimonial)
+            @php $t = $order->testimonial; @endphp
+            <div class="card-glass p-5 border-yellow-500/15">
+                <h3 class="text-[#C9A84C] text-xs tracking-widest uppercase border-b border-[#C9A84C]/20 pb-2 mb-4 font-semibold flex items-center justify-between">
+                    Avis client
+                    <span class="px-2 py-0.5 text-[10px] rounded-full border {{ $t->is_published ? 'bg-emerald-900/30 text-emerald-400 border-emerald-500/30' : 'bg-yellow-900/20 text-yellow-400/80 border-yellow-500/20' }}">
+                        {{ $t->is_published ? 'Publié' : 'En attente' }}
+                    </span>
+                </h3>
+                {{-- Étoiles --}}
+                <div class="flex gap-0.5 mb-2">
+                    @for ($i = 1; $i <= 5; $i++)
+                    <svg class="w-4 h-4 {{ $i <= $t->rating ? 'text-[#C9A84C]' : 'text-[#3A3028]' }}" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                    @endfor
+                    <span class="text-[#7A6E5E] text-xs ml-1.5 self-center">{{ $t->rating }}/5</span>
+                </div>
+                <p class="text-[#F5F0E8] text-xs leading-relaxed italic">"{{ $t->content }}"</p>
+                <p class="text-[#7A6E5E] text-[11px] mt-2">— {{ $t->author_name }}</p>
             </div>
             @endif
 
