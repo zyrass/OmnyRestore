@@ -65,4 +65,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Volt::route('/testimonials', 'pages.admin.testimonials.index')
         ->name('testimonials.index');
 
+    // ─── Photos sécurisées ────────────────────────────────────────────────
+    // GET /admin/orders/{order}/photos/{media}
+    // Sert les photos retouched/originals depuis le disk privé (non public).
+    Route::get('/orders/{order}/photos/{media}',
+        [\App\Http\Controllers\Admin\AdminSecurePhotoController::class, 'show']
+    )->name('orders.photo.show');
+
 });

@@ -60,6 +60,13 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     Route::get('/orders/{order}/invoice', [\App\Http\Controllers\Client\InvoiceController::class, 'download'])
          ->name('orders.invoice');
 
+    // GET /client/orders/{order}/photos/{media} — Sert une photo retouchée de façon SÉCURISÉE
+    // ⚠️ NE PAS exposer via /storage/ : les fichiers retouched sont sur le disk 'local' (privé).
+    // Ce controller vérifie : auth + propriété commande + preview_unlocked_at + non rejetée.
+    Route::get('/orders/{order}/photos/{media}', [\App\Http\Controllers\Client\SecurePhotoController::class, 'show'])
+         ->name('orders.photo.show');
+
+
     // GET /client/orders/download/stream/{delivery} → Stream local ZIP (dev only, URL signée)
     Route::get('/orders/download/stream/{delivery}', function (\Illuminate\Http\Request $request, OrderDelivery $delivery) {
         // Vérification signature + auth (la signed URL garantit l'authenticité)

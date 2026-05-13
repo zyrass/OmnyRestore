@@ -576,7 +576,8 @@ class extends Component
                              class="relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden select-none cursor-default {{ $isRejected ? 'border-2 border-red-500/50' : 'border border-[#C9A84C]/15' }}"
                              style="{{ $isRejected ? 'opacity:0.6' : '' }}">
 
-                            <img src="{{ $media->getUrl() }}" alt="Photo restaurée"
+                            <img src="{{ route('client.orders.photo.show', [$order, $media]) }}"
+                                 alt="Photo restaurée"
                                  class="w-full h-full object-cover pointer-events-none" draggable="false">
 
                             {{-- ── Watermark SVG pattern pleine couverture ── --}}

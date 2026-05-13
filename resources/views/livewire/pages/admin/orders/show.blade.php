@@ -465,8 +465,8 @@ class extends Component
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         @foreach ($order->getMedia('originals') as $media)
                         <div class="group relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/10">
-                            <img src="{{ $media->getUrl() }}" alt="{{ $media->file_name }}" class="w-full h-full object-cover">
-                            <a href="{{ $media->getUrl() }}" target="_blank"
+                            <img src="{{ route('admin.orders.photo.show', [$order, $media]) }}" alt="{{ $media->file_name }}" class="w-full h-full object-cover">
+                            <a href="{{ route('admin.orders.photo.show', [$order, $media]) }}" target="_blank"
                                class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                             </a>
@@ -782,7 +782,7 @@ class extends Component
                              @mouseleave="h = false"
                              class="relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden
                                     {{ $isRejected ? 'border-2 border-red-500/40 opacity-50' : 'border border-emerald-500/20' }}">
-                            <img src="{{ $media->getUrl() }}" class="w-full h-full object-cover">
+                            <img src="{{ route('admin.orders.photo.show', [$order, $media]) }}" class="w-full h-full object-cover">
                             @if ($isRejected)
                             <div class="absolute inset-0 bg-red-900/40 flex items-center justify-center">
                                 <span class="text-red-300 text-xs font-bold uppercase tracking-wider bg-red-900/80 px-2 py-0.5 rounded">
@@ -791,7 +791,7 @@ class extends Component
                             </div>
                             @else
                             {{-- Overlay hover : ouvrir dans onglet --}}
-                            <a href="{{ $media->getUrl() }}" target="_blank"
+                            <a href="{{ route('admin.orders.photo.show', [$order, $media]) }}" target="_blank"
                                x-show="h"
                                class="absolute inset-0 bg-black/60 flex items-center justify-center transition-opacity">
                                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>

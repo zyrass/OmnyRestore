@@ -206,23 +206,26 @@ class Order extends Model implements HasMedia
     public function registerMediaCollections(): void
     {
         // Le disk est configuré via .env → MEDIA_DISK (défaut: 'public' en local, 's3' en prod)
-        // Cela évite de forcer 's3' en développement où AWS n'est pas configuré.
         $disk = config('media-library.disk_name', config('filesystems.default', 'public'));
 
         // ─── Originals ────────────────────────────────────────────────────
+        // Photos uploadées par le client — visibles dans l'espace admin uniquement.
         $this->addMediaCollection('originals')
              ->useDisk($disk)
              ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/tiff', 'image/webp']);
 
         // ─── Retouched ────────────────────────────────────────────────────
-        // Photos restaurées uploadées par l'admin (haute résolution).
+        // Photos restaurées par l'admin (haute résolution).
+        // ⚠️ DISK 'local' OBLIGATOIRE : ces fichiers ne doivent JAMAIS être
+        // accessibles via /storage/ (URL publique directe).
+        // Accès uniquement via SecurePhotoController (auth + checks).
+        // En production (S3) : utiliser un bucket PRIVÉ et des presigned URLs.
+        $privateDisk = app()->environment('production') ? 's3' : 'local';
         $this->addMediaCollection('retouched')
-             ->useDisk($disk);
+             ->useDisk($privateDisk);
 
         // ─── Watermarked Preview ──────────────────────────────────────────
         // Aperçus basse résolution filigranés, montrés avant paiement.
-        // Générés automatiquement par GenerateWatermarkJob (Intervention Image GD).
-        // Un fichier watermarked par photo retouchée (pas de singleFile ici).
         $this->addMediaCollection('watermarked')
              ->useDisk($disk);
     }
