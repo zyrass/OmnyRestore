@@ -220,8 +220,8 @@ table.totals tr.free-row td {
 @php
     use App\Services\PhotoDamageAnalyzer;
 
-    // Prix HT par niveau (en centimes)
-    $LEVEL_PRICES = PhotoDamageAnalyzer::PRICES; // ['light'=>83, 'medium'=>167, 'heavy'=>250]
+    $LEVEL_PRICES = PhotoDamageAnalyzer::PRICES;       // HT en centimes par niveau
+    $LEVEL_PRICES_TTC = PhotoDamageAnalyzer::PRICES_TTC; // TTC exact en centimes par niveau
     $LEVEL_LABELS = [
         'light'  => 'Restauration Standard',
         'medium' => 'Restauration Avancée',
@@ -233,49 +233,61 @@ table.totals tr.free-row td {
         'heavy'  => 'Déchirures, dégâts eau, zones manquantes, moisissures',
     ];
 
-    // ── Calcul des totaux depuis les custom_properties par photo ────────────
-    // On regroupe les photos originals (non rejetées) par niveau d'IA
-    $lineItems = $order->getMedia('originals')
-        ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
-        ->groupBy(fn($m) => $m->getCustomProperty('ai_level', 'light'))
+    // ── Source de vérité : photos RETOUCHÉES non rejetées par le client ──────
+    // IMPORTANT : is_rejected est marqué sur la collection 'retouched', PAS sur 'originals'.
+    // La facture doit refléter exactement ce qui est livré (et ce qui a été payé).
+    $activeRetouched = $order->getMedia('retouched')
+        ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
+
+    // Regrouper par niveau IA (ai_level propagé depuis les originals à l'upload admin)
+    $lineItems = $activeRetouched
+        ->groupBy(fn($m) => $m->getCustomProperty('ai_level', $order->damage_level ?? 'light'))
         ->map(fn($photos, $lvl) => [
-            'level'      => $lvl,
-            'label'      => $LEVEL_LABELS[$lvl] ?? ucfirst($lvl),
-            'detail'     => $LEVEL_DETAIL[$lvl] ?? '',
-            'count'      => $photos->count(),
-            'unit_ht_c'  => $LEVEL_PRICES[$lvl] ?? 83,
-            'total_ht_c' => $photos->count() * ($LEVEL_PRICES[$lvl] ?? 83),
+            'level'       => $lvl,
+            'label'       => $LEVEL_LABELS[$lvl] ?? ucfirst($lvl),
+            'detail'      => $LEVEL_DETAIL[$lvl] ?? '',
+            'count'       => $photos->count(),
+            'unit_ht_c'   => $LEVEL_PRICES[$lvl] ?? 83,
+            'unit_ttc_c'  => $LEVEL_PRICES_TTC[$lvl] ?? 100,
+            'total_ht_c'  => $photos->count() * ($LEVEL_PRICES[$lvl] ?? 83),
+            'total_ttc_c' => $photos->count() * ($LEVEL_PRICES_TTC[$lvl] ?? 100),
         ])
-        ->sortBy('level') // light → medium → heavy
+        ->sortBy('level')
         ->values();
 
-    // Si aucune donnée par photo (ancienne commande sans ai_level), fallback
+    // Fallback : pas de photos retouchées analysées (ancienne commande sans ai_level)
     if ($lineItems->isEmpty()) {
         $fallbackLevel = $order->damage_level ?? 'light';
-        $nPhotos       = (int) ($order->photo_count ?? 1);
+        // Utiliser le nombre de photos actives retouchées, sinon photo_count
+        $nPhotos = max(1, $activeRetouched->count() ?: (int) ($order->photo_count ?? 1));
         $lineItems = collect([[
-            'level'      => $fallbackLevel,
-            'label'      => $LEVEL_LABELS[$fallbackLevel] ?? 'Restauration',
-            'detail'     => $LEVEL_DETAIL[$fallbackLevel] ?? '',
-            'count'      => $nPhotos,
-            'unit_ht_c'  => $LEVEL_PRICES[$fallbackLevel] ?? 83,
-            'total_ht_c' => (int) ($order->base_price_cents ?? $nPhotos * 83),
+            'level'       => $fallbackLevel,
+            'label'       => $LEVEL_LABELS[$fallbackLevel] ?? 'Restauration',
+            'detail'      => $LEVEL_DETAIL[$fallbackLevel] ?? '',
+            'count'       => $nPhotos,
+            'unit_ht_c'   => $LEVEL_PRICES[$fallbackLevel] ?? 83,
+            'unit_ttc_c'  => $LEVEL_PRICES_TTC[$fallbackLevel] ?? 100,
+            'total_ht_c'  => $nPhotos * ($LEVEL_PRICES[$fallbackLevel] ?? 83),
+            'total_ttc_c' => $nPhotos * ($LEVEL_PRICES_TTC[$fallbackLevel] ?? 100),
         ]]);
     }
 
-    // Totaux
-    $baseHtC   = (int) $lineItems->sum('total_ht_c');
+    // ── Totaux — source de vérité : photos retouchées actives ──────────────
+    // TTC réel = somme PRICES_TTC[ai_level] des retouched non rejetés
+    // = montant identique à ce qui a été envoyé à Stripe au checkout.
     $discountC = (int) ($order->discount_cents ?? 0);
+    $baseHtC   = (int) $lineItems->sum('total_ht_c');
+    $baseTtcC  = (int) $lineItems->sum('total_ttc_c');
     $htNetC    = max(0, $baseHtC - $discountC);
-    $tvaRate   = 20;
-    $tvaC      = (int) round($htNetC * $tvaRate / 100);
-    $ttcC      = $htNetC + $tvaC;
+    $ttcC      = max(0, $baseTtcC - $discountC);   // remise appliquée sur le TTC
+    $tvaC      = $ttcC - $htNetC;                  // TVA exacte (pas d'arrondi flottant)
     $isFree    = $ttcC === 0;
 
     $year       = $order->paid_at?->format('Y') ?? now()->format('Y');
     $seq        = str_pad(substr($order->reference, -4), 4, '0', STR_PAD_LEFT);
     $invoiceNum = "FAC-{$year}-{$seq}";
 @endphp
+
 
 {{-- ══════════════════════════════════════════════════
      FOOTER FIXE
