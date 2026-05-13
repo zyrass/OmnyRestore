@@ -28,9 +28,9 @@ use Illuminate\Support\Facades\Route;
 // Stripe Webhook endpoint
 // POST /webhook/stripe
 // No auth middleware — Stripe authenticates via HMAC signature
-// Throttle : 30 requêtes/min (Stripe relance jusqu'à 3×/h pendant 72h en cas d'échec).
+// Throttle : 20 requêtes/min (Stripe relance jusqu'à 3×/h pendant 72h en cas d'échec).
 // Un bot sans clé HMAC valide ne peut pas forger de requête — ce throttle est un
 // filet de sécurité supplémentaire contre le flood réseau brut.
 Route::post('/webhook/stripe', [StripeWebhookController::class, 'handleWebhook'])
      ->name('webhook.stripe')
-     ->middleware('throttle:30,1');
+     ->middleware('throttle:20,1');

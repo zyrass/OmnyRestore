@@ -269,6 +269,28 @@ class Order extends Model implements HasMedia
     }
 
     /**
+     * Transition the order to DELIVERED status.
+     *
+     * Called when the admin clicks the button to send the ZIP + Invoice email.
+     * Only valid from PAID or already DELIVERED status.
+     */
+    public function markAsDelivered(): void
+    {
+        $this->guardTransition('DELIVERED', ['PAID', 'DELIVERED']);
+        $this->status = 'DELIVERED';
+        if (! $this->delivered_at) {
+            $this->delivered_at = now();
+        }
+        
+        // Expiration de l'archive ZIP : 90 jours
+        if (! $this->zip_expires_at) {
+            $this->zip_expires_at = now()->addDays(90);
+        }
+        
+        $this->save();
+    }
+
+    /**
      * Transition the order to CANCELLED status.
      *
      * Valid from PENDING or IN_PROGRESS.
@@ -460,5 +482,28 @@ class Order extends Model implements HasMedia
     public function scopePaid(\Illuminate\Database\Eloquent\Builder $query): void
     {
         $query->where('payment_status', 'paid');
+    }
+
+    /**
+     * Retourne le décompte des photos par niveau de dommage IA.
+     * Utile pour la transparence tarifaire en admin et client.
+     *
+     * @return array<string, int>
+     */
+    public function getDamageBreakdown(): array
+    {
+        $breakdown = ['light' => 0, 'medium' => 0, 'heavy' => 0];
+        $originals = $this->getMedia('originals');
+
+        foreach ($originals as $m) {
+            $lv = $m->getCustomProperty('ai_level', $this->damage_level ?? 'light');
+            if (isset($breakdown[$lv])) {
+                $breakdown[$lv]++;
+            } else {
+                $breakdown['light']++; // fallback
+            }
+        }
+
+        return array_filter($breakdown); // On ne garde que les niveaux présents
     }
 }

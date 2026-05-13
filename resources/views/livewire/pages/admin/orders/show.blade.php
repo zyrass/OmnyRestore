@@ -349,7 +349,7 @@ class extends Component
      * Disponible uniquement pour les commandes PAID ou DELIVERED.
      * Rate limité : 1 envoi par 5 minutes.
      */
-    public function sendDeliveryEmail(): void
+    public function sendDeliveryEmail(AuditService $audit): void
     {
         abort_if(! in_array($this->order->status, ['PAID', 'DELIVERED']), 403, 'Livraison disponible uniquement après paiement.');
 
@@ -363,6 +363,13 @@ class extends Component
         if (!$this->order->user || $this->order->user->anonymized_at) {
             session()->flash('error', "Impossible d'envoyer un email : l'utilisateur a supprimé son compte.");
             return;
+        }
+
+        $previousStatus = $this->order->status;
+        
+        if ($previousStatus !== 'DELIVERED') {
+            $this->order->markAsDelivered();
+            $audit->orderStatusChanged($this->order, $previousStatus, 'DELIVERED');
         }
 
         \Illuminate\Support\Facades\Mail::to($this->order->user->email)
@@ -388,6 +395,47 @@ class extends Component
         if ($fresh->status === 'PAID') {
             $this->order = $fresh->load(['user', 'media', 'delivery', 'auditLogs', 'testimonial']);
             $this->dispatch('payment-received');
+        }
+    }
+
+    /**
+     * Effectue le remboursement Stripe intégral et annule la commande (supprime le ZIP).
+     */
+    public function refundOrder(AuditService $audit): void
+    {
+        abort_if(! in_array($this->order->status, ['PAID', 'DELIVERED']), 403, 'Seules les commandes payées peuvent être remboursées.');
+        abort_if(! $this->order->payment_intent_id, 400, 'Aucun Payment Intent Stripe associé à cette commande.');
+
+        try {
+            \Stripe\Stripe::setApiKey(config('cashier.secret'));
+            \Stripe\Refund::create([
+                'payment_intent' => $this->order->payment_intent_id,
+            ]);
+
+            $previousStatus = $this->order->status;
+            
+            // Invalider le livrable en supprimant toutes les photos retouchées
+            $this->order->clearMediaCollection('retouched');
+            
+            // Supprimer physiquement le ZIP s'il existe
+            if ($this->order->delivery && $this->order->delivery->zip_path) {
+                \Illuminate\Support\Facades\Storage::delete($this->order->delivery->zip_path);
+            }
+
+            $this->order->update([
+                'payment_status' => 'refunded',
+                'status' => 'CANCELLED',
+                'admin_notes' => ($this->order->admin_notes ? $this->order->admin_notes . "\n" : '') . "Remboursement Stripe effectué le " . now()->format('d/m/Y H:i') . " - Livrable détruit.",
+            ]);
+
+            $audit->orderStatusChanged($this->order, $previousStatus, 'CANCELLED');
+            
+            session()->flash('success', 'Remboursement intégral effectué. Les fichiers ont été détruits et la commande est annulée.');
+            $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs', 'testimonial']);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Erreur remboursement Stripe Order {$this->order->reference}: " . $e->getMessage());
+            session()->flash('error', "Échec du remboursement : " . $e->getMessage());
         }
     }
 }; ?>
@@ -796,7 +844,7 @@ class extends Component
             {{-- === STATUT PAIEMENT + LIVRAISON ZIP === --}}
             @if ($order->getMedia('retouched')->isNotEmpty())
             <div class="card-glass overflow-hidden {{ in_array($order->status, ['PAID', 'DELIVERED']) ? 'border border-emerald-500/20' : '' }}"
-                 {{ in_array($order->status, ['DONE']) ? 'wire:poll.10000ms="pollPaymentStatus"' : '' }}>
+                 {{ in_array($order->status, ['DONE']) ? 'wire:poll.5000ms="pollPaymentStatus"' : '' }}>
 
                 <div class="px-5 py-4 border-b border-[#C9A84C]/10 flex items-center justify-between">
                     <h2 class="text-[#F5F0E8] font-semibold">Statut paiement &amp; livraison</h2>
@@ -844,7 +892,7 @@ class extends Component
                                    disabled:opacity-50">
                         <span wire:loading.remove wire:target="sendDeliveryEmail" class="flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                            Envoyer ZIP + Facture PDF au client
+                            Envoyer le mail comprenant la facture et le lien pour télécharger le fichier
                         </span>
                         <span wire:loading wire:target="sendDeliveryEmail" class="flex items-center gap-2">
                             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
@@ -858,6 +906,34 @@ class extends Component
                         <p class="text-emerald-400/50 text-[11px]">Livre le {{ $order->delivered_at->format('d/m/Y \a H:i') }}</p>
                     </div>
                     @endif
+
+                    {{-- Bouton de remboursement Stripe --}}
+                    <div class="mt-6 pt-5 border-t border-red-500/10" x-data="{ confirmRefund: false }">
+                        <button type="button" @click="confirmRefund = true" x-show="!confirmRefund"
+                                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-900/10 hover:bg-red-900/20 text-red-400 border border-red-500/20 rounded-sm transition-all text-xs font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                            Rembourser la commande via Stripe
+                        </button>
+                        
+                        <div x-show="confirmRefund" x-transition class="p-4 bg-red-900/10 border border-red-500/30 rounded-sm">
+                            <p class="text-red-400 text-xs font-medium mb-1">⚠️ Le remboursement est immédiat et irréversible.</p>
+                            <p class="text-[#7A6E5E] text-xs mb-4">La commande passera en statut "Annulé" et les fichiers seront supprimés définitivement du serveur pour empêcher l'accès client.</p>
+                            <div class="flex gap-2">
+                                <button type="button" @click="confirmRefund = false"
+                                        class="flex-1 py-1.5 text-xs text-[#7A6E5E] hover:text-[#F5F0E8] border border-[#2A2520] hover:border-[#3A3028] rounded-sm transition-all">
+                                    Annuler
+                                </button>
+                                <button wire:click="refundOrder" wire:loading.attr="disabled"
+                                        class="flex-1 py-1.5 text-xs bg-red-700/40 hover:bg-red-700/60 text-red-300 border border-red-500/40 rounded-sm transition-all flex items-center justify-center gap-1">
+                                    <span wire:loading.remove wire:target="refundOrder">Confirmer Remboursement</span>
+                                    <span wire:loading wire:target="refundOrder" class="flex items-center gap-1">
+                                        <svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                        Traitement Stripe...
+                                    </span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
                     @else
                     {{-- Paiement en attente --}}
@@ -886,12 +962,23 @@ class extends Component
                     <div class="flex justify-between"><dt class="text-[#7A6E5E]">Niveau IA</dt>
                         <dd class="{{ $order->damage_level === 'heavy' ? 'text-orange-400' : ($order->damage_level === 'medium' ? 'text-amber-400' : 'text-emerald-400') }} font-medium">
                             @php
-                                $lvlLabel = match($order->damage_level) {
-                                    'light'  => 'Standard — 1 € TTC/photo',
-                                    'medium' => 'Avancée — 2 € TTC/photo',
-                                    'heavy'  => 'Complète — 5 € TTC/photo',
-                                    default  => ucfirst($order->damage_level ?? 'N/A'),
-                                };
+                                $breakdown = $order->getDamageBreakdown();
+                                $isMixed = count($breakdown) > 1;
+
+                                if ($isMixed) {
+                                    $labels = [];
+                                    if (isset($breakdown['heavy']))  $labels[] = $breakdown['heavy'] . ' Compl.';
+                                    if (isset($breakdown['medium'])) $labels[] = $breakdown['medium'] . ' Avanc.';
+                                    if (isset($breakdown['light']))  $labels[] = $breakdown['light'] . ' Std';
+                                    $lvlLabel = 'Mixte (' . implode(', ', $labels) . ')';
+                                } else {
+                                    $lvlLabel = match($order->damage_level) {
+                                        'light'  => 'Standard — 1 € TTC/photo',
+                                        'medium' => 'Avancée — 2 € TTC/photo',
+                                        'heavy'  => 'Complète — 3 € TTC/photo',
+                                        default  => ucfirst($order->damage_level ?? 'N/A'),
+                                    };
+                                }
                             @endphp
                             {{ $lvlLabel }}
                         </dd>
@@ -1017,7 +1104,7 @@ class extends Component
                         class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C9A84C]/15 hover:bg-[#C9A84C]/25 border border-[#C9A84C]/30 hover:border-[#C9A84C]/50 text-[#C9A84C] text-sm rounded-sm transition-all">
                     <span wire:loading.remove wire:target="resendClientNotification" class="flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                        Envoyer la notification
+                        Renvoyer la notification si elle a été perdue
                     </span>
                     <span wire:loading wire:target="resendClientNotification" class="flex items-center gap-2">
                         <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 12h4z"/></svg>

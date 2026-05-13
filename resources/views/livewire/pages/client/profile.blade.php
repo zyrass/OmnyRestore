@@ -94,6 +94,18 @@ class extends Component {}; ?>
                     @endif
                 </div>
             </div>
+            <div class="card-glass p-5 border-[#C9A84C]/15 mb-5">
+                <h3 class="text-[#C9A84C] text-xs tracking-widest uppercase mb-3">Portabilité (Art. 20)</h3>
+                <p class="text-[#7A6E5E] text-xs mb-4">
+                    Téléchargez l'intégralité de vos informations personnelles, factures et historique (Format JSON).
+                </p>
+                <a href="{{ route('client.account.export') }}"
+                   class="block text-center px-4 py-2 text-xs border border-[#C9A84C]/30 text-[#C9A84C]
+                          hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/50 rounded-sm transition-all">
+                    Exporter mes données ↓
+                </a>
+            </div>
+
             <div class="card-glass p-5 border-red-500/15">
                 <h3 class="text-red-400 text-xs tracking-widest uppercase mb-3">Zone critique</h3>
                 <p class="text-[#7A6E5E] text-xs mb-4">

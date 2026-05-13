@@ -157,13 +157,13 @@ table.items thead th {
     text-transform: uppercase;
     letter-spacing: 1px;
     color: #9E9085;
-    padding: 12px 14px;
+    padding: 12px 6px;
     text-align: left;
     border-bottom: 2px solid #DDD8CE;
 }
 table.items thead th.r { text-align: right; }
 table.items tbody td {
-    padding: 16px 14px;
+    padding: 16px 6px;
     font-size: 14px;
     border-bottom: 1px solid #F0EDE6;
     vertical-align: top;
@@ -368,16 +368,18 @@ table.totals tr.free-row td {
     <table class="items">
         <thead>
             <tr>
-                <th style="width:50%">Description</th>
-                <th style="width:10%">Qté</th>
-                <th class="r" style="width:20%">Prix unit. HT</th>
-                <th class="r" style="width:20%">Total HT</th>
+                <th style="width:38%">Description</th>
+                <th style="width:6%">Qté</th>
+                <th class="r" style="width:14%; white-space:nowrap;">P.U. HT</th>
+                <th class="r" style="width:14%; white-space:nowrap;">P.U. TTC</th>
+                <th class="r" style="width:14%; white-space:nowrap;">Total HT</th>
+                <th class="r" style="width:14%; white-space:nowrap;">Total TTC</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($lineItems as $line)
             <tr>
-                <td>
+                <td style="padding-right: 10px;">
                     <div class="desc-main">{{ $line['label'] }}</div>
                     <div class="desc-sub">
                         {{ $line['detail'] }}<br>
@@ -385,8 +387,10 @@ table.totals tr.free-row td {
                     </div>
                 </td>
                 <td>{{ $line['count'] }}</td>
-                <td class="r">{{ number_format($line['unit_ht_c'] / 100, 2, ',', ' ') }} €</td>
-                <td class="r">{{ number_format($line['total_ht_c'] / 100, 2, ',', ' ') }} €</td>
+                <td class="r" style="white-space:nowrap;">{{ number_format($line['unit_ht_c'] / 100, 2, ',', ' ') }} €</td>
+                <td class="r" style="white-space:nowrap;"><strong>{{ number_format($line['unit_ttc_c'] / 100, 2, ',', ' ') }} €</strong></td>
+                <td class="r" style="white-space:nowrap;">{{ number_format($line['total_ht_c'] / 100, 2, ',', ' ') }} €</td>
+                <td class="r" style="white-space:nowrap;"><strong>{{ number_format($line['total_ttc_c'] / 100, 2, ',', ' ') }} €</strong></td>
             </tr>
             @endforeach
             @if ($discountC > 0)
@@ -397,7 +401,9 @@ table.totals tr.free-row td {
                 </td>
                 <td>—</td>
                 <td class="r">—</td>
-                <td class="r">-{{ number_format($discountC / 100, 2, ',', ' ') }} €</td>
+                <td class="r">—</td>
+                <td class="r" style="white-space:nowrap;">-{{ number_format($discountC / 100, 2, ',', ' ') }} €</td>
+                <td class="r" style="white-space:nowrap;"><strong>-{{ number_format($discountC / 100, 2, ',', ' ') }} €</strong></td>
             </tr>
             @endif
         </tbody>

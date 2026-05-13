@@ -77,7 +77,7 @@ class extends Component
     public function updatedSearch(): void { $this->resetPage(); }
 }; ?>
 
-<div>
+<div wire:poll.5s>
     <div class="flex items-center justify-between mb-8">
         <div>
             <h1 class="text-2xl font-bold text-[#F5F0E8]">Commandes</h1>
@@ -168,7 +168,7 @@ class extends Component
                     </td>
                     <td class="px-5 py-3.5 hidden lg:table-cell">
                         <span class="text-[10px] {{ $order->damage_level === 'heavy' ? 'text-orange-400' : 'text-emerald-400' }}">
-                            {{ $order->damage_level === 'heavy' ? '⚠ Avancée' : '✓ Standard' }}
+                            {{ $order->damage_level === 'heavy' ? '⚠ Complète' : ($order->damage_level === 'medium' ? '⚠ Avancée' : '✓ Standard') }}
                         </span>
                     </td>
                     <td class="px-5 py-3.5 text-[#F5F0E8] hidden lg:table-cell">

@@ -68,7 +68,7 @@ class extends Component
     }
 }; ?>
 
-<div wire:poll.10s>
+<div wire:poll.5s>
     {{-- En-tête --}}
     <div class="flex items-center justify-between mb-8">
         <div>
@@ -139,7 +139,7 @@ class extends Component
                             <span class="text-[#F5F0E8] text-xs">{{ $order->photo_count }} photo{{ $order->photo_count > 1 ? 's' : '' }}</span>
                             <span class="text-[#7A6E5E] text-xs">{{ $order->created_at->diffForHumans() }}</span>
                             @if ($order->damage_level === 'heavy')
-                            <span class="text-orange-400 text-[10px] border border-orange-500/30 px-1.5 py-0.5 rounded-full">Avancée</span>
+                            <span class="text-orange-400 text-[10px] border border-orange-500/30 px-1.5 py-0.5 rounded-full">Complète</span>
                             @endif
                         </div>
                     </div>

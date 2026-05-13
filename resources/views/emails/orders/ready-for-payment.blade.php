@@ -94,7 +94,15 @@
             </div>
             <div class="order-box-row">
                 <span class="order-box-label">Niveau de restauration</span>
-                <span class="order-box-value">{{ $order->damage_level === 'heavy' ? 'Avancée' : 'Standard' }}</span>
+                <span class="order-box-value">
+                    @php
+                        echo match($order->damage_level) {
+                            'heavy'  => 'Complète',
+                            'medium' => 'Avancée',
+                            default  => 'Standard',
+                        };
+                    @endphp
+                </span>
             </div>
             <div class="order-box-row">
                 <span class="order-box-label">{{ $isFree ? 'Montant' : 'Montant TTC' }}</span>

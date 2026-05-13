@@ -775,45 +775,58 @@ class extends Component
 
             {{-- === ÉTAT : LIVRÉ — Archive ZIP prête === --}}
             @if ($order->status === 'DELIVERED')
-            <div class="card-glass p-8 text-center border-[#C9A84C]/30">
-                <div class="w-16 h-16 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                </div>
-                <h3 class="text-[#F5F0E8] text-lg font-semibold mb-2">Photos prêtes à télécharger !</h3>
-                <p class="text-[#7A6E5E] text-sm mb-6 max-w-sm mx-auto">
-                    Vos photos restaurées sont disponibles en HD sans filigrane.
-                    Ce lien est valable
-                    @if ($order->zip_expires_at)
-                        jusqu'au <span class="text-[#C9A84C]">{{ $order->zip_expires_at->format('d/m/Y') }}</span>.
-                    @else
-                        6 mois.
-                    @endif
-                </p>
-                @if ($order->zip_path)
-                <a href="{{ route('client.orders.download', $order) }}"
-                   class="btn-gold text-base px-10 py-4 inline-flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                    Télécharger le ZIP
-                </a>
-                @endif
+            <div class="space-y-6">
+                {{-- Encadré principal : Téléchargement des photos --}}
+                <div class="card-glass p-8 text-center border-[#C9A84C]/30 shadow-[0_8px_40px_rgba(201,168,76,0.15)] relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4">
+                         <div class="flex items-center gap-2 py-1.5 px-3 bg-[#C9A84C]/10 border border-[#C9A84C]/20 rounded-full">
+                             <svg class="w-3.5 h-3.5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                             <span class="text-[#C9A84C] text-[10px] font-bold uppercase tracking-widest">
+                                Expire le {{ $order->zip_expires_at?->format('d/m/Y') ?? 'N/A' }}
+                             </span>
+                         </div>
+                    </div>
 
-                {{-- Facture PDF --}}
-                <div class="mt-6 pt-5 border-t border-[#C9A84C]/10">
-                    <a href="{{ route('client.orders.invoice', $order) }}" target="_blank"
-                       class="w-full flex items-center gap-4 px-5 py-4 border border-[#C9A84C]/20 hover:border-[#C9A84C]/50 bg-[#C9A84C]/5 hover:bg-[#C9A84C]/10 rounded-sm transition-all group">
-                        <div class="w-10 h-10 rounded-sm border border-[#C9A84C]/30 bg-[#C9A84C]/10 flex items-center justify-center shrink-0 group-hover:bg-[#C9A84C]/20 transition-colors">
-                            <svg class="w-5 h-5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
+                    <div class="w-16 h-16 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto mb-4 bg-emerald-500/5">
+                        <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <h3 class="text-[#F5F0E8] text-xl font-bold mb-2">Vos photos sont prêtes !</h3>
+                    <p class="text-[#7A6E5E] text-sm mb-8 max-w-sm mx-auto leading-relaxed">
+                        Votre archive sécurisée contient l'intégralité de vos photos restaurées en haute résolution (HD) et sans filigrane.
+                    </p>
+                    
+                    @if ($order->zip_path)
+                    <div class="mb-4">
+                        <a href="{{ route('client.orders.download', $order) }}"
+                           class="btn-gold text-lg px-12 py-5 inline-flex items-center gap-3 shadow-[0_10px_30px_rgba(201,168,76,0.25)] hover:scale-[1.02] transition-transform">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Télécharger l'archive ZIP
+                        </a>
+                    </div>
+                    <p class="text-[#4A3E2E] text-[11px]">Format .ZIP · Haute Définition · Prêt pour impression</p>
+                    @endif
+                </div>
+
+                {{-- Encadré séparé : Facture --}}
+                <div class="card-glass p-6 border-[#C9A84C]/10 bg-[#1A1510]/30">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-6">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 rounded-sm border border-[#C9A84C]/20 bg-[#C9A84C]/10 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </div>
+                            <div class="text-left">
+                                <h4 class="text-[#F5F0E8] font-semibold">Facture acquittée</h4>
+                                <p class="text-[#7A6E5E] text-xs">Référence : {{ $order->reference }} · Reçu officiel</p>
+                            </div>
                         </div>
-                        <div class="flex-1 text-left">
-                            <p class="text-[#F5F0E8] text-sm font-medium">Télécharger la facture PDF</p>
-                            <p class="text-[#7A6E5E] text-xs mt-0.5">Facture officielle · {{ $order->reference }}</p>
-                        </div>
-                        <svg class="w-4 h-4 text-[#C9A84C]/50 group-hover:text-[#C9A84C] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </a>
+                        <a href="{{ route('client.orders.invoice', $order) }}" target="_blank"
+                           class="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#C9A84C]/10 hover:bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C] text-sm font-bold rounded-sm transition-all group">
+                            <svg class="w-4 h-4 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Télécharger la facture (PDF)
+                        </a>
+                    </div>
                 </div>
             </div>
 

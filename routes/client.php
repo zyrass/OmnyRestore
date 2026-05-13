@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Storage;
  * The middleware only ensures authentication and email verification.
  */
 
-Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('client.')->group(function () {
+Route::middleware(['auth', 'verified', 'client', 'throttle:60,1'])->prefix('client')->name('client.')->group(function () {
 
     // ─── Orders ───────────────────────────────────────────────────────────
     // Volt::route() active le cycle de vie complet du composant Livewire/Volt.
@@ -92,6 +92,10 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     // Volt::route pointe vers livewire/pages/client/account/delete.blade.php
     \Livewire\Volt\Volt::route('/account/delete', 'pages.client.account.delete')
         ->name('account.delete');
+
+    // GET /client/account/export — Portabilité des données RGPD Art. 20
+    Route::get('/account/export', [\App\Http\Controllers\Client\ExportUserDataController::class, 'export'])
+        ->name('account.export');
 
     // ─── Support Tickets ──────────────────────────────────────────────────
     // GET  /client/tickets         → Liste des tickets

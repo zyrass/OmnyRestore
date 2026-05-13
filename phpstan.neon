@@ -1,0 +1,21 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+
+    paths:
+        - app/
+        - resources/views/livewire/
+
+    # Level 9 is the highest level
+    level: 5
+
+    ignoreErrors:
+        # Ignore les erreurs liées aux propriétés magiques d'Eloquent (fréquent avec Volt)
+        - '#Access to an undefined property App\\Models\\Order::\$#'
+        - '#Access to an undefined property App\\Models\\User::\$#'
+
+    excludePaths:
+        - ./*/*/FileToBeExcluded.php
+
+    checkMissingIterableValueType: false

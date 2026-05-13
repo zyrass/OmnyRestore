@@ -81,10 +81,23 @@ class ZipGeneratorService
         // ─── 3. Download each S3 file to temporary directory ──────────────
         $localFiles = [];
 
+        $originals = $order->getMedia('originals')->values();
+
         foreach ($mediaItems as $index => $media) {
-            // Build a clean local filename: 01_original-filename.jpg
-            $localFilename = sprintf('%02d_%s', $index + 1, $media->file_name);
-            $localPath     = $tempDir . DIRECTORY_SEPARATOR . $localFilename;
+            // Tentative de récupération du nom d'origine par index
+            $originalMedia = $originals[$index] ?? null;
+            
+            if ($originalMedia) {
+                $ext  = pathinfo($media->file_name, PATHINFO_EXTENSION);
+                $base = pathinfo($originalMedia->file_name, PATHINFO_FILENAME);
+                // On nettoie un éventuel préfixe "restored_" ou autre pour repartir du vrai nom
+                $cleanBase = preg_replace('/^restored_/', '', $base);
+                $localFilename = $cleanBase . '-HD.' . $ext;
+            } else {
+                $localFilename = sprintf('%02d_%s', $index + 1, $media->file_name);
+            }
+
+            $localPath = $tempDir . DIRECTORY_SEPARATOR . $localFilename;
 
             // Read from S3 via Spatie Media Library's storage path
             // getPath() returns the full path on the disk configured for this collection
