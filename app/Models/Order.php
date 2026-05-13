@@ -294,9 +294,12 @@ class Order extends Model implements HasMedia
      */
     public function markAsPaid(string $paymentIntentId): void
     {
-        $this->payment_intent_id = $paymentIntentId;
-        $this->payment_status    = 'paid';
-        $this->paid_at           = now();
+        $this->guardTransition('PAID', ['DONE']);
+
+        $this->status             = 'PAID';
+        $this->payment_intent_id  = $paymentIntentId;
+        $this->payment_status     = 'paid';
+        $this->paid_at            = now();
         $this->save();
     }
 
