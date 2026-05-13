@@ -917,35 +917,36 @@ class extends Component
                             {{ $lvlLabel }}
                         </dd>
                     </div>
-                    {{-- Estimation IA : HT + TVA --}}
+                    {{-- Calcul des prix harmonisé (Somme des TTC individuels) --}}
                     @php
-                        $baseHt      = $order->base_price_cents ?? 0;
-                        $discountHt  = $order->discount_cents ?? 0;
-                        $finalHt     = $order->total_price_cents ?? max(0, $baseHt - $discountHt);
-                        $tva         = round($finalHt * 0.2);
-                        $ttc         = $finalHt + $tva;
-                        $aiCost      = ($order->photo_count ?? 1) * 1; // ~0,01 €/photo
+                        $baseHtC     = $order->base_price_cents ?? 0;
+                        $discountC   = $order->discount_cents ?? 0;
+                        $finalHtC    = $order->total_price_cents ?? max(0, $baseHtC - $discountC);
+                        
+                        // Calcul TTC exact (somme des TTC par photo)
+                        $_pttc       = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
+                        $_originals  = $order->getMedia('originals');
+                        $baseTtcC    = $_originals->sum(function ($m) use ($_pttc, $order) {
+                            $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
+                            return $_pttc[$lv] ?? $_pttc['light'];
+                        });
+                        
+                        // Fallback si pas de media originals
+                        if ($baseTtcC === 0) {
+                            $baseTtcC = (int) round($baseHtC * 1.2);
+                        }
+
+                        $tvaC  = $baseTtcC - $baseHtC;
+                        $ttcC  = max(0, $baseTtcC - $discountC);
                     @endphp
-                    <div class="flex justify-between"><dt class="text-[#7A6E5E]">Estim. IA HT</dt><dd class="text-[#C9A84C]">{{ number_format($baseHt / 100, 2, ',', ' ') }} €</dd></div>
-                    @if ($discountHt > 0)
-                    <div class="flex justify-between">
-                        <dt class="text-emerald-400/80 text-xs">Remise ({{ $order->coupon_code }})</dt>
-                        <dd class="text-emerald-400 text-xs">−{{ number_format($discountHt / 100, 2, ',', ' ') }} €</dd>
-                    </div>
-                    @endif
-                    <div class="border-t border-[#C9A84C]/10 pt-2 space-y-1.5">
-                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT{{ $discountHt > 0 ? ' net' : '' }}</dt><dd class="text-[#F5F0E8]" x-text="finalHt.toFixed(2).replace('.', ',') + ' €'">{{ number_format($finalHt / 100, 2, ',', ' ') }} €</dd></div>
-                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">TVA 20%</dt><dd class="text-[#F5F0E8]" x-text="(finalHt * 0.2).toFixed(2).replace('.', ',') + ' €'">{{ number_format($tva / 100, 2, ',', ' ') }} €</dd></div>
-                        <div class="flex justify-between font-bold"><dt class="text-[#C9A84C]">TTC</dt><dd class="text-[#C9A84C]" x-text="(finalHt * 1.2).toFixed(2).replace('.', ',') + ' €'">{{ number_format($ttc / 100, 2, ',', ' ') }} €</dd></div>
-                        {{-- Coût IA : offert si coupon couvre tout, sinon mention ~0,01 €/photo --}}
-                        @if ($finalHt === 0 && $discountHt > 0)
-                        <div class="flex justify-between text-xs"><dt class="text-emerald-400/70">Coût IA</dt><dd class="text-emerald-400 font-medium">Offert ✓</dd></div>
-                        @else
-                        <div class="flex justify-between text-xs"><dt class="text-[#7A6E5E]/60">Dont coût IA</dt><dd class="text-[#7A6E5E]/60">~{{ number_format($aiCost / 100, 2, ',', ' ') }} €</dd></div>
-                        @endif
+
+                    <div class="border-t border-[#C9A84C]/10 pt-4 space-y-1.5">
+                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT{{ $discountC > 0 ? ' net' : '' }}</dt><dd class="text-[#F5F0E8]">{{ number_format($finalHtC / 100, 2, ',', ' ') }} €</dd></div>
+                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">TVA 20%</dt><dd class="text-[#F5F0E8]">{{ number_format($tvaC / 100, 2, ',', ' ') }} €</dd></div>
+                        <div class="flex justify-between font-bold"><dt class="text-[#C9A84C]">TTC</dt><dd class="text-[#C9A84C]">{{ number_format($ttcC / 100, 2, ',', ' ') }} €</dd></div>
                     </div>
                     @if ($order->paid_at)
-                    <div class="flex justify-between"><dt class="text-[#7A6E5E]">Payé le</dt><dd class="text-emerald-400 text-xs">{{ $order->paid_at->format('d/m/Y H:i') }}</dd></div>
+                    <div class="flex justify-between border-t border-[#C9A84C]/5 pt-2 mt-2"><dt class="text-[#7A6E5E]">Payé le</dt><dd class="text-emerald-400 text-xs">{{ $order->paid_at->format('d/m/Y H:i') }}</dd></div>
                     @endif
                 </dl>
             </div>

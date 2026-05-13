@@ -63,10 +63,9 @@ class PhotoDamageAnalyzer
 
     /**
      * Coût estimé de l'analyse IA en centimes HT par photo.
-     * GPT-4o Vision (detail=low) ≈ 0,005 $ ≈ 0,005 €
-     * Affiché de manière transparente sur les devis et factures.
+     * Désactivé (0) pour ne pas polluer la facturation client/admin.
      */
-    public const AI_COST_CENTS = 1; // ~0,005 € arrondi à 0,01 €
+    public const AI_COST_CENTS = 0;
 
     /**
      * Prompt système envoyé à GPT-4o pour l'analyse.
