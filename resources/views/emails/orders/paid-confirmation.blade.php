@@ -65,8 +65,24 @@
                 <span class="order-box-label">Montant réglé TTC</span>
                 <span class="order-box-price">
                     @php
-                        $htCents  = (int) ($order->total_price_cents ?? $order->base_price_cents ?? 0);
-                        $ttcCents = $htCents + (int) round($htCents * 0.20);
+                        $baseHtC     = $order->base_price_cents ?? 0;
+                        $discountC   = $order->discount_cents ?? 0;
+                        $finalHtC    = $order->total_price_cents !== null ? $order->total_price_cents : max(0, $baseHtC - $discountC);
+                        
+                        // TTC exact : sommer les PRICES_TTC des photos originales
+                        $_pttc       = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
+                        $_originals  = $order->getMedia('originals');
+                        $baseTtcC    = $_originals->sum(function ($m) use ($_pttc, $order) {
+                            $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
+                            return $_pttc[$lv] ?? $_pttc['light'];
+                        });
+
+                        // Fallback si pas de media originals
+                        if ($baseTtcC === 0) {
+                            $baseTtcC = (int) round($baseHtC * 1.2);
+                        }
+
+                        $ttcCents = max(0, $baseTtcC - $discountC);
                     @endphp
                     {{ number_format($ttcCents / 100, 2, ',', ' ') }} €
                 </span>

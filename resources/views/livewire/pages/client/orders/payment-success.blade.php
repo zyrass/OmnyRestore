@@ -101,8 +101,24 @@ class extends Component
 
                 {{-- Récapitulatif --}}
                 @php
-                    $htC  = $order->total_price_cents ?? $order->base_price_cents ?? 0;
-                    $ttcC = $htC + (int) round($htC * 0.20);
+                    $baseHtC     = $order->base_price_cents ?? 0;
+                    $discountC   = $order->discount_cents ?? 0;
+                    $finalHtC    = $order->total_price_cents !== null ? $order->total_price_cents : max(0, $baseHtC - $discountC);
+                    
+                    // TTC exact : sommer les PRICES_TTC des photos originales
+                    $_pttc       = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
+                    $_originals  = $order->getMedia('originals');
+                    $baseTtcC    = $_originals->sum(function ($m) use ($_pttc, $order) {
+                        $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
+                        return $_pttc[$lv] ?? $_pttc['light'];
+                    });
+
+                    // Fallback si pas de media originals
+                    if ($baseTtcC === 0) {
+                        $baseTtcC = (int) round($baseHtC * 1.2);
+                    }
+
+                    $ttcC = max(0, $baseTtcC - $discountC);
                 @endphp
                 <div class="bg-[#0F0C08]/60 border border-[#C9A84C]/15 rounded-sm px-6 py-5 mb-8 text-sm text-left space-y-3">
                     <div class="flex justify-between">

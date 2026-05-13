@@ -49,18 +49,24 @@ class OrderCheckoutController extends Controller
         // Solution : recalculer le TTC exact à partir du HT par photo.
         //    htToTtc(83) = round(83 * 1.20) = round(99.6) = 100¢ par photo ✓
         //    Somme TTC = 3×100¢ + 1×200¢ = 500¢ = 5,00€ ✓
-        $htCents = $order->total_price_cents !== null
-            ? $order->total_price_cents
-            : ($order->base_price_cents ?? 0);
+        $baseHtC     = $order->base_price_cents ?? 0;
+        $discountC   = $order->discount_cents ?? 0;
+        $finalHtC    = $order->total_price_cents !== null ? $order->total_price_cents : max(0, $baseHtC - $discountC);
+        
+        // TTC exact : sommer les PRICES_TTC des photos originales
+        $_pttc       = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
+        $_originals  = $order->getMedia('originals');
+        $baseTtcC    = $_originals->sum(function ($m) use ($_pttc, $order) {
+            $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
+            return $_pttc[$lv] ?? $_pttc['light'];
+        });
 
-        // Retrouver le niveau de dommage pour recalculer le TTC exact par photo
-        // Si base_price_cents est un multiple exact d'un prix HT connu, on peut
-        // reconstruire le TTC. Sinon on utilise la méthode htToTtc() photo par photo.
-        // Ici on utilise htToTtc() sur le total HT net — ce qui est correct tant que
-        // tous les photos ont le MÊME niveau. Pour les commandes multi-niveaux, le TTC
-        // est calculé côté create.blade.php et stocké directement.
-        $tvaC     = \App\Services\PhotoDamageAnalyzer::htToTtc($htCents) - $htCents;
-        $ttcCents = $htCents + $tvaC;
+        // Fallback si pas de media originals
+        if ($baseTtcC === 0) {
+            $baseTtcC = (int) round($baseHtC * 1.2);
+        }
+
+        $ttcCents = max(0, $baseTtcC - $discountC);
 
         // ── Cas coupon 100% : commande offerte, pas de Stripe ────────────
         if ($ttcCents === 0) {
