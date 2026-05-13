@@ -14,6 +14,7 @@
  * avant de rendre la vue. Un client A ne peut pas voir la commande du client B.
  */
 
+use App\Http\Requests\Client\StoreTestimonialRequest;
 use App\Models\Order;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -92,13 +93,12 @@ class extends Component
         abort_if($this->order->user_id !== auth()->id(), 403);
         abort_if($this->order->status !== 'DELIVERED', 403, 'Les avis ne sont disponibles qu\'après livraison.');
 
-        $this->validate([
-            'testimonialContent' => 'required|string|min:20|max:500',
-            'testimonialRating'  => 'required|integer|between:1,5',
-        ]);
+        // Règles et messages centralisés dans StoreTestimonialRequest
+        $request = new StoreTestimonialRequest;
+        $this->validate($request->rules(), $request->messages());
 
         // Idempotent : déjà soumis pour cette commande
-        if (\App\Models\Testimonial::where('order_id', $this->order->id)->exists()) {
+        if (StoreTestimonialRequest::alreadySubmitted($this->order->id)) {
             session()->flash('success', 'Vous avez déjà partagé votre avis pour cette commande. Merci !');
             return;
         }

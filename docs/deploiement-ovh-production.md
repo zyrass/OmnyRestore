@@ -1,4 +1,4 @@
-# 🚀 Guide de déploiement Production — OmnyRestore
+﻿# 🚀 Guide de déploiement Production — OmnyRestore
 
 > OVH VPS · PostgreSQL 16 · Nginx · Redis · Let's Encrypt · CI/CD GitHub Actions
 
@@ -647,7 +647,7 @@ jobs:
 
 ---
 
-## 11. PROTECTION BRANCHE MAIN (GitHub)
+## 12. PROTECTION BRANCHE MAIN (GitHub)
 
 ```
 GitHub → Settings → Branches → Add rule → Branch name: main
@@ -665,7 +665,7 @@ GitHub → Settings → Branches → Add rule → Branch name: main
 
 ---
 
-## 12. SÉCURITÉ DÉPÔT GITHUB
+## 13. SÉCURITÉ DÉPÔT GITHUB
 
 ```
 Settings → Security
@@ -699,7 +699,7 @@ updates:
 
 ---
 
-## 13. CONFIGURATION S3 PRODUCTION (AWS eu-west-3)
+## 14. CONFIGURATION S3 PRODUCTION (AWS eu-west-3)
 
 ### Création des buckets
 
@@ -764,7 +764,7 @@ aws s3api put-bucket-lifecycle-configuration \
 
 ---
 
-## 14. STRIPE — PASSAGE EN PRODUCTION
+## 15. STRIPE — PASSAGE EN PRODUCTION
 
 ```bash
 # 1. Récupérer les clés LIVE depuis dashboard.stripe.com
@@ -791,7 +791,7 @@ CASHIER_CURRENCY_LOCALE=fr_FR
 
 ---
 
-## 15. EMAILS — RESEND EN PRODUCTION
+## 16. EMAILS — RESEND EN PRODUCTION
 
 ```bash
 # 1. Vérifier le domaine sur resend.com
@@ -808,7 +808,8 @@ Mail::to('test@omnyrestore.fr')->send(new \App\Mail\OrderDeliveryReady(...));
 
 ---
 
-## 16. PURGE DES DONNÉES DE TEST
+## 17. PURGE DES DONNÉES DE TEST
+
 
 ```bash
 # ATTENTION : À exécuter uniquement AVANT la mise en prod
@@ -840,7 +841,7 @@ truncate -s 0 storage/logs/laravel.log
 
 ---
 
-## 17. CHECKLIST MISE EN PRODUCTION
+## 18. CHECKLIST MISE EN PRODUCTION
 
 ```
 INFRASTRUCTURE

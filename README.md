@@ -14,6 +14,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=flat-square&logo=php&logoColor=white)](https://php.net)
 [![Version](https://img.shields.io/badge/version-0.15.0-blue?style=flat-square)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/tests-64%20pass%C3%A9s-brightgreen?style=flat-square&logo=phpunit)](tests/)
 
 </div>
 
@@ -30,6 +31,7 @@
 - [📁 Structure du projet](#-structure-du-projet)
 - [🎫 Module Support (Tickets)](#-module-support-tickets)
 - [⚙️ Configuration upload](#️-configuration-upload)
+- [🧪 Tests & Sécurité](#-tests--sécurité)
 - [🔐 Sécurité & RGPD](#-sécurité--rgpd)
 - [🌿 Git Workflow](#-git-workflow)
 - [🗺️ Roadmap](#️-roadmap)
@@ -264,8 +266,12 @@ omnyrestore/
 │   │   │   │   └── OrderController.php
 │   │   │   └── Webhook/
 │   │   │       └── StripeWebhookController.php
-│   │   └── Middleware/
-│   │       └── EnsureIsAdmin.php    # Contrôle d'accès par rôle
+│   │   ├── Middleware/
+│   │   │   └── EnsureIsAdmin.php    # Contrôle d'accès par rôle
+│   │   └── Requests/
+│   │       └── Client/
+│   │           ├── CreateOrderRequest.php   # Validation upload photos + instructions
+│   │           └── StoreTestimonialRequest.php  # Validation avis client (20-500 chars)
 │   ├── Models/
 │   │   ├── User.php                 # Billable, RGPD, soft delete
 │   │   ├── Order.php                # State machine, relations, media collections
@@ -392,6 +398,60 @@ $destPath = storage_path('app/tmp-uploads/') . uniqid() . '.jpg';
 copy($photo->getRealPath(), $destPath);
 $order->addMedia($destPath)->preservingOriginal()->toMediaCollection('originals');
 @unlink($destPath);
+```
+
+---
+
+## 🧪 Tests & Sécurité
+
+### Suite de tests — **64 tests / 146 assertions** ✅
+
+```bash
+# Lancer tous les tests
+php artisan test
+
+# Lancer un groupe spécifique
+php artisan test --filter="StripeWebhookTest"
+php artisan test --filter="HorizonAuthTest"
+php artisan test --filter="OrderStateMachineTest"
+```
+
+### Couverture par catégorie
+
+| Catégorie | Fichier | Tests | Couvre |
+|---|---|---|---|
+| Authentification | `AuthenticationTest` | 4 | Login, logout, navigation, mot de passe invalide |
+| Inscription | `RegistrationTest` | 2 | Inscription RGPD compliant, redirection client |
+| Mot de passe | `PasswordUpdateTest` | 2 | Mise à jour CNIL (12+ chars, symboles) |
+| Réinitialisation | `PasswordResetTest` | 3 | Email reset, validation lien, nouveau mot de passe |
+| Profil | `ProfileTest` | 4 | Affichage, mise à jour, soft-delete RGPD |
+| Webhook Stripe | `StripeWebhookTest` | 7 | Signature HMAC, paiement, idempotence, échec |
+| Horizon Auth | `HorizonAuthTest` | 6 | Gate `viewHorizon` — null/client/admin |
+| Machine d'état | `OrderStateMachineTest` | 10 | Transitions PENDING→PAID→DONE→DELIVERED |
+| **Total** | — | **64** | **146 assertions** |
+
+### Sécurité renforcée (v0.15.0)
+
+| Domaine | Implémentation |
+|---|---|
+| **Mass Assignment** | `status` et `payment_status` hors `$fillable` — transitions via méthodes dédiées (`markAsPaid`, `cancel`) |
+| **CNIL / RGPD** | Mot de passe min 12 chars, mixedCase, chiffres, symboles (`Password::defaults()` dans `AppServiceProvider`) |
+| **Rate Limiting** | `throttle:10,1` sur checkout, `throttle:30,1` sur webhook Stripe |
+| **Horizon** | Double protection : Gate Laravel (`viewHorizon`) + IP whitelist Nginx |
+| **Webhook Stripe** | Vérification signature HMAC avec `STRIPE_WEBHOOK_SECRET` — rejette les payloads invalides |
+| **Form Requests** | `CreateOrderRequest`, `StoreTestimonialRequest` — validation centralisée et réutilisable |
+| **SoftDeletes** | Comptes supprimés anonymisés (RGPD) — `anonymized_at` + `deleted_at` |
+
+### Politique de mot de passe (conforme CNIL)
+
+```php
+// app/Providers/AppServiceProvider.php
+Password::defaults(fn () =>
+    Password::min(12)
+        ->mixedCase()
+        ->numbers()
+        ->symbols()
+);
 ```
 
 ---

@@ -13,6 +13,7 @@
  *   6. Soumission → création Order (PENDING) + upload médias
  */
 
+use App\Http\Requests\Client\CreateOrderRequest;
 use App\Models\Order;
 use App\Services\AuditService;
 use App\Services\CouponService;
@@ -120,7 +121,12 @@ class extends Component
      */
     public function applyCoupon(CouponService $couponService): void
     {
-        $this->validate(['couponCode' => 'required|string|min:3|max:32']);
+        // Règles extraites de CreateOrderRequest::couponRules() pour centralisation
+        $this->validate(
+            CreateOrderRequest::couponRules(),
+            ['couponCode.required' => 'Veuillez saisir un code de réduction.',
+             'couponCode.min'      => 'Le code doit contenir au moins :min caractères.']
+        );
         $this->couponResult = $couponService->apply(
             $this->couponCode,
             $this->baseHtCents()
@@ -141,13 +147,15 @@ class extends Component
      */
     public function submit(AuditService $audit, CouponService $couponService): void
     {
-        $this->validate([
-            'photos'       => ['required', 'array', 'min:1', 'max:20'],
-            // Note: photos.* n'est pas re-validé ici car les fichiers temporaires
-            // Livewire sont déjà validés à l'upload (wire:model) et peuvent être
-            // dans un état transitoire au moment du submit.
-            'instructions' => ['nullable', 'string', 'max:1000'],
-        ]);
+        // Centralisation des règles de validation via CreateOrderRequest
+        // Note : photos.* n'est pas re-validé ici — les fichiers temporaires Livewire
+        // sont déjà validés à l'upload (wire:model) et peuvent être dans un état
+        // transitoire. La validation complète s'applique via updatedPhotos().
+        $request = new CreateOrderRequest;
+        $this->validate(
+            array_intersect_key($request->rules(), array_flip(['photos', 'instructions'])),
+            $request->messages()
+        );
 
         \Illuminate\Support\Facades\Log::info('Order submit() déclenché', [
             'user_id'      => auth()->id(),
