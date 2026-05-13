@@ -82,19 +82,22 @@
             </div>
         </div>
 
-        {{-- Boutons d'action principaux --}}
-        <div class="divider-label">Télécharger</div>
-        <div class="actions">
-            <div class="action-cell">
-                <a href="{{ route('client.orders.download', $order) }}" class="cta-primary">
-                    ⬇ Archive ZIP
-                </a>
-            </div>
-            <div class="action-cell">
-                <a href="{{ route('client.orders.invoice', $order) }}" class="cta-secondary">
-                    📄 Facture PDF
-                </a>
-            </div>
+        {{-- CTA principal : lien vers la plateforme (pas de ZIP direct par email) --}}
+        <div class="divider-label">Accéder à vos photos</div>
+        <div style="text-align:center; margin: 28px 0;">
+            <a href="{{ route('client.orders.show', $order) }}" class="cta-primary" style="display:inline-block;">
+                ✨ Télécharger mes photos
+            </a>
+            <p style="font-size:11px; color:#4A3E2E; margin-top:10px;">
+                Connectez-vous à votre espace client pour accéder à votre archive HD.
+            </p>
+        </div>
+
+        {{-- Facture PDF (lien direct autorisé) --}}
+        <div style="text-align:center; margin: 16px 0 28px;">
+            <a href="{{ route('client.orders.invoice', $order) }}" class="cta-secondary">
+                📄 Télécharger la facture PDF
+            </a>
         </div>
 
         <div class="note">
@@ -104,7 +107,7 @@
         </div>
 
         <p class="expiry">
-            Lien d'accès expirant le
+            Archive disponible jusqu'au
             {{ $order->zip_expires_at?->format('d/m/Y') ?? now()->addDays(90)->format('d/m/Y') }}
         </p>
 

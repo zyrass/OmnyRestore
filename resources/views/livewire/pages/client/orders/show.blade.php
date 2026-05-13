@@ -658,18 +658,87 @@ class extends Component
             @endif {{-- fin @if (! $order->preview_unlocked_at) --}}
             @endif {{-- fin @if ($order->status === 'DONE') --}}
 
-            {{-- === ÉTAT : PAYÉ / LIVRÉ === --}}
-            @if (in_array($order->status, ['PAID', 'DELIVERED']))
-            <div class="card-glass p-8 text-center border-[#C9A84C]/30"
-                 {{-- Polling actif uniquement si le ZIP n'est pas encore généré --}}
-                 @if (!$order->zip_path) wire:poll.5000ms="pollDelivery" @endif>
+            {{-- === ÉTAT : PAYÉ — En cours de traitement === --}}
+            @if ($order->status === 'PAID')
+            <div class="card-glass overflow-hidden" wire:poll.5000ms="pollDelivery">
+
+                {{-- Bande dorée en haut --}}
+                <div class="h-1 bg-gradient-to-r from-[#C9A84C] to-[#E8C97A]"></div>
+
+                <div class="p-10 text-center">
+                    {{-- Icône animée --}}
+                    <div class="relative w-20 h-20 mx-auto mb-6">
+                        <div class="absolute inset-0 border-2 border-[#C9A84C]/20 rounded-full"></div>
+                        <div class="absolute inset-0 border-t-2 border-[#C9A84C] rounded-full animate-spin" style="animation-duration:2s"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <svg class="w-8 h-8 text-[#C9A84C]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <h3 class="text-[#F5F0E8] text-xl font-semibold mb-2">En cours de traitement</h3>
+                    <p class="text-[#7A6E5E] text-sm max-w-sm mx-auto leading-relaxed mb-2">
+                        Votre paiement a bien été confirmé. L'équipe OmnyRestore prépare votre dossier.
+                    </p>
+                    <p class="text-[#C9A84C]/70 text-xs max-w-xs mx-auto mb-8">
+                        Vous recevrez un email dès que vos photos seront disponibles au téléchargement.
+                        <span class="block mt-1 text-[#7A6E5E]/60">Surveillez votre boîte mail (et vos spams).</span>
+                    </p>
+
+                    {{-- Récapitulatif commande --}}
+                    <div class="text-left max-w-xs mx-auto bg-[#0F0C08]/60 border border-[#C9A84C]/15 rounded-sm px-5 py-4 mb-8 space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-[#7A6E5E]">Référence</span>
+                            <span class="text-[#C9A84C] font-mono text-xs">{{ $order->reference }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-[#7A6E5E]">Photos</span>
+                            <span class="text-[#F5F0E8]">{{ $order->photo_count }}</span>
+                        </div>
+                        @if ($order->paid_at)
+                        <div class="flex justify-between">
+                            <span class="text-[#7A6E5E]">Payé le</span>
+                            <span class="text-emerald-400 text-xs">{{ $order->paid_at->format('d/m/Y à H:i') }}</span>
+                        </div>
+                        @endif
+                    </div>
+
+                    {{-- Facture PDF disponible immédiatement --}}
+                    <a href="{{ route('client.orders.invoice', $order) }}" target="_blank"
+                       class="inline-flex items-center gap-3 px-6 py-3 border border-[#C9A84C]/30 hover:border-[#C9A84C]/60 bg-[#C9A84C]/8 hover:bg-[#C9A84C]/15 rounded-sm transition-all group">
+                        <div class="w-8 h-8 rounded-sm border border-[#C9A84C]/30 bg-[#C9A84C]/10 flex items-center justify-center shrink-0 group-hover:bg-[#C9A84C]/20 transition-colors">
+                            <svg class="w-4 h-4 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <div class="text-left">
+                            <p class="text-[#F5F0E8] text-sm font-medium">Télécharger la facture PDF</p>
+                            <p class="text-[#7A6E5E] text-xs mt-0.5">Facture officielle · {{ $order->reference }}</p>
+                        </div>
+                        <svg class="w-4 h-4 text-[#C9A84C]/50 group-hover:text-[#C9A84C] transition-colors ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+            @endif
+
+            {{-- === ÉTAT : LIVRÉ — Archive ZIP prête === --}}
+            @if ($order->status === 'DELIVERED')
+            <div class="card-glass p-8 text-center border-[#C9A84C]/30">
                 <div class="w-16 h-16 border border-emerald-500/40 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg class="w-7 h-7 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
-                <h3 class="text-[#F5F0E8] text-lg font-semibold mb-2">Paiement confirmé !</h3>
+                <h3 class="text-[#F5F0E8] text-lg font-semibold mb-2">Photos prêtes à télécharger !</h3>
                 <p class="text-[#7A6E5E] text-sm mb-6 max-w-sm mx-auto">
-                    Vos photos restaurées sont prêtes. Téléchargez votre archive ZIP.
-                    Ce lien est valable 6 mois.
+                    Vos photos restaurées sont disponibles en HD sans filigrane.
+                    Ce lien est valable
+                    @if ($order->zip_expires_at)
+                        jusqu'au <span class="text-[#C9A84C]">{{ $order->zip_expires_at->format('d/m/Y') }}</span>.
+                    @else
+                        6 mois.
+                    @endif
                 </p>
                 @if ($order->zip_path)
                 <a href="{{ route('client.orders.download', $order) }}"
@@ -677,32 +746,28 @@ class extends Component
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                     Télécharger le ZIP
                 </a>
-                @else
-                <p class="text-[#7A6E5E] text-xs">
-                    <svg class="w-4 h-4 inline animate-spin text-[#C9A84C] mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                    Préparation de votre archive en cours — vous recevrez un email dans quelques minutes.
-                </p>
                 @endif
 
                 {{-- Facture PDF --}}
                 <div class="mt-6 pt-5 border-t border-[#C9A84C]/10">
                     <a href="{{ route('client.orders.invoice', $order) }}" target="_blank"
                        class="w-full flex items-center gap-4 px-5 py-4 border border-[#C9A84C]/20 hover:border-[#C9A84C]/50 bg-[#C9A84C]/5 hover:bg-[#C9A84C]/10 rounded-sm transition-all group">
-                        {{-- Icone --}}
                         <div class="w-10 h-10 rounded-sm border border-[#C9A84C]/30 bg-[#C9A84C]/10 flex items-center justify-center shrink-0 group-hover:bg-[#C9A84C]/20 transition-colors">
                             <svg class="w-5 h-5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                             </svg>
                         </div>
-                        {{-- Texte --}}
                         <div class="flex-1 text-left">
                             <p class="text-[#F5F0E8] text-sm font-medium">Télécharger la facture PDF</p>
                             <p class="text-[#7A6E5E] text-xs mt-0.5">Facture officielle · {{ $order->reference }}</p>
                         </div>
-                        {{-- Chevron --}}
-                        <svg class="w-4 h-4 text-[#7A6E5E] group-hover:text-[#C9A84C] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <svg class="w-4 h-4 text-[#C9A84C]/50 group-hover:text-[#C9A84C] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
                     </a>
                 </div>
+            </div>
+            @endif
 
                 {{-- ✦ Laisser un avis — uniquement pour commandes DELIVERED ✦ --}}
                 @if ($order->status === 'DELIVERED')
