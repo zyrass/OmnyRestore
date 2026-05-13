@@ -31,9 +31,9 @@
 
         {{-- Nav links — ordre calé sur l'ordre réel des sections dans la page --}}
         <div class="hidden md:flex items-center gap-8 text-sm text-[#7A6E5E]">
-            <a href="#examples" class="hover:text-[#C9A84C] transition-colors duration-200">Avant / Apr&egrave;s</a>
-            <a href="#how" class="hover:text-[#C9A84C] transition-colors duration-200">Comment ça marche</a>
-            <a href="#pricing" class="hover:text-[#C9A84C] transition-colors duration-200">Prix par photo</a>
+            <a href="#examples" class="hover:text-[#C9A84C] transition-colors duration-200">R&eacute;sultats r&eacute;els</a>
+            <a href="#how" class="hover:text-[#C9A84C] transition-colors duration-200">Processus</a>
+            <a href="#pricing" class="hover:text-[#C9A84C] transition-colors duration-200">Tarification</a>
             <a href="#ia" class="hover:text-[#C9A84C] transition-colors duration-200">Technologie</a>
             <a href="#testimonials" class="hover:text-[#C9A84C] transition-colors duration-200">Témoignages</a>
         </div>
