@@ -83,7 +83,7 @@
         {{-- Headline --}}
         <h1 class="text-5xl md:text-7xl font-bold text-[#F5F0E8] leading-tight mb-6">
             Vos photos anciennes,<br>
-            <em class="text-[#C9A84C] not-italic">ressuscitées.</em>
+            <em class="text-[#C9A84C] not-italic">restaur&eacute;es.</em>
         </h1>
 
         {{-- Subheadline --}}
