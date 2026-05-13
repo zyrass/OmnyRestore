@@ -29,10 +29,10 @@
             <span class="font-semibold tracking-[0.15em] text-sm uppercase text-[#F5F0E8]">OmnyRestore</span>
         </a>
 
-        {{-- Nav links --}}
+        {{-- Nav links — ordre calé sur l'ordre réel des sections dans la page --}}
         <div class="hidden md:flex items-center gap-8 text-sm text-[#7A6E5E]">
-            <a href="#how" class="hover:text-[#C9A84C] transition-colors duration-200">Comment ça marche</a>
             <a href="#examples" class="hover:text-[#C9A84C] transition-colors duration-200">Exemples</a>
+            <a href="#how" class="hover:text-[#C9A84C] transition-colors duration-200">Comment ça marche</a>
             <a href="#pricing" class="hover:text-[#C9A84C] transition-colors duration-200">Tarifs</a>
             <a href="#testimonials" class="hover:text-[#C9A84C] transition-colors duration-200">Témoignages</a>
         </div>
@@ -317,7 +317,7 @@
         </div>
         @endforeach
     </div>
-    <p class="text-center text-xs text-[#7A6E5E]/60 mt-8">* Le niveau est déterminé automatiquement par notre IA lors de l'analyse de vos photos. TVA 20% incluse dans le prix TTC.</p>
+    <p class="text-center text-xs text-[#7A6E5E]/60 mt-8">* Le niveau est estim&eacute; automatiquement selon l'&eacute;tat de vos photos. TVA 20% incluse dans le prix TTC.</p>
 </section>
 
 {{-- ========== SECTION IA ========== --}}
