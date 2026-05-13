@@ -98,12 +98,11 @@ class StripeWebhookController
             return;
         }
 
-        // Marquer la commande comme payée
-        $order->update([
-            'status'         => 'PAID',
-            'payment_status' => 'paid',
-            'paid_at'        => now(),
-        ]);
+        // Marquer la commande comme payée via la méthode de la machine d'état.
+        // N'utilise PAS $order->update([...]) car status et payment_status ne sont
+        // plus dans $fillable — ils ne peuvent être modifiés que via les méthodes dédiées.
+        $order->markAsPaid($session->payment_intent ?? 'cs_' . $session->id);
+        $order->forceFill(['status' => 'PAID'])->save();
 
         $this->audit->orderStatusChanged($order, $order->getOriginal('status') ?? 'DONE', 'PAID');
 

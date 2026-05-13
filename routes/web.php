@@ -18,6 +18,16 @@ use Illuminate\Support\Facades\Route;
 // No auth required — anyone can visit to learn about the service.
 Route::view('/', 'welcome')->name('home');
 
+// ─── Redirection dashboard (compatibilité Breeze) ──────────────────────────────
+// Breeze génère des composants qui font `route('dashboard')` (ex: confirm-password).
+// Cette app n'a pas de dashboard générique — on redirige selon le rôle.
+// Un admin → /admin/dashboard, un client → /client/orders
+Route::middleware(['auth', 'verified'])->get('/dashboard', function () {
+    return auth()->user()->isAdmin()
+        ? redirect()->route('admin.dashboard')
+        : redirect()->route('client.orders.index');
+})->name('dashboard');
+
 // ─── Pages légales ────────────────────────────────────────────────────────────
 Route::view('/mentions-legales', 'pages.legal.mentions')->name('legal.mentions');
 Route::view('/confidentialite', 'pages.legal.privacy')->name('legal.privacy');

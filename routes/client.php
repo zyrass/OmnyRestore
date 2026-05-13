@@ -42,9 +42,11 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
         ->name('orders.show');
 
     // POST /client/orders/{order}/checkout → Stripe Checkout
+    // Throttle : 10 tentatives par minute par utilisateur.
+    // Prévient les doubles-clics, les scripts automatisés, et les abus de session.
     Route::post('/orders/{order}/checkout',
         \App\Http\Controllers\Client\OrderCheckoutController::class . '@checkout'
-    )->name('orders.checkout');
+    )->name('orders.checkout')->middleware('throttle:10,1');
 
     // GET /client/orders/{order}/download → S3 presigned URL (ou Laravel signed URL local)
     Route::get('/orders/{order}/download', [OrderDownloadController::class, 'download'])

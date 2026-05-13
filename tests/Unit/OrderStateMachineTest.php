@@ -22,13 +22,20 @@ class OrderStateMachineTest extends TestCase
     {
         $user = User::factory()->create();
 
-        return Order::create([
-            'user_id'        => $user->id,
-            'description'    => 'Test commande',
-            'photo_count'    => 3,
+        // status et payment_status ne sont PAS dans $fillable (sécurité mass assignment).
+        // En test on utilise forceFill() pour contourner cette protection de façon contrôlée.
+        $order = Order::create([
+            'user_id'     => $user->id,
+            'description' => 'Test commande',
+            'photo_count' => 3,
+        ]);
+
+        $order->forceFill([
             'status'         => $status,
             'payment_status' => 'pending',
-        ]);
+        ])->save();
+
+        return $order;
     }
 
     /** @test */

@@ -25,11 +25,14 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
+            'name'               => fake()->name(),
+            'email'              => fake()->unique()->safeEmail(),
+            'email_verified_at'  => now(),
+            'password'           => static::$password ??= Hash::make('password'),
+            'remember_token'     => Str::random(10),
+            // Rôle par défaut : 'client' (la majorité des tests utilisent des utilisateurs clients)
+            // Pour les tests admin, utiliser User::factory()->admin()->create()
+            'role'               => 'client',
         ];
     }
 
@@ -40,6 +43,17 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Créer un utilisateur administrateur.
+     * Usage : User::factory()->admin()->create()
+     */
+    public function admin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'admin',
         ]);
     }
 }

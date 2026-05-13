@@ -7,6 +7,7 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Livewire\Volt\Volt;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class PasswordResetTest extends TestCase
@@ -56,7 +57,8 @@ class PasswordResetTest extends TestCase
         });
     }
 
-    public function test_password_can_be_reset_with_valid_token(): void
+    #[Test]
+    public function password_can_be_reset_with_valid_token(): void
     {
         Notification::fake();
 
@@ -66,11 +68,12 @@ class PasswordResetTest extends TestCase
             ->set('email', $user->email)
             ->call('sendPasswordResetLink');
 
+        // Nouveau mot de passe conforme à la politique CNIL (12+ chars, mixedCase, chiffre, symbole)
         Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
             $component = Volt::test('pages.auth.reset-password', ['token' => $notification->token])
                 ->set('email', $user->email)
-                ->set('password', 'password')
-                ->set('password_confirmation', 'password');
+                ->set('password', 'R3init!M0tD3Pass3')
+                ->set('password_confirmation', 'R3init!M0tD3Pass3');
 
             $component->call('resetPassword');
 

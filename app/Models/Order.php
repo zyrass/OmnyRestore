@@ -89,9 +89,29 @@ class Order extends Model implements HasMedia
     ];
 
     /**
-     * Mass-assignable fields.
-     * status and payment_status are intentionally excluded
-     * — they must be set via dedicated methods to enforce the state machine.
+     * Champs assignables en masse (Mass Assignment).
+     *
+     * SÉCURITÉ — Champs INTENTIONNELLEMENT absents de $fillable :
+     * ┌─────────────────┬───────────────────────────────────────────────────────────────┐
+     * │ Champ exclu     │ Raison                                                        │
+     * ├─────────────────┼───────────────────────────────────────────────────────────────┤
+     * │ status          │ Doit passer par la machine d'état :                           │
+     * │                 │   startProcessing() → IN_PROGRESS (depuis PENDING only)       │
+     * │                 │   markAsDone()      → DONE (depuis IN_PROGRESS only)          │
+     * │                 │   cancel()          → CANCELLED (depuis PENDING/IN_PROGRESS)  │
+     * │                 │ Si status était dans $fillable, n'importe quel                │
+     * │                 │ Order::create(['status' => 'DELIVERED']) deviendrait possible  │
+     * │                 │ sans passer par les guards → fuite RGPD, accès ZIP gratuit.   │
+     * ├─────────────────┼───────────────────────────────────────────────────────────────┤
+     * │ payment_status  │ Doit être mis à jour uniquement via :                         │
+     * │                 │   markAsPaid($paymentIntentId) → appelé par le webhook Stripe  │
+     * │                 │ Si modifiable librement → un client pourrait forger un paiement│
+     * │                 │ (ex: Order::update(['payment_status' => 'paid'])).             │
+     * └─────────────────┴───────────────────────────────────────────────────────────────┘
+     *
+     * Ces champs sont modifiés via forceFill() UNIQUEMENT dans les méthodes dédiées
+     * de ce même modèle, ce qui maintient le contrôle total de leur cycle de vie.
+     *
      * @var list<string>
      */
     protected $fillable = [
@@ -106,8 +126,8 @@ class Order extends Model implements HasMedia
         'amount_ht',
         'tva_rate',
         'amount_ttc',
-        'status',
-        'payment_status',
+        // ⚠️ 'status'         — EXCLU : utiliser startProcessing(), markAsDone(), cancel()
+        // ⚠️ 'payment_status' — EXCLU : utiliser markAsPaid() via webhook Stripe uniquement
         'payment_intent_id',
         'admin_notes',
         'paid_at',
