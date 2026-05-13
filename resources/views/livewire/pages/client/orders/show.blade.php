@@ -186,6 +186,9 @@ class extends Component
      * Client supprime définitivement une photo restaurée (irréversible).
      * La photo doit être préalablement retirée (is_rejected) pour activer ce droit.
      * On s'assure qu'il reste au moins 1 photo active avant de supprimer.
+     * 
+     * <strong>Transparence tarifaire :</strong> Le tarif est ajusté automatiquement selon le niveau de restauration détecté pour chaque photo (standard, avancé ou complet).
+     * Le coût d'analyse technique est intégré au tarif global et non facturé séparément.
      */
     public function deletePhoto(int $mediaId): void
     {
@@ -940,9 +943,9 @@ class extends Component
                     @endphp
                     @if ($baseHtC > 0)
                     <div class="pt-2 border-t border-[#C9A84C]/10 space-y-1.5">
-                        {{-- Estim. brut IA --}}
+                        {{-- Estim. tarif --}}
                         <div class="flex justify-between text-xs">
-                            <dt class="text-[#7A6E5E]">Estim. IA HT</dt>
+                            <dt class="text-[#7A6E5E]">Tarif HT estimé</dt>
                             <dd class="text-[#7A6E5E]">{{ number_format($baseHtC / 100, 2, ',', ' ') }} €</dd>
                         </div>
                         {{-- Remise coupon (si applicable) --}}

@@ -438,9 +438,8 @@ table.totals tr.free-row td {
          NOTE IA
          ══════════════════════════════════════════════ --}}
     <div class="note-ia">
-        <strong>Transparence tarifaire :</strong> Le tarif inclut l'analyse de chaque photo par intelligence artificielle
-        (GPT-4o Vision) afin d'évaluer précisément l'état de dégradation et d'adapter le traitement.
-        Ce coût d'analyse (~0,01 € HT/photo) est intégré au tarif global et non facturé séparément.
+        <strong>Transparence tarifaire :</strong> Le tarif est estim&eacute; automatiquement selon le niveau de restauration d&eacute;tect&eacute; pour chaque photo (standard, avanc&eacute; ou complet).
+        Le co&ucirc;t d'analyse technique est int&eacute;gr&eacute; au tarif global et non factur&eacute; s&eacute;par&eacute;ment.
     </div>
 
 </div>{{-- /.body --}}

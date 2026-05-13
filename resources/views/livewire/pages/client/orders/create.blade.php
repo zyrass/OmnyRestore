@@ -291,7 +291,7 @@ class extends Component
         </a>
         <div>
             <h1 class="text-2xl font-bold text-[#F5F0E8]">Nouvelle commande</h1>
-            <p class="text-[#7A6E5E] text-sm mt-1">Déposez vos photos — notre IA analyse automatiquement l'état avant de vous afficher le prix</p>
+            <p class="text-[#7A6E5E] text-sm mt-1">Déposez vos photos — le tarif est estimé automatiquement selon le niveau de restauration détecté.</p>
         </div>
     </div>
 
@@ -325,7 +325,7 @@ class extends Component
                     {{-- Loading upload --}}
                     <div wire:loading wire:target="photos" class="mt-4 flex items-center gap-2 text-[#7A6E5E] text-sm">
                         <svg class="animate-spin w-4 h-4 text-[#C9A84C]" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                        Chargement des photos&hellip; g&eacute;n&eacute;ration des prix par IA en cours
+                        Chargement des photos&hellip; estimation du tarif en cours&hellip;
                     </div>
 
                     {{-- Grille photos + résultats IA --}}
@@ -337,8 +337,8 @@ class extends Component
                         <div class="flex items-center gap-3 bg-[#C9A84C]/10 border border-[#C9A84C]/25 rounded-sm px-4 py-3">
                             <svg class="animate-spin w-4 h-4 text-[#C9A84C] shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                             <div>
-                                <p class="text-[#C9A84C] text-sm font-medium">Analyse IA en cours&hellip;</p>
-                                <p class="text-[#7A6E5E] text-sm">GPT-4o Vision examine chaque photo pour g&eacute;n&eacute;rer le tarif exact selon l'&eacute;tat r&eacute;el</p>
+                                <p class="text-[#C9A84C] text-sm font-medium">Analyse en cours&hellip;</p>
+                                <p class="text-[#7A6E5E] text-sm">Chaque photo est examin&eacute;e pour estimer le tarif selon son niveau de restauration.</p>
                             </div>
                         </div>
                         @endif
@@ -429,7 +429,7 @@ class extends Component
                         {{-- Note transparence --}}
                         <div class="flex items-start gap-2 text-[#7A6E5E] text-sm">
                             <svg class="w-4 h-4 text-[#C9A84C] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span>Le tarif est d&eacute;fini automatiquement par analyse IA pour garantir l'&eacute;quit&eacute;. Notre &eacute;quipe peut r&eacute;viser le prix apr&egrave;s examen manuel si vous contestez le verdict.</span>
+                            <span>Le tarif est estim&eacute; automatiquement selon le niveau de restauration d&eacute;tect&eacute;. Notre &eacute;quipe peut r&eacute;viser ce tarif apr&egrave;s examen manuel si vous le contestez.</span>
                         </div>
                         @endif
                     </div>
@@ -484,7 +484,7 @@ class extends Component
                                                 'heavy'  => 'text-orange-400',
                                                 default  => 'text-emerald-400',
                                             };
-                                            $priceSub = 'd&eacute;fini par IA';
+                                            $priceSub = 'estim&eacute; selon &eacute;tat';
                                         }
                                     @endphp
                                     <span class="{{ $priceColor }} font-semibold">{!! $priceLabel !!}</span><br>
