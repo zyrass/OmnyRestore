@@ -13,7 +13,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
 [![Tests](https://img.shields.io/badge/Tests-64%2F64%20%E2%9C%85-22c55e?style=for-the-badge&logo=php&logoColor=white)](tests/)
-[![Version](https://img.shields.io/badge/Version-0.15.0-6366f1?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-0.16.0-6366f1?style=for-the-badge)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
 </div>
@@ -114,34 +114,19 @@ stateDiagram-v2
     PENDING --> CANCELLED : Annulation admin ou client
     IN_PROGRESS --> DONE : Admin uploade les photos restaurées
     DONE --> PAID : Client paie via Stripe
-    PAID --> DOWNLOADED : Client télécharge le ZIP
-    DOWNLOADED --> [*]
-
-    note right of PENDING
-        → Email notification admin
-        → Alerte dashboard
-    end note
-
-    note right of IN_PROGRESS
-        → Email notification client
-        → Admin restaure via IA
-    end note
-
-    note right of DONE
-        → Aperçu filigranné affiché
-        → Lien paiement envoyé par email
-    end note
-
-    note right of PAID
-        → ZIP généré en asynchrone (GenerateOrderZipJob)
-        → Email "paiement reçu" immédiat
-    end note
-
-    note right of DELIVERED
-        → Email livraison avec ZIP + Facture
-        → Lien valide 90 jours
-    end note
+    PAID --> DELIVERED : ZIP généré + email livraison
+    DELIVERED --> [*]
 ```
+
+| Statut | Déclencheur | Action automatique |
+|--------|-------------|-------------------|
+| `PENDING` | Soumission client | Email notification admin |
+| `IN_PROGRESS` | Admin prend en charge | Email notification client |
+| `DONE` | Admin uploade les photos | Aperçu filigranné affiché + email lien paiement |
+| `PAID` | Paiement Stripe validé | `GenerateOrderZipJob` dispatché en asynchrone |
+| `DELIVERED` | ZIP généré et prêt | Email livraison avec ZIP + Facture PDF |
+| `CANCELLED` | Annulation admin ou client | — |
+
 
 ---
 
@@ -162,6 +147,53 @@ stateDiagram-v2
 | Email | Laravel Mail | — | Transactionnel, logs, haute délivrabilité |
 | IA Restauration | OpenAI API (GPT-4o Vision) | — | Restauration & colorisation photo |
 | Tests | Pest PHP | 3.x | Syntaxe concise, couverture complète |
+
+---
+
+## 📦 Dépendances
+
+### PHP — Production (`composer.json`)
+
+| Package | Version | Rôle |
+|---------|---------|------|
+| `laravel/framework` | ^12.0 | Framework principal — routing, ORM, events, middleware, queues |
+| `livewire/livewire` | ^3.6 | Composants réactifs serveur-side sans écrire de JS complexe |
+| `livewire/volt` | ^1.7 | Syntaxe single-file pour les composants Livewire (blade + PHP) |
+| `laravel/cashier` | ^16.5 | Intégration Stripe — abonnements, paiements, webhooks, factures |
+| `laravel/horizon` | ^5.46 | Dashboard Redis pour surveiller et gérer les files de jobs |
+| `spatie/laravel-medialibrary` | ^11.22 | Gestion des médias (upload, conversions, collections, S3) |
+| `intervention/image` | ^3.11 | Manipulation d'images PHP — resize, watermark, conversions |
+| `intervention/image-laravel` | ^1.5 | Intégration Laravel pour Intervention Image |
+| `barryvdh/laravel-dompdf` | ^3.1 | Génération de factures PDF à partir de templates Blade |
+| `openai-php/laravel` | ^0.19 | Client OpenAI — GPT-4o Vision pour l'analyse du niveau de dommage |
+| `laravel/tinker` | ^2.10 | REPL interactif pour le débogage et les tests en console |
+
+### PHP — Développement (`composer.json` require-dev)
+
+| Package | Version | Rôle |
+|---------|---------|------|
+| `phpunit/phpunit` | ^11.5 | Framework de tests unitaires et d'intégration |
+| `laravel/breeze` | ^2.4 | Scaffolding auth (login, register, reset — stack TALL) |
+| `laravel/pint` | ^1.24 | Linter et formateur de code PHP (PSR-12 + opinioné) |
+| `laravel/pail` | ^1.2 | Tail des logs Laravel en temps réel dans le terminal |
+| `laravel/sail` | ^1.41 | Environnement Docker local pour le développement |
+| `fakerphp/faker` | ^1.23 | Génération de données factices pour les factories/seeders |
+| `mockery/mockery` | ^1.6 | Mocking d'objets pour les tests unitaires |
+| `nunomaduro/collision` | ^8.6 | Affichage d'erreurs élégant dans le terminal |
+
+### JavaScript — Dev Dependencies (`package.json`)
+
+| Package | Version | Rôle |
+|---------|---------|------|
+| `vite` | ^7.0 | Bundler frontend ultra-rapide — HMR en dev, assets optimisés en prod |
+| `laravel-vite-plugin` | ^2.0 | Intégration Vite ↔ Laravel (hot reload, manifest, helpers Blade) |
+| `tailwindcss` | ^3.1 | Framework CSS utilitaire — design system complet, auto-purge |
+| `@tailwindcss/forms` | ^0.5 | Plugin Tailwind pour styliser les éléments de formulaire |
+| `@tailwindcss/vite` | ^4.0 | Intégration native Tailwind v4 avec Vite |
+| `autoprefixer` | ^10.4 | PostCSS — ajoute automatiquement les préfixes CSS vendeurs |
+| `postcss` | ^8.4 | Outil de transformation CSS (requis par Tailwind) |
+| `axios` | ^1.11 | Client HTTP JS — requêtes AJAX (utilisé par Livewire) |
+| `concurrently` | ^9.0 | Lance plusieurs commandes en parallèle (`composer dev`) |
 
 ---
 
@@ -210,26 +242,87 @@ composer run dev
 # Lance : php artisan serve --port=8001 + npm run dev + php artisan queue:listen
 ```
 
-### Variables d'environnement clés
+### Variables d'environnement — référence complète
+
+> ⚠️ **Ne jamais committer votre `.env`** — il est dans `.gitignore`. Copier `.env.example` et remplir les valeurs.
 
 ```env
-APP_URL=http://127.0.0.1:8001    # IMPORTANT : doit correspondre au port réel du serveur
+# ── APPLICATION ──────────────────────────────────────────────────────────────
+APP_NAME="OmnyRestore"
+APP_ENV=local                    # local | staging | production
+APP_KEY=                         # Généré par : php artisan key:generate
+APP_DEBUG=true                   # false obligatoire en production
+APP_URL=http://127.0.0.1:8001    # Doit correspondre exactement au port du serveur
 
-MEDIA_DISK=public                 # 'public' en local, 's3' en production
+APP_LOCALE=fr
+APP_FALLBACK_LOCALE=fr
+BCRYPT_ROUNDS=12
 
-# PostgreSQL
+# ── BASE DE DONNÉES — PostgreSQL 16 ─────────────────────────────────────────
 DB_CONNECTION=pgsql
 DB_HOST=127.0.0.1
 DB_PORT=5432
 DB_DATABASE=omnyrestore
+DB_USERNAME=postgres
+DB_PASSWORD=
 
-# OpenAI (analyse IA photos)
-OPENAI_API_KEY=sk-...
+# ── SESSION ───────────────────────────────────────────────────────────────────
+SESSION_DRIVER=redis             # redis en prod, array pour les tests
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false            # true recommandé en production
+SESSION_PATH=/
+SESSION_DOMAIN=null
 
-# Stripe
-STRIPE_KEY=pk_test_...
-STRIPE_SECRET=sk_test_...
+# ── QUEUES & CACHE — Redis ────────────────────────────────────────────────────
+QUEUE_CONNECTION=redis           # sync pour les tests, redis en prod
+CACHE_STORE=redis
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+# ── STOCKAGE — S3 Compatible ──────────────────────────────────────────────────
+FILESYSTEM_DISK=local            # local | s3
+MEDIA_DISK=public                # public en dev, s3 en production
+DELIVERY_DISK=local              # local en dev, s3 en production
+
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=eu-west-3
+AWS_BUCKET=omnyrestore-media
+AWS_DELIVERY_BUCKET=omnyrestore-deliveries
+AWS_USE_PATH_STYLE_ENDPOINT=false
+
+# ── EMAIL — Resend ────────────────────────────────────────────────────────────
+MAIL_MAILER=resend               # resend | log (pour dev local)
+MAIL_FROM_ADDRESS="contact@omnyrestore.fr"
+MAIL_FROM_NAME="OmnyRestore"
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
+
+# ── STRIPE — Paiement ─────────────────────────────────────────────────────────
+STRIPE_KEY=pk_test_              # Clé publique (frontend)
+STRIPE_SECRET=sk_test_           # Clé secrète — ne jamais exposer
+STRIPE_WEBHOOK_SECRET=whsec_     # Depuis : stripe listen --forward-to ...
+CASHIER_CURRENCY=eur
+CASHIER_CURRENCY_LOCALE=fr_FR
+
+# ── OPENAI — Analyse IA ───────────────────────────────────────────────────────
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+OPENAI_ORGANIZATION=             # Optionnel
+OPENAI_MODEL=gpt-4o
+
+# ── HORIZON — Dashboard files d'attente ───────────────────────────────────────
+HORIZON_DARK_MODE=true
+
+# ── LOGGING ───────────────────────────────────────────────────────────────────
+LOG_CHANNEL=stack
+LOG_LEVEL=debug                  # error en production
+
+# ── VITE — Build frontend ─────────────────────────────────────────────────────
+VITE_APP_NAME="${APP_NAME}"
+VITE_STRIPE_KEY="${STRIPE_KEY}"
 ```
+
 
 ---
 
@@ -510,67 +603,51 @@ git commit -m "feat(tickets): interface admin tickets support" \
 
 | Tag | Description |
 |-----|-------------|
-| `v0.1.0` | Scaffold Laravel + Auth (Breeze TALL) |
-| `v0.2.0` | Migrations PostgreSQL + Models + Policies |
-| `v0.3.0` | Module client (commandes, suivi, téléchargement) |
-| `v0.4.0` | Back office admin (gestion commandes, upload photos) |
-| `v0.4.1` | **Module tickets support + fixes upload + nav contextuelle** |
-| `v0.5.0` | Stripe Cashier + livraison ZIP async |
-| `v0.5.1` | **Hotfixes Stripe + download ZIP opérationnel** |
-| `v1.0.0` | **MVP — Prêt pour production** |
-| `v1.1.0` | Système d'aperçu filigranné automatique (Intervention Image) |
-| `v1.2.0` | Intégration API OpenAI (restauration auto) |
-| `v2.0.0` | Multi-prestataires + messagerie avancée |
-
----
-
-## 🗺️ Roadmap
-
-- [x] `v0.0.1` — Documentation architecturale
-- [x] `v0.1.0` — Scaffold Laravel + Breeze TALL auth
-- [x] `v0.2.0` — Migrations PostgreSQL + Models Eloquent
-- [x] `v0.3.0` — Module client (soumission, suivi, aperçu)
-- [x] `v0.4.0` — Back office admin (gestion commandes, upload)
-- [x] `v0.4.1` — **Module tickets support + fixes critiques**
-  - [x] Interface admin tickets (liste + conversation + réponse)
-  - [x] Interface client tickets (création + fil + clôture)
-  - [x] Fix race condition Livewire + Spatie MediaLibrary (uploads)
-  - [x] Fix APP_URL port + symlink storage Windows Junction
-  - [x] Limites upload PHP/Livewire portées à 100 Mo
-  - [x] Modal de confirmation custom Alpine.js (remplace `wire:confirm`)
-  - [x] Navigation contextuelle admin/client avec badge rôle
-  - [x] Aperçu photos restaurées côté client (collection retouched + watermark CSS)
-- [x] `v0.5.0` — **Stripe Cashier + livraison ZIP async**
-  - [x] `OrderCheckoutController` : Session Stripe Checkout (métadonnées `order_id`)
-  - [x] Webhook `checkout.session.completed` → PAID + dispatch job ZIP
-  - [x] `GenerateOrderZipJob` : ZIP depuis collection `retouched` + README.txt
-  - [x] `OrderDownloadController` : serve local (BinaryFileResponse) ou S3 pré-signé
-  - [x] Email `OrderPaidConfirmation` via queue (Mailtrap en local)
-  - [x] Pages `/payment/success` et `/payment/cancel`
-- [x] `v0.5.1` — **Hotfixes Stripe + download ZIP**
-  - [x] `authorize()` → `abort_if()` (Laravel 12 sans `AuthorizesRequests`)
-  - [x] Layout hybride `$slot` / `@yield('content')`
-  - [x] `zip_path` ajouté au `$fillable` du modèle `Order`
-  - [x] Download controller simplifié (suppression `OrderDelivery` intermédiaire)
-  - [x] Return type `BinaryFileResponse` corrigé
-  - [x] Config Stripe TEST + Mailtrap opérationnels
-- [x] `v0.6.0` — **Watermark automatique (Intervention Image)**
+| `v0.1.0` | Scaffold La- [x] `v0.6.0` — **Watermark automatique (Intervention Image)**
   - [x] `GenerateWatermarkJob` : Intervention Image v3, GD, resize 1200px, filigrane diagonal
   - [x] Listener Spatie `MediaHasBeenAddedEvent` → dispatch auto sur upload admin
-  - [x] Artisan `watermarks:regenerate [--order] [--sync]`
-  - [x] Font Inter Bold bundlée dans `storage/app/fonts/`
-  - [x] Vue client : vraies images watermarked + fallback CSS
-- [x] `v0.10.0` — **Phase 2 : Workflow livraison, recalcul par photo, layout**
+  - [x] Font Inter Bold bundleée dans `storage/app/fonts/`
+- [x] `v0.7.0` — **Restauration automatique IA (GPT-4o Vision + DALL·E 3)**
+  - [x] `PhotoRestorationService` : appel GPT-4o pour analyse + DALL·E pour restauration
+  - [x] Enqueue depuis l'admin → résultat dans collection `retouched`
+- [x] `v0.8.0` — **Rejet photo + TVA + coupons + 3 niveaux tarif**
+  - [x] Client peut rejeter des photos restaurées (prix recalculé)
+  - [x] Breakdown TVA 20% sur toutes les pages
+  - [x] Coupons admin (% ou montant fixe)
+  - [x] Tarification 3 niveaux : 1€ / 2€ / 3€ par photo selon dommage IA
+- [x] `v0.8.1` — **Coupon client + améliorations paiement**
+  - [x] Formulaire coupon sur la page de création commande
+  - [x] ZIP exclut les photos rejetées, recalcul correct coupon sur rejet
+- [x] `v0.9.0` — **Validation photos côté client**
+  - [x] Client peut rejeter/restaurer avant paiement
+  - [x] Prix recalculé en temps réel selon sélection
+- [x] `v0.10.0` — **Workflow livraison + recalcul par photo**
   - [x] `OrderDeliveryReady` mail + `delivery-ready.blade.php` (ZIP + Facture)
-  - [x] `OrderObserver` case `DELIVERED` → email livraison avec vrais liens
-  - [x] `paid-confirmation` : message honnête \"ZIP en préparation\"
   - [x] `recalcPriceFromActivePhotos()` : somme `price[ai_level]` par photo
   - [x] `deletePhoto()` garde-fou : commande ne peut jamais être vide
-  - [x] Layout `max-w-[1400px]` sur header + main
-  - [x] Auth layout : centrage symétrique frame + formulaire
-- [ ] `v1.0.0` — **MVP — Prêt pour production**
-- [ ] `v1.1.0` — Landing page (Before/After slider, testimonials, section IA, footer)
-- [ ] `v1.2.0` — Dashboard admin (URSSAF, coûts IA, badges tickets)
+- [x] `v0.11.0` — **Landing page publique**
+  - [x] Before/After slider interactif Alpine.js
+  - [x] Section IA + section testimonials
+  - [x] Navigation animée avec scroll detection
+- [x] `v0.12.0` — **Email-gate aperçu + notification payment failed**
+  - [x] Lien signé (7j) pour déverrouiller aperçu DONE sans connexion
+  - [x] Email au client en cas de paiement échoué
+- [x] `v0.13.0` — **Mentions légales + confidentialité RGPD/LCEN**
+  - [x] Pages /mentions-legales et /confidentialite complètes
+- [x] `v0.14.0` — **RGPD libre-service + avis clients**
+  - [x] Suppression compte libre-service avec anonymisation immédiate
+  - [x] Moteur testimonials complet (soumission → modération admin → publication)
+- [x] `v0.15.0` — **RGPD complet + traduction FR**
+  - [x] Ensemble du parcours traduit en français
+  - [x] Conformité CNIL intégrale
+- [x] `v0.16.0` — **Hardening sécurité production** ← *actuel*
+  - [x] 64/64 tests verts (146 assertions)
+  - [x] `CreateOrderRequest` + `StoreTestimonialRequest` (Form Requests)
+  - [x] Horizon IP whitelist Nginx documentée
+  - [x] Mass assignment protection (`status` hors `$fillable`)
+  - [x] Rate limiting Stripe webhook + checkout
+- [ ] `v1.0.0` — **MVP — Déploiement production (OVH)**
+- [ ] `v1.1.0` — Dashboard admin avancé (URSSAF, coûts IA, analytics)
 - [ ] `v2.0.0` — Multi-prestataires + messagerie avancée
 
 ---
