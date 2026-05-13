@@ -214,17 +214,37 @@ class extends Component
             mkdir($tmpDir, 0755, true);
         }
 
+        // ── Vérification préalable : tous les fichiers tmp sont-ils encore présents ? ──
+        // Si Livewire a nettoyé certains fichiers tmp entre l'upload et la soumission,
+        // on arrête tout plutôt que de créer une commande incomplète.
+        $missingFiles = [];
         foreach ($this->photos as $i => $photo) {
             $src = $photo->getRealPath();
-
             if (! $src || ! file_exists($src)) {
-                \Illuminate\Support\Facades\Log::warning("Photo {$i} introuvable, ignorée", [
-                    'order_id' => $order->id,
-                    'name'     => $photo->getClientOriginalName(),
-                ]);
-                continue;
+                $missingFiles[] = $photo->getClientOriginalName();
             }
+        }
 
+        if (! empty($missingFiles)) {
+            // Nettoyer l'ordre créé (évite les commandes PENDING orphelines)
+            $order->delete();
+
+            $count = count($missingFiles);
+            $this->addError('photos',
+                "{$count} photo(s) ont expiré pendant l'analyse (session trop longue ou trop de photos simultanées). ".
+                "Veuillez re-sélectionner toutes vos photos et soumettre rapidement."
+            );
+            \Illuminate\Support\Facades\Log::warning('Order create aborted: tmp files expired', [
+                'user_id' => auth()->id(),
+                'missing' => $missingFiles,
+                'total'   => count($this->photos),
+            ]);
+            return;
+        }
+
+        $uploaded = 0;
+        foreach ($this->photos as $i => $photo) {
+            $src      = $photo->getRealPath();
             $ext      = $photo->getClientOriginalExtension() ?: 'jpg';
             $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $photo->getClientOriginalName());
             $destPath = $tmpDir . '/' . uniqid("orig_{$i}_") . '.' . $ext;
@@ -242,6 +262,7 @@ class extends Component
                       ->toMediaCollection('originals');
 
                 @unlink($destPath);
+                $uploaded++;
             } catch (\Throwable $e) {
                 @unlink($destPath);
                 \Illuminate\Support\Facades\Log::error("Upload photo originale échoué: {$e->getMessage()}", [
@@ -250,6 +271,12 @@ class extends Component
                 ]);
             }
         }
+
+        \Illuminate\Support\Facades\Log::info('Order created: photos uploaded', [
+            'order_id' => $order->id,
+            'expected' => count($this->photos),
+            'uploaded' => $uploaded,
+        ]);
 
         $audit->orderCreated($order);
         $this->redirect(route('client.orders.show', $order), navigate: true);
