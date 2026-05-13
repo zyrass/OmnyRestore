@@ -29,11 +29,22 @@
 
         <nav class="hidden md:flex items-center gap-1">
             @if (Auth::user()->role === 'admin')
-            {{-- ── Nav Admin ── --}}
+            {{-- ── Nav Admin : Commandes → Clients → CA → Tickets → Avis → Réductions → Panel Admin ── --}}
             <a href="{{ route('admin.orders.index') }}" wire:navigate
                class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.orders.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                 Commandes
             </a>
+            {{-- ── Clients ── --}}
+            <a href="{{ route('admin.clients') }}" wire:navigate
+               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.clients') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                Clients
+            </a>
+            {{-- ── CA ── --}}
+            <a href="{{ route('admin.revenue') }}" wire:navigate
+               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.revenue') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                CA
+            </a>
+            {{-- ── Tickets ── --}}
             <a href="{{ route('admin.tickets.index') }}" wire:navigate
                class="px-4 py-2 text-sm rounded-sm transition-colors relative {{ request()->routeIs('admin.tickets.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                 Tickets
@@ -48,21 +59,6 @@
                 </span>
                 @endif
             </a>
-            {{-- ── Réductions ── --}}
-            <a href="/admin/coupons" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->is('admin/coupons*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                Réductions
-            </a>
-            {{-- ── Clients ── --}}
-            <a href="{{ route('admin.clients') }}" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.clients') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                Clients
-            </a>
-            {{-- ── CA ── --}}
-            <a href="{{ route('admin.revenue') }}" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.revenue') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                CA
-            </a>
             {{-- ── Avis clients ── --}}
             <a href="{{ route('admin.testimonials.index') }}" wire:navigate
                class="px-4 py-2 text-sm rounded-sm transition-colors relative {{ request()->routeIs('admin.testimonials.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
@@ -73,6 +69,11 @@
                     {{ $pendingAvis > 9 ? '9+' : $pendingAvis }}
                 </span>
                 @endif
+            </a>
+            {{-- ── Réductions ── --}}
+            <a href="/admin/coupons" wire:navigate
+               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->is('admin/coupons*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                Réductions
             </a>
             {{-- ── Séparateur + Panel Admin (Dashboard) ── --}}
             <div class="w-px h-4 bg-[#C9A84C]/15 mx-1"></div>
