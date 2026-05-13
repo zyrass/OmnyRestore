@@ -456,7 +456,7 @@
         @else
         <p class="text-[#7A6E5E] mb-10">Créez votre compte gratuitement. Pas d'abonnement, pas d'engagement.</p>
         <a href="{{ route('register') }}" class="btn-gold glow-gold text-base px-12 py-5">
-            Commencer — c'est gratuit
+            D&eacute;poser mes photos
         </a>
         @endauth
     </div>
