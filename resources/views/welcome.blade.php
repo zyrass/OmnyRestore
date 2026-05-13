@@ -413,6 +413,31 @@
     @endif
 </section>
 
+{{-- ========== TRANSITION EMOTION ========== --}}
+<section class="py-24 overflow-hidden bg-gradient-to-b from-transparent to-[#0D0B08]">
+    <div class="max-w-6xl mx-auto px-6">
+        <div class="relative rounded-sm overflow-hidden aspect-[21/9] md:aspect-[32/9] group border border-[#C9A84C]/10">
+            <img src="/images/transition-heritage.png" 
+                 alt="Transmission et émotion" 
+                 class="w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-[3000ms] ease-out">
+            
+            {{-- Overlays pour l'intégration --}}
+            <div class="absolute inset-0 bg-gradient-to-r from-[#0D0B08] via-transparent to-[#0D0B08]"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0D0B08] via-transparent to-[#0D0B08]"></div>
+            
+            <div class="absolute inset-0 flex items-center justify-center text-center p-8">
+                <div class="max-w-2xl translate-y-2 group-hover:translate-y-0 transition-transform duration-1000">
+                    <div class="w-12 h-px bg-[#C9A84C]/30 mx-auto mb-6"></div>
+                    <h3 class="text-xl md:text-2xl font-light italic text-[#F5F0E8] leading-relaxed mb-4">
+                        &ldquo;Parce que chaque souvenir mérite d'être transmis dans sa plus belle lumière.&rdquo;
+                    </h3>
+                    <p class="text-[#C9A84C] text-[10px] tracking-[0.4em] uppercase font-medium">L'art de la restauration</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ========== CTA FINAL ========== --}}
 <section class="py-32 relative overflow-hidden">
     <div class="absolute inset-0 bg-gradient-to-b from-transparent via-[#C9A84C]/5 to-transparent"></div>
