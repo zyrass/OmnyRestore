@@ -14,7 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     @livewireStyles
 </head>
-<body class="min-h-screen flex flex-col bg-[#0D0B08] text-[#F5F0E8]" x-data x-on:omny:confirm.window="$store.confirmModal.open($event.detail)">
+<body class="bg-[#0D0B08] text-[#F5F0E8]" x-data x-on:omny:confirm.window="$store.confirmModal.open($event.detail)">
 
 {{-- ========== TOP NAV ========== --}}
 <header class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
@@ -159,7 +159,7 @@
 </header>
 
 {{-- ========== MAIN ========== --}}
-<main class="flex-grow w-full max-w-[1400px] mx-auto app-layout py-10">
+<main class="w-full max-w-[1400px] mx-auto app-layout py-10">
     {{-- Flash messages globaux (non affichés sur les pages Livewire qui gèrent leur propre feedback) --}}
     @unless (request()->routeIs('admin.orders.show') || request()->routeIs('client.orders.show'))
     @if (session('success'))
@@ -180,7 +180,7 @@
 </main>
 
 {{-- ========== FOOTER ========== --}}
-<footer class="mt-auto">
+<footer>
 
     {{-- Séparateur dégradé doré --}}
     <div class="h-px bg-gradient-to-r from-transparent via-[#C9A84C]/30 to-transparent"></div>
