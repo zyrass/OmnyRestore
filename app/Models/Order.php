@@ -136,6 +136,7 @@ class Order extends Model implements HasMedia
         'zip_expires_at',
         'coupon_code',
         'discount_cents',
+        'preview_unlocked_at',   // Email-gate : renseigné par UnlockPreviewController au clic
     ];
 
     /**
@@ -152,8 +153,9 @@ class Order extends Model implements HasMedia
             'total_price_cents' => 'integer',
             'paid_at'           => 'datetime',
             'delivered_at'      => 'datetime',
-            'zip_expires_at'    => 'datetime',
-            'photo_count'       => 'integer',
+            'zip_expires_at'       => 'datetime',
+            'photo_count'          => 'integer',
+            'preview_unlocked_at'  => 'datetime',
         ];
     }
 

@@ -284,6 +284,28 @@ class extends Component
         // 4. Synchroniser finalPrice dans l'interface admin
         $this->finalPrice = number_format($newTotalHt / 100, 2, '.', '');
     }
+    /**
+     * Renvoie l'email de déverrouillage au client (lien signé renouvelé).
+     * Disponible uniquement pour les commandes DONE.
+     * Raté limité : 1 envoi par 5 minutes (clé session admin).
+     */
+    public function resendClientNotification(): void
+    {
+        abort_if($this->order->status !== 'DONE', 403, 'Notification disponible uniquement au statut DONE.');
+
+        $sessionKey = "admin_resend_{$this->order->id}";
+        if (session()->has($sessionKey) && now()->diffInSeconds(session($sessionKey)) < 300) {
+            $remaining = 300 - now()->diffInSeconds(session($sessionKey));
+            session()->flash('error', "Patientez encore {$remaining} secondes avant de renvoyer.");
+            return;
+        }
+
+        \Illuminate\Support\Facades\Mail::to($this->order->user->email)
+            ->queue(new \App\Mail\OrderReadyForPayment($this->order));
+
+        session()->put($sessionKey, now());
+        session()->flash('success', "\uD83D\uDCE7 Email de notification envoyé à {$this->order->user->email}.");
+    }
 }; ?>
 
 <div x-data="{ finalHt: {{ (float)($finalPrice ?? 0) }} }">
@@ -766,6 +788,35 @@ class extends Component
                         </div>
                     </div>
                 </div>
+            </div>
+            @endif
+
+            {{-- 📧 Notification manuelle client (DONE uniquement) --}}
+            @if ($order->status === 'DONE')
+            <div class="card-glass p-5 border-[#C9A84C]/20">
+                <h3 class="text-[#C9A84C] text-xs tracking-widest uppercase border-b border-[#C9A84C]/20 pb-2 mb-4 font-semibold">Notifier le client</h3>
+                <p class="text-[#7A6E5E] text-xs mb-3 leading-relaxed">
+                    Renvoie l'email avec le lien sécurisé vers les photos restaurées.<br>
+                    <span class="text-[#C9A84C]/70">Limité à 1 envoi toutes les 5 minutes.</span>
+                </p>
+                <button wire:click="resendClientNotification"
+                        wire:loading.attr="disabled"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C9A84C]/15 hover:bg-[#C9A84C]/25 border border-[#C9A84C]/30 hover:border-[#C9A84C]/50 text-[#C9A84C] text-sm rounded-sm transition-all">
+                    <span wire:loading.remove wire:target="resendClientNotification" class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        Envoyer la notification
+                    </span>
+                    <span wire:loading wire:target="resendClientNotification" class="flex items-center gap-2">
+                        <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 12h4z"/></svg>
+                        Envoi…
+                    </span>
+                </button>
+                @if ($order->preview_unlocked_at)
+                <p class="text-emerald-400/70 text-[11px] mt-2 text-center">
+                    ✓ Client a déjà accédé à l'aperçu
+                    <span class="text-[#7A6E5E]">({{ $order->preview_unlocked_at->format('d/m H:i') }})</span>
+                </p>
+                @endif
             </div>
             @endif
 

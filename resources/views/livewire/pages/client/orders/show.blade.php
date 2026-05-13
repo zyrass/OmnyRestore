@@ -81,6 +81,26 @@ class extends Component
     }
 
     /**
+     * Polling 10s — détecte quand l'admin fait passer la commande à DONE.
+     * Activé via wire:poll.10000ms seulement si status est PENDING ou IN_PROGRESS.
+     * Quand le statut change, on dispatch 'status-ready' vers Alpine.js pour
+     * afficher un toast invitant l'utilisateur à rafraîchir.
+     */
+    public function pollStatusChange(): void
+    {
+        if (! in_array($this->order->status, ['PENDING', 'IN_PROGRESS'])) {
+            return;
+        }
+
+        $fresh = $this->order->fresh();
+
+        if ($fresh->status === 'DONE') {
+            $this->order = $fresh->load(['media', 'delivery']);
+            $this->dispatch('status-ready');
+        }
+    }
+
+    /**
      * Soumission d'un témoignage client après livraison.
      * Disponible uniquement pour les commandes DELIVERED.
      * Un seul avis par commande (contrôle en base via UNIQUE order_id).
@@ -249,8 +269,9 @@ class extends Component
     Toast Alpine.js — notification live « ZIP prêt »
     Déclenché par l'event Livewire 'zip-ready' (via wire:poll + pollDelivery)
 --}}
-<div x-data="{ showZipToast: false }"
+<div x-data="{ showZipToast: false, showStatusToast: false }"
      @zip-ready.window="showZipToast = true"
+     @status-ready.window="showStatusToast = true"
      class="contents">
 
     {{-- Toast positioenné en haut à droite via Teleport --}}
@@ -286,6 +307,43 @@ class extends Component
                     </div>
                     {{-- Fermeture --}}
                     <button @click="showZipToast = false" class="shrink-0 text-[#7A6E5E] hover:text-[#F5F0E8] transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    {{-- Toast "Photos prêtes" — déclenché par pollStatusChange quand admin → DONE --}}
+    <template x-teleport="body">
+        <div x-show="showStatusToast" x-cloak
+             x-transition:enter="transition ease-out duration-500"
+             x-transition:enter-start="opacity-0 translate-y-4 scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0 translate-y-4"
+             class="fixed bottom-6 right-6 z-[9999] max-w-sm w-full"
+             style="filter: drop-shadow(0 20px 40px rgba(0,0,0,0.6));">
+            <div class="relative bg-[#1A1510] border border-[#C9A84C]/50 rounded-sm overflow-hidden">
+                <div class="h-0.5 bg-gradient-to-r from-[#C9A84C] to-[#E8C97A]"></div>
+                <div class="p-5 flex items-start gap-4">
+                    <div class="shrink-0 w-10 h-10 rounded-full bg-[#C9A84C]/15 border border-[#C9A84C]/30 flex items-center justify-center">
+                        <svg class="w-5 h-5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[#F5F0E8] text-sm font-semibold leading-tight">Vos photos sont prêtes !</p>
+                        <p class="text-[#7A6E5E] text-xs mt-1">L'équipe a terminé la restauration. Actualisez pour voir vos photos.</p>
+                        <button onclick="window.location.reload()"
+                                class="inline-flex items-center gap-1.5 mt-3 px-4 py-2 text-xs font-bold text-[#0F0C08] bg-gradient-to-r from-[#C9A84C] to-[#E8C97A] rounded-sm hover:opacity-90 transition-opacity">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            Actualiser la page
+                        </button>
+                    </div>
+                    <button @click="showStatusToast = false" class="shrink-0 text-[#7A6E5E] hover:text-[#F5F0E8] transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
@@ -332,7 +390,8 @@ class extends Component
 
             {{-- === ÉTAT : EN COURS === --}}
             @if (in_array($order->status, ['PENDING', 'IN_PROGRESS']))
-            <div class="card-glass p-10 text-center">
+            {{-- Polling toutes les 10s pour détecter quand l'admin passe à DONE --}}
+            <div wire:poll.10000ms="pollStatusChange" class="card-glass p-10 text-center">
                 {{-- Spinner animé --}}
                 <div class="relative w-20 h-20 mx-auto mb-6">
                     <div class="absolute inset-0 border-2 border-[#C9A84C]/20 rounded-full"></div>
