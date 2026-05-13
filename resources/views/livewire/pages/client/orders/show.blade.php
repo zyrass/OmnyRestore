@@ -922,8 +922,20 @@ class extends Component
                         $finalHtC    = $order->total_price_cents !== null
                             ? $order->total_price_cents
                             : max(0, $baseHtC - $discountC);
-                        $tvaC        = round($finalHtC * 0.2);
-                        $ttcC        = $finalHtC + $tvaC;
+                        // TTC exact : sommer les PRICES_TTC des photos originales
+                        // (même logique que create.blade.php — évite perte d'arrondi)
+                        $_pttc = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
+                        $_originals = $order->getMedia('originals');
+                        $baseTtcC = $_originals->sum(function ($m) use ($_pttc, $order) {
+                            $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
+                            return $_pttc[$lv] ?? $_pttc['light'];
+                        });
+                        // Si pas de photos analysées, fallback sur HT * 1.20
+                        if ($baseTtcC === 0) {
+                            $baseTtcC = $baseHtC + (int) round($baseHtC * 0.2);
+                        }
+                        $tvaC  = $baseTtcC - $baseHtC;    // TVA exacte = somme TVA individuelles
+                        $ttcC  = max(0, $baseTtcC - $discountC);
                     @endphp
                     @if ($baseHtC > 0)
                     <div class="pt-2 border-t border-[#C9A84C]/10 space-y-1.5">

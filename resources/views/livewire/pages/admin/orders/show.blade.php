@@ -298,6 +298,26 @@ class extends Component
         $this->finalPrice = number_format($newTotalHt / 100, 2, '.', '');
     }
     /**
+     * Supprime définitivement une photo retouchée de la collection 'retouched'.
+     * Réservé aux statuts PENDING / IN_PROGRESS (avant que le client voie les photos).
+     * En statut DONE+, le client gère lui-même via son espace.
+     */
+    public function deleteRetouchedPhoto(int $mediaId): void
+    {
+        $media = $this->order->getMedia('retouched')->firstWhere('id', $mediaId);
+        abort_if(! $media, 404, 'Photo introuvable.');
+
+        \Illuminate\Support\Facades\Log::info(
+            "Admin delete retouched media#{$mediaId} on order {$this->order->reference}"
+        );
+
+        $media->delete();
+
+        session()->flash('success', 'Photo supprimée définitivement.');
+        $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
+    }
+
+    /**
      * Renvoie l'email de déverrouillage au client (lien signé renouvelé).
      * Disponible uniquement pour les commandes DONE.
      * Raté limité : 1 envoi par 5 minutes (clé session admin).
@@ -716,27 +736,81 @@ class extends Component
                     <svg class="w-3.5 h-3.5 text-[#7A6E5E] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <p class="text-[#7A6E5E] text-xs">Le client sélectionne les photos à conserver depuis son espace client (statut DONE, avant paiement).</p>
                 </div>
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    @foreach ($retouched as $media)
-                    @php $isRejected = $media->getCustomProperty('is_rejected', false); @endphp
-                    <div class="relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden
-                                {{ $isRejected ? 'border-2 border-red-500/40 opacity-50' : 'border border-emerald-500/20' }}">
-                        <img src="{{ $media->getUrl() }}" class="w-full h-full object-cover">
-                        @if ($isRejected)
-                        <div class="absolute inset-0 bg-red-900/40 flex items-center justify-center">
-                            <span class="text-red-300 text-xs font-bold uppercase tracking-wider bg-red-900/80 px-2 py-0.5 rounded">
-                                Retirée par client
-                            </span>
+                {{-- Grille avec Alpine pour le modal de confirmation --}}
+                <div x-data="{ deleteOpen: false, pendingId: null }">
+
+                    {{-- ── Modal suppression dark/gold ── --}}
+                    <template x-teleport="body">
+                        <div x-show="deleteOpen" x-cloak
+                             class="fixed inset-0 z-[999] flex items-center justify-center"
+                             x-transition:enter="transition ease-out duration-150"
+                             x-transition:enter-start="opacity-0 scale-95"
+                             x-transition:enter-end="opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100"
+                             x-transition:leave-end="opacity-0">
+                            <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" @click="deleteOpen = false"></div>
+                            <div class="relative z-10 w-full max-w-sm mx-4 bg-[#120F0A] border border-[#C9A84C]/25 rounded-sm shadow-2xl p-6 text-center">
+                                <div class="h-0.5 bg-gradient-to-r from-[#C9A84C] to-red-500 -mx-6 -mt-6 mb-5 rounded-t-sm"></div>
+                                <div class="w-12 h-12 border-2 border-red-600/50 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-900/30">
+                                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </div>
+                                <h3 class="text-[#F5F0E8] font-bold mb-1">Supprimer cette photo ?</h3>
+                                <p class="text-[#7A6E5E]/70 text-xs uppercase tracking-widest mb-3">Action irréversible</p>
+                                <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed">
+                                    Cette photo restaurée sera <strong class="text-red-400">définitivement supprimée</strong> et ne pourra pas être récupérée.
+                                </p>
+                                <div class="flex gap-3 justify-center">
+                                    <button @click="deleteOpen = false"
+                                            class="px-5 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all">
+                                        Annuler
+                                    </button>
+                                    <button @click="deleteOpen = false; $wire.deleteRetouchedPhoto(pendingId)"
+                                            class="px-5 py-2 text-sm bg-red-900 border border-red-600/50 text-red-200 rounded-sm hover:bg-red-800 transition-colors font-bold">
+                                        🗑️ Supprimer
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        @else
-                        <a href="{{ $media->getUrl() }}" target="_blank"
-                           class="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                        </a>
-                        @endif
+                    </template>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        @foreach ($retouched as $media)
+                        @php $isRejected = $media->getCustomProperty('is_rejected', false); @endphp
+                        <div x-data="{ h: false }"
+                             @mouseenter="h = true"
+                             @mouseleave="h = false"
+                             class="relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden
+                                    {{ $isRejected ? 'border-2 border-red-500/40 opacity-50' : 'border border-emerald-500/20' }}">
+                            <img src="{{ $media->getUrl() }}" class="w-full h-full object-cover">
+                            @if ($isRejected)
+                            <div class="absolute inset-0 bg-red-900/40 flex items-center justify-center">
+                                <span class="text-red-300 text-xs font-bold uppercase tracking-wider bg-red-900/80 px-2 py-0.5 rounded">
+                                    Retirée par client
+                                </span>
+                            </div>
+                            @else
+                            {{-- Overlay hover : ouvrir dans onglet --}}
+                            <a href="{{ $media->getUrl() }}" target="_blank"
+                               x-show="h"
+                               class="absolute inset-0 bg-black/60 flex items-center justify-center transition-opacity">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </a>
+                            {{-- Bouton suppression (visible au survol, statuts avant DONE uniquement) --}}
+                            @if (! in_array($order->status, ['DONE', 'PAID', 'DELIVERED']))
+                            <button x-show="h"
+                                    @click.stop="pendingId = {{ $media->id }}; deleteOpen = true"
+                                    title="Supprimer cette photo"
+                                    class="absolute top-2 right-2 z-20 w-7 h-7 flex items-center justify-center rounded-full text-xs bg-red-900/90 border border-red-600/60 text-red-300 hover:bg-red-800 shadow-lg transition-colors">
+                                🗑
+                            </button>
+                            @endif
+                            @endif
+                        </div>
+                        @endforeach
                     </div>
-                    @endforeach
                 </div>
+
             </div>
             @endif
 
