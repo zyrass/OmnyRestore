@@ -18,7 +18,7 @@ use Livewire\Volt\Component;
 
 new
 #[Layout('layouts.app')]
-#[Title('Dashboard Admin')]
+#[Title('Panel Admin')]
 class extends Component
 {
     public function with(): array
@@ -38,7 +38,7 @@ class extends Component
                 'revenue_month' => Order::where('payment_status', 'paid')
                                     ->whereMonth('paid_at', $now->month)
                                     ->whereYear('paid_at', $now->year)
-                                    ->sum('total_price_cents') / 100,
+                                    ->sum('total_price_cents') * 1.20 / 100,
                 'total_orders' => Order::count(),
             ],
 
@@ -70,14 +70,14 @@ class extends Component
     {{-- En-tête --}}
     <div class="flex items-center justify-between mb-8">
         <div>
-            <h1 class="text-2xl font-bold text-[#F5F0E8]">Dashboard</h1>
+            <h1 class="text-2xl font-bold text-[#F5F0E8]">Panel Admin</h1>
             <p class="text-[#7A6E5E] text-sm mt-1">{{ now()->format('l d F Y') }}</p>
         </div>
         <div class="flex items-center gap-4">
             {{-- Indicateur auto-refresh --}}
             <div class="flex items-center gap-1.5 text-[#7A6E5E] text-xs">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                En direct · {{ now()->format('H:i:s') }}
+                Temps réel
             </div>
             <a href="{{ route('admin.orders.index') }}" wire:navigate class="btn-gold text-sm">
                 Toutes les commandes
@@ -91,7 +91,7 @@ class extends Component
             ['label' => 'En attente',    'value' => $kpis['pending'],       'sub' => 'À traiter',       'color' => 'text-yellow-400',  'bg' => 'bg-yellow-500/10 border-yellow-500/25',  'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
             ['label' => 'En cours',      'value' => $kpis['in_progress'],   'sub' => 'Restauration',    'color' => 'text-blue-400',    'bg' => 'bg-blue-500/10 border-blue-500/25',      'icon' => 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'],
             ['label' => 'Aperçus prêts', 'value' => $kpis['done'],          'sub' => 'Attente paiement','color' => 'text-[#C9A84C]',   'bg' => 'bg-[#C9A84C]/10 border-[#C9A84C]/25',   'icon' => 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'],
-            ['label' => 'CA du mois',    'value' => number_format($kpis['revenue_month'], 2, ',', ' ') . ' €', 'sub' => $kpis['paid_month'] . ' commandes payées', 'color' => 'text-emerald-400', 'bg' => 'bg-emerald-500/10 border-emerald-500/25', 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
+            ['label' => 'CA TTC du mois', 'value' => number_format($kpis['revenue_month'], 2, ',', ' ') . ' €', 'sub' => $kpis['paid_month'] . ' commandes payées', 'color' => 'text-emerald-400', 'bg' => 'bg-emerald-500/10 border-emerald-500/25', 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
         ] as $kpi)
         <div class="card-glass p-5 border {{ $kpi['bg'] }}">
             <div class="flex items-start justify-between mb-3">
