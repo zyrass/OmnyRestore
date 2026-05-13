@@ -366,7 +366,72 @@ supervisorctl start omnyrestore-scheduler
 
 ---
 
-## 10. CI/CD — GITHUB ACTIONS
+## 10. SÉCURISATION DE /HORIZON (IP WHITELIST + GATE)
+
+Laravel Horizon est protégé par **deux couches de sécurité** :
+1. **Gate Laravel** (`viewHorizon`) — uniquement les admins peuvent accéder
+2. **Nginx IP whitelist** — le path `/horizon` n'est accessible que depuis votre IP fixe
+
+> ⚠️ La gate Laravel seule ne suffit pas : si `/horizon` est exposé publiquement, un attaquant peut tenter du brute-force ou exploiter des vulnérabilités de Horizon lui-même.
+
+### Configuration Nginx (à ajouter dans le bloc server HTTPS)
+
+```nginx
+# Protection /horizon — Restreindre à l'IP de l'administrateur uniquement
+# Ajouter dans /etc/nginx/sites-available/omnyrestore, dans le bloc server HTTPS
+
+location ^~ /horizon {
+    # ─── IP whitelist ───────────────────────────────────────────────────────
+    # Remplacer par vos IPs réelles (admin + VPN d'entreprise si applicable)
+    allow 1.2.3.4;        # IP fixe admin principal
+    allow 5.6.7.8;        # IP VPN entreprise (optionnel)
+    deny all;             # Bloquer tout le reste → 403
+    # ────────────────────────────────────────────────────────────────────────
+
+    # Passer au PHP-FPM (même config que le bloc location ~ \.php$)
+    try_files $uri $uri/ /index.php?$query_string;
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/var/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+        fastcgi_read_timeout 300;
+    }
+}
+```
+
+```bash
+# Tester la config Nginx
+nginx -t
+
+# Recharger sans coupure
+systemctl reload nginx
+```
+
+### Vérification
+
+```bash
+# Depuis une IP NON autorisée → doit retourner 403
+curl -I https://omnyrestore.fr/horizon
+
+# Depuis votre IP → doit retourner 200 (ou 302 vers /horizon/dashboard)
+curl -I https://omnyrestore.fr/horizon
+```
+
+### Gate Laravel (déjà configurée dans HorizonServiceProvider)
+
+```php
+// app/Providers/HorizonServiceProvider.php
+Gate::define('viewHorizon', function (User $user) {
+    return $user->role === 'admin';
+});
+```
+
+> 💡 Si votre IP change (connexion mobile, déplacement), pensez à mettre à jour la whitelist Nginx OU configurez un VPN avec IP fixe.
+
+---
+
+## 11. CI/CD — GITHUB ACTIONS
 
 ### Architecture du pipeline
 
