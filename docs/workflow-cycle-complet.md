@@ -1,11 +1,8 @@
----
-title: Cycle complet d'une commande OmnyRestore
-description: Flowchart du parcours client de la soumission jusqu'à la livraison du ZIP
----
-
 # Cycle complet d'une commande — OmnyRestore
 
-> Flowchart du parcours d'une commande, de la soumission des photos jusqu'à la livraison du ZIP au client.
+> Flowchart du parcours d'une commande, de la soumission des photos jusqu'à la livraison du ZIP au client, en passant par la restauration IA et le paiement Stripe.
+
+---
 
 ## Diagramme
 
@@ -89,39 +86,101 @@ flowchart TB
     PAGE1_UPDATE --> END
 ```
 
-## Transitions de statut
+---
 
-```
-PENDING → IN_PROGRESS → DONE → PAID → DELIVERED
-            │               │
-            └→ CANCELLED    └→ CANCELLED
-```
+## Detail des etapes par phase
 
-| Transition | Méthode | Guard |
+### Phase 1 — Soumission client
+
+| Etape | Acteur | Detail technique |
 |---|---|---|
-| `PENDING → IN_PROGRESS` | `startProcessing()` | Depuis `PENDING` uniquement |
-| `IN_PROGRESS → DONE` | `markAsDone()` | Depuis `IN_PROGRESS` uniquement |
-| `DONE → PAID` | `markAsPaid($intentId)` | Depuis `DONE` uniquement |
-| `PAID → DELIVERED` | `forceFill(['status'])` dans `GenerateOrderZipJob` | Après ZIP généré |
-| `→ CANCELLED` | `cancel($reason)` | Depuis `PENDING` ou `IN_PROGRESS` |
+| Creation commande | Client | `OrderController::store()` — genere `ORD-YYYY-XXXX`, status `PENDING` |
+| Upload photos | Client | Spatie Media Library, collection `originals` |
+
+### Phase 2 — Traitement admin
+
+| Etape | Methode | Guard |
+|---|---|---|
+| Prise en charge | `startProcessing()` | Depuis `PENDING` uniquement |
+| Photos restaurees uploadees | Admin panel | Collection `retouched` + watermarks auto |
+| Marquer terminee | `markAsDone()` | Depuis `IN_PROGRESS` uniquement |
+| Email apercu | `OrderReadyForPayment` | Declenche par Observer (status → DONE) |
+
+### Phase 3 — Apercu et selection
+
+| Etape | Detail |
+|---|---|
+| Unlock apercu | URL signee Laravel, expire 7 jours, `preview_unlocked_at` renseigne |
+| Visualisation | Photos watermarquees (basse res, filigrane OmnyRestore) |
+| Selection | Client peut rejeter des photos — ZIP final n'incluera que les photos acceptees |
+
+### Phase 4 — Paiement Stripe
+
+| Etape | Acteur | Detail |
+|---|---|---|
+| Session Checkout | `StripeCheckoutController` | Mode `payment`, metadata `order_id`, currency `EUR` |
+| Hosted Checkout | Stripe | Page Stripe — 3D Secure gere par Stripe |
+| **Webhook** (source verite) | Stripe → App | `POST /webhook/stripe` — HMAC `Stripe-Signature` verifiee |
+| **Fallback redirect** | Navigateur → App | `GET /payment/success?session_id=` — filet si webhook absent (dev local) |
+| `markAsPaid()` | `Order` model | `forceFill` sur `status`, `payment_status`, `paid_at` — hors `$fillable` |
+
+> [!IMPORTANT]
+> `status` et `payment_status` sont **exclus de `$fillable`** pour raisons de securite.
+> Seules `markAsPaid()` et `forceFill()` peuvent les modifier.
+> `$order->update(['status' => 'PAID'])` **les ignore silencieusement** — bug corrige dans les 3 endroits : `PaymentSuccessController`, `GenerateOrderZipJob`.
+
+### Phase 5 — Generation ZIP
+
+| Etape | Detail |
+|---|---|
+| Dispatch | `GenerateOrderZipJob::dispatch()->onQueue('default')` — dispatche par webhook ET fallback (idempotent) |
+| Creation | `ZipArchive` — photos HD + `README.txt` |
+| Stockage | `storage/app/orders/zips/` — hors dossier `public/`, non accessible directement |
+| Transition | `forceFill(['status' => 'DELIVERED'])->save()` — declenche l'Observer |
+| Email | `OrderDeliveryReady` — liens ZIP + facture — declenche par Observer (status → DELIVERED) |
+
+> [!NOTE]
+> Le ZIP expire apres **90 jours** (`zip_expires_at`). Le telechargement passe par `OrderDownloadController` qui verifie `payment_status = paid` et l'existence du fichier.
+
+### Phase 6 — Livraison
+
+| Etape | Detail |
+|---|---|
+| Page confirmation | `payment-success` — poll 5s — detecte `DELIVERED` — affiche bouton telechargement |
+| Email livraison | `OrderDeliveryReady` — bouton ZIP + bouton facture PDF |
+| Telechargement ZIP | `OrderDownloadController` — local: `response()->download()` — prod: URL S3 pre-signee 48h |
+| Facture PDF | `InvoiceController` — PDF genere a la volee |
+| Renvoi admin | Bouton `sendDeliveryEmail()` — style gold dans le panel admin — limite 1 envoi / 5 min |
+
+---
+
+## Machine d'etat des statuts
+
+```
+PENDING ──► IN_PROGRESS ──► DONE ──► PAID ──► DELIVERED
+                │               │
+                └──► CANCELLED  └──► CANCELLED
+```
+
+| Transition | Methode | Condition |
+|---|---|---|
+| `PENDING → IN_PROGRESS` | `startProcessing()` | Admin prend en charge |
+| `IN_PROGRESS → DONE` | `markAsDone()` | Admin uploade les retouches |
+| `DONE → PAID` | `markAsPaid($intentId)` | Webhook ou fallback Stripe |
+| `PAID → DELIVERED` | `forceFill(['status'])` dans `GenerateOrderZipJob` | ZIP genere avec succes |
+| `→ CANCELLED` | `cancel($reason)` | Depuis `PENDING` ou `IN_PROGRESS` uniquement |
+
+---
 
 ## Emails automatiques (OrderObserver)
 
-| Email | Déclencheur | Contenu |
+| Email | Statut declencheur | Contenu |
 |---|---|---|
-| `OrderReadyForPayment` | `status → DONE` | Lien aperçu signé + bouton payer |
-| `OrderPaidConfirmation` | `status → PAID` | Confirmation + "ZIP en préparation" |
-| `OrderDeliveryReady` | `status → DELIVERED` | Lien ZIP + lien facture PDF |
+| `OrderReadyForPayment` | `DONE` | Lien signe apercu + bouton payer |
+| `OrderPaidConfirmation` | `PAID` | Confirmation paiement + "ZIP en preparation" |
+| `OrderDeliveryReady` | `DELIVERED` | Lien telecharger ZIP + lien facture PDF |
 
-> **Note** : Tous les emails passent par la queue (`QUEUE_CONNECTION=database`).
-> Worker requis : `php artisan queue:work`
-
-## Tarification
-
-| Niveau | HT | TTC |
-|---|---|---|
-| `light` — Standard | 0,83 € | **1,00 €** |
-| `medium` — Avancée | 1,67 € | **2,00 €** |
-| `heavy` — Complète | 2,50 € | **3,00 €** |
-
-Le TTC est calculé en **sommant les prix TTC individuels** par photo (pas TVA sur total HT cumulé) pour éviter toute perte de centime par arrondi.
+> [!TIP]
+> Tous les emails passent par la **queue** (`QUEUE_CONNECTION=database`).
+> Un worker doit tourner en arriere-plan : `php artisan queue:work`
+> En production : supervise par Supervisor ou Forge/Envoyer.
