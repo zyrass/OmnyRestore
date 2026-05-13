@@ -108,11 +108,24 @@ class extends Component
     private function baseHtCents(): int
     {
         if (empty($this->analysisResults)) {
-            // Fallback avant analyse : prix standard minimum
+            // Fallback avant analyse : prix standard minimum (HT)
             return count($this->photos) * (PhotoDamageAnalyzer::PRICES['light'] ?? 83);
         }
-        // Somme des prix individuels de chaque photo
+        // Somme des prix HT individuels de chaque photo
         return (int) array_sum(array_column($this->analysisResults, 'price_cents'));
+    }
+
+    /**
+     * Calcule le prix TTC de base (en centimes) en sommant les TTC individuels.
+     * ⚠️ NE PAS faire sum(HT) * 1.20 — perte de 1 centime possible par arrondi.
+     * On somme directement les price_ttc_cents de chaque photo.
+     */
+    private function baseTtcCents(): int
+    {
+        if (empty($this->analysisResults)) {
+            return count($this->photos) * (PhotoDamageAnalyzer::PRICES_TTC['light'] ?? 100);
+        }
+        return (int) array_sum(array_column($this->analysisResults, 'price_ttc_cents'));
     }
 
     /**
@@ -458,12 +471,14 @@ class extends Component
                         </div>
                         @if ($analysisComplete && count($photos) > 0)
                         @php
-                            // Somme individuelle — chaque photo à son propre tarif IA
+                            // Somme TTC individuelle — évite la perte de centime due à l'arrondi TVA cumulée
+                            $baseTtc   = (int) array_sum(array_column($analysisResults, 'price_ttc_cents'));
                             $baseHt    = (int) array_sum(array_column($analysisResults, 'price_cents'));
                             $discount  = $couponResult['discount_cents'] ?? 0;
+                            // Remise appliquée sur HT, TVA recalculée sur le net HT
                             $netHt     = max(0, $baseHt - $discount);
-                            $tva       = (int) round($netHt * 0.2);
-                            $ttc       = $netHt + $tva;
+                            $tva       = $baseTtc - $baseHt;  // TVA exacte = somme des TVA individuelles
+                            $ttc       = max(0, $baseTtc - $discount);
                         @endphp
                         @if ($discount > 0)
                         <div class="flex justify-between text-sm">

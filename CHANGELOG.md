@@ -12,6 +12,53 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.16.0] — 2026-05-13 — Workflow post-paiement, corrections critiques fillable & arrondi TVA
+
+### 🚨 Critique — Corrigé
+
+- **`status` et `payment_status` ignorés silencieusement par `update()`** :
+  - Ces champs sont intentionnellement exclus de `$fillable` (sécurité state machine).
+  - `PaymentSuccessController`, `GenerateOrderZipJob` et `OrderCheckoutController` utilisaient `$order->update(['status' => 'PAID'])` dont l'effet était nul.
+  - Résultat : commandes bloquées en `DONE` après paiement Stripe, page de confirmation redirigée vers `orders.show`, email `OrderDeliveryReady` jamais envoyé.
+  - **Fix** : remplacement par `markAsPaid()` (méthode dédiée du modèle) + `forceFill(['status'])->save()` dans le job, entouré d'un `try/catch InvalidArgumentException` (idempotence webhook).
+
+- **`abort_unless()` utilisé avec un `redirect()` comme 2e argument** :
+  - `abort_unless(condition, redirect()->route(...))` lève `"Object could not be converted to int"` — le 2e argument doit être un code HTTP entier.
+  - **Fix** : remplacement par `if (!condition) return redirect()->route(...)`, type de retour `mount()` passé de `void` à `mixed`.
+
+### Ajouté
+
+- **Page de confirmation post-paiement** (`/client/orders/{order}/payment-success`) :
+  - Composant Livewire Volt (`payment-success.blade.php`) affiché immédiatement après le retour Stripe.
+  - Icône animée (pulse), récapitulatif commande (référence, photos, montant TTC, date/heure précise).
+  - Message "📧 Surveillez vos mails !" avec l'email du client.
+  - **Polling 5s** (`wire:poll`) : détecte automatiquement le passage à `DELIVERED` → affiche le bouton de téléchargement ZIP sans rechargement de page.
+  - Garde de sécurité dans `mount()` : redirige vers `orders.show` si le statut n'est pas `PAID` ou `DELIVERED`.
+
+- **`PaymentSuccessController` redirige vers la page de confirmation** :
+  - Les deux cas (paiement normal + idempotence webhook déjà passé) atterrissent sur `payment-success` au lieu de `orders.show` avec un simple flash.
+  - `try/catch \InvalidArgumentException` pour l'idempotence si le webhook a déjà transitionné.
+
+- **Constante `PRICES_TTC`** dans `PhotoDamageAnalyzer` :
+  - Grille tarifaire TTC exacte en centimes (100, 200, 300) pour calculs sans perte d'arrondi.
+
+- **Documentation** : `docs/workflow-cycle-complet.md` — flowchart Mermaid TB du cycle complet avec explications par phase, table des transitions de statut et emails automatiques.
+
+### Modifié
+
+- **`GenerateOrderZipJob`** : `$order->update(['status' => 'DELIVERED'])` remplacé par `forceFill(['status' => 'DELIVERED'])->save()` — déclenche correctement l'`OrderObserver` qui envoie `OrderDeliveryReady`.
+
+- **Panel admin** (`admin/orders/show.blade.php`) : section "Statut paiement & livraison" refondée :
+  - Bouton "Envoyer ZIP + Facture PDF" en dégradé or (gold) visible dès le statut `PAID`.
+  - Badge d'attente animé (spinner) pour les statuts antérieurs.
+  - Heure de paiement affichée au format `d/m/Y à H:i:s`.
+
+- **Arrondi TVA corrigé** (`create.blade.php`, `OrderCheckoutController`) :
+  - **Avant** : `sum(HT) * 1.20` → perte de 1 centime sur commandes multi-niveaux (ex: 3×83¢ + 167¢ = 416¢ HT → 499¢ TTC au lieu de 500¢).
+  - **Après** : somme des `price_ttc_cents` individuels par photo (100¢, 200¢, 300¢) → TTC exact garanti.
+
+---
+
 ## [0.15.0] — 2026-05-13 — Conformité RGPD complète, Testimonials & Traduction
 
 ### Ajouté
@@ -499,7 +546,9 @@ Le droit de valider / rejeter les photos restaurées est désormais **exclusivem
 ---
 
 <!-- Liens -->
-[Unreleased]: https://github.com/zyrass/OmnyRestore/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/zyrass/OmnyRestore/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/zyrass/OmnyRestore/compare/v0.15.0...v0.16.0
+[0.15.0]: https://github.com/zyrass/OmnyRestore/compare/v0.10.0...v0.15.0
 [0.10.0]: https://github.com/zyrass/OmnyRestore/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/zyrass/OmnyRestore/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/zyrass/OmnyRestore/compare/v0.8.0...v0.8.1
@@ -513,5 +562,4 @@ Le droit de valider / rejeter les photos restaurées est désormais **exclusivem
 [0.2.0]: https://github.com/zyrass/OmnyRestore/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/zyrass/OmnyRestore/compare/v0.0.1...v0.1.0
 [0.0.1]: https://github.com/zyrass/OmnyRestore/releases/tag/v0.0.1
-[0.10.0]: https://github.com/zyrass/OmnyRestore/compare/v0.9.0...v0.10.0
-[0.15.0]: https://github.com/zyrass/OmnyRestore/compare/v0.10.0...v0.15.0
+

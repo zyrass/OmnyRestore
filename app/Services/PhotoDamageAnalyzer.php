@@ -31,12 +31,29 @@ class PhotoDamageAnalyzer
 {
     /**
      * Prix en centimes HT par niveau de dommage.
-     * TVA 20% s'applique automatiquement sur toutes les commandes.
+     * Ces valeurs sont calculées à rebours depuis le prix TTC voulu :
+     *   light  : 1,00 € TTC → HT = round(100 / 1.20) = 83¢  (TTC réel : 100¢) ✓
+     *   medium : 2,00 € TTC → HT = round(200 / 1.20) = 167¢ (TTC réel : 200¢) ✓
+     *   heavy  : 3,00 € TTC → HT = round(300 / 1.20) = 250¢ (TTC réel : 300¢) ✓
+     *
+     * ⚠️ Pour éviter la perte d'1 centime lors d'une commande multi-niveaux,
+     * le checkout calcule le TTC en sommant les prix TTC par photo (PRICES_TTC),
+     * PAS en appliquant la TVA sur le total HT cumulé.
      */
     public const PRICES = [
         'light'  => 83,    // 0,83 € HT → 1,00 € TTC
         'medium' => 167,   // 1,67 € HT → 2,00 € TTC
         'heavy'  => 250,   // 2,50 € HT → 3,00 € TTC
+    ];
+
+    /**
+     * Prix TTC exacts en centimes par niveau de dommage.
+     * À utiliser pour calculer le montant facturé à Stripe (évite les arrondis).
+     */
+    public const PRICES_TTC = [
+        'light'  => 100,   // 1,00 € TTC exact
+        'medium' => 200,   // 2,00 € TTC exact
+        'heavy'  => 300,   // 3,00 € TTC exact
     ];
 
     /**
