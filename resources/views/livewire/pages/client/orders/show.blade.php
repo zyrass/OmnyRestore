@@ -101,6 +101,23 @@ class extends Component
     }
 
     /**
+     * Polling 15s — détecte quand le statut passe de DONE à PAID.
+     * Utile si le client paie dans un autre onglet ou sur mobile.
+     */
+    public function pollPaymentStatus(): void
+    {
+        if ($this->order->status !== 'DONE') {
+            return;
+        }
+
+        $fresh = $this->order->fresh();
+
+        if ($fresh->status === 'PAID') {
+            $this->order = $fresh->load(['media', 'delivery']);
+        }
+    }
+
+    /**
      * Soumission d'un témoignage client après livraison.
      * Disponible uniquement pour les commandes DELIVERED.
      * Un seul avis par commande (contrôle en base via UNIQUE order_id).
@@ -420,7 +437,7 @@ class extends Component
 
             {{-- === ÉTAT : APERÇU PRÊT (DONE) — Sélection + Paiement === --}}
             @if ($order->status === 'DONE')
-
+            <div wire:poll.15000ms="pollPaymentStatus">
             {{-- ── Email-gate : vérification que le client a cliqué le lien email ── --}}
             @if (! $order->preview_unlocked_at)
             <div class="card-glass p-10 text-center">
@@ -688,6 +705,7 @@ class extends Component
                 </div>
             </div>
             @endif {{-- fin @if (! $order->preview_unlocked_at) --}}
+            </div>
             @endif {{-- fin @if ($order->status === 'DONE') --}}
 
             {{-- === ÉTAT : PAYÉ — En cours de traitement === --}}
