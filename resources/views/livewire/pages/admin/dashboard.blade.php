@@ -28,9 +28,9 @@ class extends Component
         return [
             // ── KPIs ──────────────────────────────────────────────────────
             'kpis' => [
-                'pending'     => Order::where('status', 'PENDING')->count(),
-                'in_progress' => Order::where('status', 'IN_PROGRESS')->count(),
-                'done'        => Order::where('status', 'DONE')->count(),
+                'pending'     => Order::whereHas('user')->where('status', 'PENDING')->count(),
+                'in_progress' => Order::whereHas('user')->where('status', 'IN_PROGRESS')->count(),
+                'done'        => Order::whereHas('user')->where('status', 'DONE')->count(),
                 'paid_month'  => Order::where('payment_status', 'paid')
                                     ->whereMonth('paid_at', $now->month)
                                     ->whereYear('paid_at', $now->year)
@@ -39,26 +39,28 @@ class extends Component
                                     ->whereMonth('paid_at', $now->month)
                                     ->whereYear('paid_at', $now->year)
                                     ->sum('total_price_cents') * 1.20 / 100,
-                'total_orders' => Order::count(),
+                'total_orders' => Order::whereHas('user')->count(),
             ],
 
             // ── File d'attente PENDING ────────────────────────────────────
-            'pending_orders' => Order::where('status', 'PENDING')
-                ->with('user')
+            'pending_orders' => Order::whereHas('user')
+                ->where('status', 'PENDING')
+                ->with(['user' => fn($u) => $u->withTrashed()])
                 ->oldest()  // Plus ancienne en premier (FIFO)
                 ->limit(10)
                 ->get(),
 
             // ── En cours IN_PROGRESS ──────────────────────────────────────
-            'in_progress_orders' => Order::where('status', 'IN_PROGRESS')
-                ->with('user')
+            'in_progress_orders' => Order::whereHas('user')
+                ->where('status', 'IN_PROGRESS')
+                ->with(['user' => fn($u) => $u->withTrashed()])
                 ->latest('updated_at')
                 ->limit(5)
                 ->get(),
 
             // ── Dernières payées ──────────────────────────────────────────
             'recent_paid' => Order::where('payment_status', 'paid')
-                ->with('user')
+                ->with(['user' => fn($u) => $u->withTrashed()])
                 ->latest('paid_at')
                 ->limit(5)
                 ->get(),
@@ -131,7 +133,7 @@ class extends Component
                         <div class="flex items-center gap-2">
                             <span class="font-mono text-[#C9A84C] text-xs">{{ $order->reference }}</span>
                             <span class="text-[#7A6E5E] text-xs">·</span>
-                            <span class="text-[#7A6E5E] text-xs truncate">{{ $order->user->name }}</span>
+                            <span class="text-[#7A6E5E] text-xs truncate">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
                         </div>
                         <div class="flex items-center gap-3 mt-0.5">
                             <span class="text-[#F5F0E8] text-xs">{{ $order->photo_count }} photo{{ $order->photo_count > 1 ? 's' : '' }}</span>
@@ -167,7 +169,7 @@ class extends Component
                     <div class="px-5 py-3 flex items-center justify-between hover:bg-[#C9A84C]/3 transition-colors">
                         <div>
                             <span class="font-mono text-[#C9A84C] text-xs">{{ $order->reference }}</span>
-                            <span class="text-[#7A6E5E] text-xs ml-2">{{ $order->user->name }}</span>
+                            <span class="text-[#7A6E5E] text-xs ml-2">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
                             <p class="text-[#7A6E5E] text-xs mt-0.5">{{ $order->photo_count }} photo{{ $order->photo_count > 1 ? 's' : '' }} · mis à jour {{ $order->updated_at->diffForHumans() }}</p>
                         </div>
                         <a href="{{ route('admin.orders.show', $order) }}" wire:navigate
@@ -193,7 +195,7 @@ class extends Component
                     <div class="px-5 py-3 flex items-center justify-between">
                         <div>
                             <span class="font-mono text-emerald-400 text-xs">{{ $order->reference }}</span>
-                            <span class="text-[#7A6E5E] text-xs ml-2">{{ $order->user->name }}</span>
+                            <span class="text-[#7A6E5E] text-xs ml-2">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
                             <p class="text-[#7A6E5E] text-xs mt-0.5">{{ $order->paid_at?->format('d/m/Y H:i') }}</p>
                         </div>
                         <span class="text-emerald-400 font-semibold text-sm">

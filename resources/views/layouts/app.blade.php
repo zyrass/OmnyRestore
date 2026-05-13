@@ -13,17 +13,21 @@
     {{-- Chart.js — disponible globalement pour les pages admin --}}
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     @livewireStyles
+    <style>
+        html, body { height: 100%; margin: 0; padding: 0; }
+        body { display: flex !important; flex-direction: column !important; min-height: 100vh !important; }
+        main { flex: 1 0 auto !important; min-height: 70vh !important; }
+        footer { flex-shrink: 0 !important; }
+    </style>
 </head>
-<body class="bg-[#0D0B08] text-[#F5F0E8]" x-data x-on:omny:confirm.window="$store.confirmModal.open($event.detail)">
+<body class="bg-[#0D0B08] text-[#F5F0E8] flex flex-col min-h-full" x-data x-on:omny:confirm.window="$store.confirmModal.open($event.detail)">
 
 {{-- ========== TOP NAV ========== --}}
 <header class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
     <div class="max-w-[1400px] mx-auto app-layout h-16 flex items-center justify-between">
 
         <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3">
-            <div class="w-7 h-7 border border-[#C9A84C] flex items-center justify-center">
-                <span class="text-[#C9A84C] text-[9px] font-bold tracking-widest">OR</span>
-            </div>
+            <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-8 h-8 object-contain">
             <span class="font-semibold tracking-[0.15em] text-xs uppercase text-[#F5F0E8]">OmnyRestore</span>
         </a>
 
@@ -77,6 +81,12 @@
             </a>
             {{-- ── Séparateur + Panel Admin (Dashboard) ── --}}
             <div class="w-px h-4 bg-[#C9A84C]/15 mx-1"></div>
+            {{-- ── Cellule de Crise ── --}}
+            <a href="{{ route('admin.incident.response') }}" wire:navigate
+               class="px-3 py-1.5 text-[10px] font-bold rounded-sm border transition-all
+                      {{ request()->routeIs('admin.incident.response') ? 'border-red-800/60 bg-red-900/30 text-red-400 shadow-[0_0_10px_rgba(153,27,27,0.2)]' : 'border-red-900/20 text-red-900 hover:border-red-800/40 hover:text-red-700' }}">
+                🚨 CRISE
+            </a>
             <a href="{{ route('admin.dashboard') }}" wire:navigate
                class="px-3 py-1.5 text-xs font-semibold rounded-sm border transition-all
                       {{ request()->routeIs('admin.dashboard') ? 'border-red-700/60 bg-red-900/20 text-red-400' : 'border-red-800/30 bg-red-900/10 text-red-500 hover:border-red-700/50 hover:text-red-400' }}">
@@ -160,7 +170,7 @@
 </header>
 
 {{-- ========== MAIN ========== --}}
-<main class="w-full max-w-[1400px] mx-auto app-layout py-10">
+<main class="w-full max-w-[1400px] mx-auto app-layout py-10 flex-grow">
     {{-- Flash messages globaux (non affichés sur les pages Livewire qui gèrent leur propre feedback) --}}
     @unless (request()->routeIs('admin.orders.show') || request()->routeIs('client.orders.show'))
     @if (session('success'))
@@ -195,9 +205,7 @@
                 {{-- Colonne 1 : Marque --}}
                 <div class="md:col-span-1 space-y-4">
                     <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 group">
-                        <div class="w-8 h-8 border border-[#C9A84C] flex items-center justify-center group-hover:bg-[#C9A84C]/10 transition-colors">
-                            <span class="text-[#C9A84C] text-[9px] font-bold tracking-widest">OR</span>
-                        </div>
+                        <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-10 h-10 object-contain group-hover:scale-110 transition-transform">
                         <span class="text-[#F5F0E8] font-semibold tracking-[0.12em] text-sm uppercase">OmnyRestore</span>
                     </a>
                     <p class="text-[#7A6E5E] text-xs leading-relaxed">
@@ -326,10 +334,19 @@
                 <p class="text-[#7A6E5E] text-[11px]">
                     © {{ date('Y') }} <span class="text-[#C9A84C]/70">OmnyRestore</span> — une branche d'<span class="text-[#C9A84C]/70">OmnyVia</span> · Alain GUILLON
                 </p>
-                <p class="text-[#7A6E5E] text-[11px] flex items-center gap-1.5">
-                    Conçu et hébergé en France
-                    <span class="text-base leading-none">🇫🇷</span>
-                </p>
+                <div class="flex items-center gap-4">
+                    @auth
+                    <a href="{{ route('client.account.delete') }}" wire:navigate
+                       class="text-red-900/60 text-[10px] hover:text-red-400 transition-colors flex items-center gap-1">
+                        <span class="w-1 h-1 rounded-full bg-red-900/40"></span>
+                        Supprimer mes données (RGPD)
+                    </a>
+                    @endauth
+                    <p class="text-[#7A6E5E] text-[11px] flex items-center gap-1.5">
+                        Conçu et hébergé en France
+                        <span class="text-base leading-none">🇫🇷</span>
+                    </p>
+                </div>
             </div>
 
         </div>
@@ -416,6 +433,10 @@
  */
 function initConfirmModalStore() {
     if (typeof Alpine === 'undefined') return;
+    
+    // Ne pas réinitialiser si déjà présent
+    if (Alpine.store('confirmModal')) return;
+
     Alpine.store('confirmModal', {
         show: false,
         title: '',
@@ -434,9 +455,12 @@ function initConfirmModalStore() {
         },
 
         confirm() {
+            const callback = this._resolve;
             this.show = false;
-            if (typeof this._resolve === 'function') this._resolve();
             this._resolve = null;
+            if (typeof callback === 'function') {
+                callback();
+            }
         },
 
         cancel() {
@@ -446,8 +470,12 @@ function initConfirmModalStore() {
     });
 }
 
-document.addEventListener('alpine:init', initConfirmModalStore);
-// wire:navigate re-exécute les scripts mais pas alpine:init → forcer le store
+if (typeof Alpine !== 'undefined') {
+    initConfirmModalStore();
+} else {
+    document.addEventListener('alpine:init', initConfirmModalStore);
+}
+// Protection wire:navigate
 document.addEventListener('livewire:navigated', initConfirmModalStore);
 
 /**
@@ -457,8 +485,13 @@ document.addEventListener('livewire:navigated', initConfirmModalStore);
  */
 window.omnyConfirm = function(options) {
     return new Promise((resolve) => {
+        const userCallback = options.callback;
+        const internalCallback = () => {
+            if (typeof userCallback === 'function') userCallback();
+            resolve();
+        };
         window.dispatchEvent(new CustomEvent('omny:confirm', {
-            detail: { ...options, callback: resolve }
+            detail: { ...options, callback: internalCallback }
         }));
     });
 };

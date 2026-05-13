@@ -13,7 +13,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
 [![Tests](https://img.shields.io/badge/Tests-64%2F64%20%E2%9C%85-22c55e?style=for-the-badge&logo=php&logoColor=white)](tests/)
-[![Version](https://img.shields.io/badge/Version-0.16.0-6366f1?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-0.18.0-6366f1?style=for-the-badge)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
 </div>
@@ -640,12 +640,22 @@ git commit -m "feat(tickets): interface admin tickets support" \
 - [x] `v0.15.0` — **RGPD complet + traduction FR**
   - [x] Ensemble du parcours traduit en français
   - [x] Conformité CNIL intégrale
-- [x] `v0.16.0` — **Hardening sécurité production** ← *actuel*
+- [x] `v0.16.0` — **Hardening sécurité production**
   - [x] 64/64 tests verts (146 assertions)
   - [x] `CreateOrderRequest` + `StoreTestimonialRequest` (Form Requests)
   - [x] Horizon IP whitelist Nginx documentée
   - [x] Mass assignment protection (`status` hors `$fillable`)
   - [x] Rate limiting Stripe webhook + checkout
+- [x] `v0.17.0` — **Identité Visuelle & Cellule de Crise (PRI)**
+  - [x] Logo officiel (Or/Blanc/Noir) intégré (Landing, Auth, PDF)
+  - [x] Module de réponse aux incidents avec chronomètre 72h CNIL
+  - [x] Export PDF officiel du Plan de Réponse aux Incidents (PRI)
+  - [x] Centre de communication de crise (modèles RGPD/ANSSI)
+- [x] `v0.18.0` — **RGPD Hardening & Anonymisation Totale** ← *actuel*
+  - [x] Bouton de suppression libre-service dans le footer client
+  - [x] Anonymisation radicale (Zéro PII) : IP, User Agent, Email hash
+  - [x] Suppression physique irréversible des médias (Spatie)
+  - [x] Tests de validation d'anonymisation (Pest/PHPUnit)
 - [ ] `v1.0.0` — **MVP — Déploiement production (OVH)**
 - [ ] `v1.1.0` — Dashboard admin avancé (URSSAF, coûts IA, analytics)
 - [ ] `v2.0.0` — Multi-prestataires + messagerie avancée

@@ -35,26 +35,40 @@ class extends Component
 
     public function with(): array
     {
+        $query = Order::with(['user' => fn($u) => $u->withTrashed()]);
+
+        // Filtrage par utilisateur supprimé ou non
+        if ($this->status === 'DELETED_USER') {
+            $query->whereHas('user', fn($u) => $u->onlyTrashed());
+        } else {
+            // Par défaut et pour tous les autres filtres, on exclut les utilisateurs supprimés
+            $query->whereHas('user');
+            
+            if ($this->status) {
+                $query->where('status', $this->status);
+            }
+        }
+
+        // Recherche
+        $query->when($this->search, function ($q) {
+            $q->where(function ($q) {
+                $q->where('reference', 'ilike', "%{$this->search}%")
+                  ->orWhereHas('user', fn($u) => $u->withTrashed()->where('name', 'ilike', "%{$this->search}%")
+                      ->orWhere('email', 'ilike', "%{$this->search}%"));
+            });
+        });
+
         return [
-            'orders' => Order::with('user')
-                ->when($this->status, fn($q) => $q->where('status', $this->status))
-                ->when($this->search, function ($q) {
-                    $q->where(function ($q) {
-                        $q->where('reference', 'ilike', "%{$this->search}%")
-                          ->orWhereHas('user', fn($u) => $u->where('name', 'ilike', "%{$this->search}%")
-                              ->orWhere('email', 'ilike', "%{$this->search}%"));
-                    });
-                })
-                ->latest()
-                ->paginate(20),
+            'orders' => $query->latest()->paginate(20),
 
             'counts' => [
-                'all'         => Order::count(),
-                'PENDING'     => Order::where('status', 'PENDING')->count(),
-                'IN_PROGRESS' => Order::where('status', 'IN_PROGRESS')->count(),
-                'DONE'        => Order::where('status', 'DONE')->count(),
-                'PAID'        => Order::where('payment_status', 'paid')->count(),
-                'CANCELLED'   => Order::where('status', 'CANCELLED')->count(),
+                'all'          => Order::whereHas('user')->count(),
+                'PENDING'      => Order::whereHas('user')->where('status', 'PENDING')->count(),
+                'IN_PROGRESS'  => Order::whereHas('user')->where('status', 'IN_PROGRESS')->count(),
+                'DONE'         => Order::whereHas('user')->where('status', 'DONE')->count(),
+                'PAID'         => Order::whereHas('user')->where('payment_status', 'paid')->count(),
+                'CANCELLED'    => Order::whereHas('user')->where('status', 'CANCELLED')->count(),
+                'DELETED_USER' => Order::whereHas('user', fn($u) => $u->onlyTrashed())->count(),
             ],
         ];
     }
@@ -90,6 +104,7 @@ class extends Component
                 ['value' => 'IN_PROGRESS','label' => 'En cours',    'count' => $counts['IN_PROGRESS']],
                 ['value' => 'DONE',       'label' => 'Prêts',       'count' => $counts['DONE']],
                 ['value' => 'CANCELLED',  'label' => 'Annulés',     'count' => $counts['CANCELLED']],
+                ['value' => 'DELETED_USER','label' => 'Utilisateurs supprimés', 'count' => $counts['DELETED_USER']],
             ] as $filter)
             <button wire:click="$set('status', '{{ $filter['value'] }}')"
                     class="px-3 py-1.5 text-xs rounded-sm border transition-all
@@ -126,6 +141,7 @@ class extends Component
             <tbody class="divide-y divide-[#C9A84C]/8">
                 @foreach ($orders as $order)
                 @php
+                    $isUserDeleted = !$order->user || $order->user->trashed();
                     $badges = [
                         'PENDING'     => 'bg-yellow-900/40 text-yellow-400 border-yellow-500/30',
                         'IN_PROGRESS' => 'bg-blue-900/40 text-blue-400 border-blue-500/30',
@@ -136,13 +152,13 @@ class extends Component
                     ];
                     $labels = ['PENDING' => 'En attente', 'IN_PROGRESS' => 'En cours', 'DONE' => 'Prêt', 'PAID' => 'Payé ✓', 'DELIVERED' => 'Livré', 'CANCELLED' => 'Annulé'];
                 @endphp
-                <tr class="hover:bg-[#C9A84C]/3 transition-colors cursor-pointer"
+                <tr class="hover:bg-[#C9A84C]/3 transition-colors cursor-pointer {{ $isUserDeleted ? 'opacity-60 grayscale-[0.3]' : '' }}"
                     onclick="window.location='{{ route('admin.orders.show', $order) }}'"
                     style="cursor:pointer;">
-                    <td class="px-5 py-3.5"><span class="font-mono text-[#C9A84C] text-xs">{{ $order->reference }}</span></td>
+                    <td class="px-5 py-3.5"><span class="font-mono text-[#C9A84C] text-xs {{ $isUserDeleted ? 'opacity-50' : '' }}">{{ $order->reference }}</span></td>
                     <td class="px-5 py-3.5">
-                        <p class="text-[#F5F0E8] text-xs">{{ $order->user->name }}</p>
-                        <p class="text-[#7A6E5E] text-[10px]">{{ $order->user->email }}</p>
+                        <p class="{{ $isUserDeleted ? 'text-[#7A6E5E]' : 'text-[#F5F0E8]' }} text-xs font-medium">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</p>
+                        <p class="text-[#7A6E5E] text-[10px]">{{ $order->user?->email ?? '—' }}</p>
                     </td>
                     <td class="px-5 py-3.5 text-[#7A6E5E]">{{ $order->photo_count }}</td>
                     <td class="px-5 py-3.5">

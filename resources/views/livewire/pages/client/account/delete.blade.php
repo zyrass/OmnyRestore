@@ -73,7 +73,7 @@ class extends Component
     {{-- En-tête --}}
     <div class="mb-8">
         <div class="flex items-center gap-3 mb-2">
-            <a href="{{ route('profile') }}" class="text-[#7A6E5E] hover:text-[#C9A84C] transition-colors text-sm">
+            <a href="{{ route('client.profile') }}" class="text-[#7A6E5E] hover:text-[#C9A84C] transition-colors text-sm">
                 ← Mon profil
             </a>
         </div>
@@ -81,7 +81,7 @@ class extends Component
         <p class="text-[#7A6E5E] text-sm mt-1">Cette action est <strong class="text-red-400">irréversible</strong>. Lisez attentivement les informations ci-dessous.</p>
     </div>
 
-    <div class="max-w-2xl space-y-6">
+    <div class="w-full space-y-6">
 
         {{-- Flash messages --}}
         @if (session('error'))
@@ -125,26 +125,25 @@ class extends Component
                 </svg>
                 Ce qui est conservé <span class="text-[#7A6E5E] font-normal">(obligations légales)</span>
             </h2>
-            <ul class="space-y-2 text-sm text-[#9E9085]">
-                <li class="flex items-start gap-2">
+            <ul class="space-y-3 text-sm text-[#9E9085]">
+                <li class="flex items-start gap-3">
                     <svg class="w-4 h-4 text-[#C9A84C] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
-                    Données de commandes et <strong class="text-[#F5F0E8]">factures anonymisées</strong> — 10 ans
-                    <span class="text-[#7A6E5E]">(Art. L.123-22 Code de commerce)</span>
+                    <span>
+                        Données de commandes et <strong class="text-[#F5F0E8]">factures anonymisées</strong> (conservées 10 ans selon l'Art. L.123-22 du Code de commerce).
+                    </span>
                 </li>
-                <li class="flex items-start gap-2">
+                <li class="flex items-start gap-3">
                     <svg class="w-4 h-4 text-[#C9A84C] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
-                    Horodatage de votre <strong class="text-[#F5F0E8]">consentement RGPD</strong> initial
-                    <span class="text-[#7A6E5E]">(Art. 7.1 RGPD)</span>
+                    <span>
+                        Horodatage de votre <strong class="text-[#F5F0E8]">consentement RGPD</strong> initial (Art. 7.1 RGPD).
+                    </span>
                 </li>
-                <li class="flex items-start gap-2">
-                    <svg class="w-4 h-4 text-[#C9A84C] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                    <em class="text-[#7A6E5E]">Ces données sont dissociées de votre identité — elles ne permettent plus de vous identifier.</em>
+                <li class="flex items-start gap-3 italic text-[#7A6E5E] text-xs pl-7">
+                    Ces données sont dissociées de votre identité — elles ne permettent plus de vous identifier.
                 </li>
             </ul>
         </div>
@@ -206,9 +205,25 @@ class extends Component
                 {{-- Bouton final --}}
                 <div class="pt-2">
                     <button
-                        wire:click="deleteAccount"
+                        @click="
+                            const wire = $wire;
+                            if (!wire.confirmed) {
+                                omnyConfirm({
+                                    title: 'Action requise',
+                                    message: 'Vous devez obligatoirement cocher la case de confirmation pour pouvoir supprimer votre compte.',
+                                    confirmLabel: 'Compris',
+                                    danger: false
+                                });
+                                return;
+                            }
+                            omnyConfirm({
+                                title: 'Suppression Définitive',
+                                message: 'Êtes-vous absolument certain ? Votre compte sera anonymisé et TOUTES vos photos seront supprimées sans aucun recours possible.',
+                                confirmLabel: 'Oui, supprimer définitivement',
+                                danger: true
+                            }).then(() => wire.deleteAccount())
+                        "
                         wire:loading.attr="disabled"
-                        wire:confirm="Dernière confirmation : supprimer définitivement votre compte et toutes vos photos ?"
                         class="w-full py-3 bg-red-600/20 border border-red-500/50 text-red-400
                                hover:bg-red-600/30 hover:border-red-400 font-semibold tracking-wider
                                uppercase text-sm transition-all duration-200 rounded-sm flex items-center justify-center gap-2"

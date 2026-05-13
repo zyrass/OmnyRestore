@@ -103,22 +103,22 @@ class extends Component
 
         <div class="flex items-center gap-2">
             @if ($ticket->isClosed())
-            <button @click="omnyConfirm({
+            <button @click="const wire = $wire; omnyConfirm({
                         title: 'Rouvrir le ticket ?',
-                        message: 'Le ticket sera de nouveau actif et visible par le client.',
-                        confirmLabel: 'Rouvrir',
+                        message: 'Le statut repassera en OUVERT et vous pourrez à nouveau échanger avec le client.',
+                        confirmLabel: '↻ Rouvrir',
                         danger: false
-                    }).then(() => $wire.reopenTicket())"
+                    }).then(() => wire.reopenTicket())"
                     class="text-xs px-3 py-1.5 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-900/20 rounded-sm transition-all">
                 Rouvrir
             </button>
             @else
-            <button @click="omnyConfirm({
-                        title: 'Fermer ce ticket ?',
-                        message: 'Le client ne pourra plus répondre tant que le ticket est fermé.',
-                        confirmLabel: 'Fermer le ticket',
-                        danger: false
-                    }).then(() => $wire.closeTicket())"
+            <button @click="const wire = $wire; omnyConfirm({
+                        title: 'Clore définitivement ?',
+                        message: 'Le client recevra une notification de clôture. Le ticket sera archivé.',
+                        confirmLabel: '✓ Clore le ticket',
+                        danger: true
+                    }).then(() => wire.closeTicket())"
                     class="text-xs px-3 py-1.5 border border-[#7A6E5E]/25 text-[#7A6E5E] hover:border-[#7A6E5E]/60 rounded-sm transition-all">
                 Fermer le ticket
             </button>
@@ -179,12 +179,12 @@ class extends Component
             @else
             <div class="bg-[#1A1510]/60 border border-[#7A6E5E]/15 rounded-sm p-4 text-center">
                 <p class="text-[#7A6E5E] text-sm">Ticket fermé —
-                    <button @click="omnyConfirm({
+                    <button @click="const wire = $wire; omnyConfirm({
                                 title: 'Rouvrir le ticket ?',
                                 message: 'Le ticket sera de nouveau actif.',
                                 confirmLabel: 'Rouvrir',
                                 danger: false
-                            }).then(() => $wire.reopenTicket())"
+                            }).then(() => wire.reopenTicket())"
                             class="text-[#C9A84C] hover:underline">Rouvrir</button>
                     pour répondre.
                 </p>

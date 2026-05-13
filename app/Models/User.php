@@ -200,4 +200,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(SupportTicket::class, 'user_id');
     }
+
+    /**
+     * Tous les témoignages laissés par ce client.
+     *
+     * @return HasMany<Testimonial, $this>
+     */
+    public function testimonials(): HasMany
+    {
+        return $this->hasMany(Testimonial::class, 'user_id');
+    }
 }

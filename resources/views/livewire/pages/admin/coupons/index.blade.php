@@ -270,8 +270,12 @@ class extends Component
                                            {{ $coupon->is_active ? 'border-orange-500/30 text-orange-400 hover:bg-orange-900/20' : 'border-emerald-500/30 text-emerald-400 hover:bg-emerald-900/20' }}">
                                 {{ $coupon->is_active ? 'Désactiver' : 'Activer' }}
                             </button>
-                            <button wire:click="deleteCoupon({{ $coupon->id }})"
-                                    wire:confirm="Supprimer définitivement « {{ $coupon->code }} » ?"
+                            <button @click="const wire = $wire; omnyConfirm({
+                                         title: 'Supprimer Code',
+                                         message: 'Voulez-vous vraiment supprimer le code de réduction « {{ $coupon->code }} » ? Cette action est définitive.',
+                                         confirmLabel: '🗑 Supprimer',
+                                         danger: true
+                                     }).then(() => wire.deleteCoupon({{ $coupon->id }}))"
                                     class="text-xs px-2.5 py-1 border border-red-500/30 text-red-400 hover:bg-red-900/20 rounded-sm transition-all">
                                 Suppr.
                             </button>

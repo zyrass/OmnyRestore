@@ -34,9 +34,7 @@
 
         {{-- Logo --}}
         <a href="{{ route('home') }}" wire:navigate class="relative z-10 flex items-center gap-3">
-            <div class="w-9 h-9 border border-[#C9A84C] flex items-center justify-center">
-                <span class="text-[#C9A84C] text-xs font-bold tracking-widest">OR</span>
-            </div>
+            <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-12 h-12 object-contain">
             <span class="text-[#F5F0E8] font-semibold tracking-[0.15em] text-sm uppercase">OmnyRestore</span>
         </a>
 
@@ -90,12 +88,9 @@
         {{-- Subtle glow --}}
         <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-[#C9A84C]/4 rounded-full blur-[100px] pointer-events-none"></div>
 
-        {{-- Logo mobile (petit écran uniquement) --}}
         <div class="lg:hidden mb-8 relative z-10">
             <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 justify-center">
-                <div class="w-8 h-8 border border-[#C9A84C] flex items-center justify-center">
-                    <span class="text-[#C9A84C] text-xs font-bold tracking-widest">OR</span>
-                </div>
+                <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-10 h-10 object-contain">
                 <span class="text-[#F5F0E8] font-semibold tracking-[0.15em] text-sm uppercase">OmnyRestore</span>
             </a>
         </div>
@@ -112,9 +107,7 @@
             <div class="h-px bg-gradient-to-r from-transparent via-[#C9A84C]/20 to-transparent mb-5"></div>
             <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
                 <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2 group">
-                    <div class="w-5 h-5 border border-[#C9A84C] flex items-center justify-center group-hover:bg-[#C9A84C]/10 transition-colors">
-                        <span class="text-[#C9A84C] text-[8px] font-bold tracking-widest">OR</span>
-                    </div>
+                    <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-5 h-5 object-contain group-hover:scale-110 transition-transform">
                     <span class="text-[#F5F0E8] font-semibold tracking-[0.12em] text-xs uppercase">OmnyRestore</span>
                 </a>
                 <div class="flex flex-wrap justify-center gap-4 text-[#7A6E5E] text-xs">

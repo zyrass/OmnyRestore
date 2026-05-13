@@ -45,7 +45,7 @@ class extends Component
 
     public function mount(Order $order): void
     {
-        $this->order      = $order->load(['user', 'media', 'delivery', 'auditLogs', 'testimonial']);
+        $this->order      = $order->load(['user' => fn($u) => $u->withTrashed(), 'media', 'delivery', 'auditLogs', 'testimonial']);
         // IMPORTANT : on utilise !== null car total_price_cents peut valoir 0
         // (coupon 100%) — une comparaison truthy ferait tomber sur base_price_cents.
         $this->finalPrice = $this->order->total_price_cents !== null
@@ -333,6 +333,11 @@ class extends Component
             return;
         }
 
+        if (!$this->order->user || $this->order->user->anonymized_at) {
+            session()->flash('error', "Impossible d'envoyer un email : l'utilisateur a supprimé son compte.");
+            return;
+        }
+
         \Illuminate\Support\Facades\Mail::to($this->order->user->email)
             ->queue(new \App\Mail\OrderReadyForPayment($this->order));
 
@@ -352,6 +357,11 @@ class extends Component
         if (session()->has($sessionKey) && now()->diffInSeconds(session($sessionKey)) < 300) {
             $remaining = 300 - now()->diffInSeconds(session($sessionKey));
             session()->flash('error', "Patientez encore {$remaining} secondes avant de renvoyer.");
+            return;
+        }
+
+        if (!$this->order->user || $this->order->user->anonymized_at) {
+            session()->flash('error', "Impossible d'envoyer un email : l'utilisateur a supprimé son compte.");
             return;
         }
 
@@ -442,7 +452,7 @@ class extends Component
                 </span>
             </div>
             <p class="text-[#7A6E5E] text-sm mt-1">
-                {{ $order->user->name }} · {{ $order->user->email }} · {{ $order->created_at->format('d/m/Y H:i') }}
+                {{ $order->user?->name ?? 'Utilisateur supprimé' }} · {{ $order->user?->email ?? '—' }} · {{ $order->created_at->format('d/m/Y H:i') }}
             </p>
         </div>
     </div>
@@ -737,43 +747,7 @@ class extends Component
                     <p class="text-[#7A6E5E] text-xs">Le client sélectionne les photos à conserver depuis son espace client (statut DONE, avant paiement).</p>
                 </div>
                 {{-- Grille avec Alpine pour le modal de confirmation --}}
-                <div x-data="{ deleteOpen: false, pendingId: null }">
-
-                    {{-- ── Modal suppression dark/gold ── --}}
-                    <template x-teleport="body">
-                        <div x-show="deleteOpen" x-cloak
-                             class="fixed inset-0 z-[999] flex items-center justify-center"
-                             x-transition:enter="transition ease-out duration-150"
-                             x-transition:enter-start="opacity-0 scale-95"
-                             x-transition:enter-end="opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-100"
-                             x-transition:leave-start="opacity-100"
-                             x-transition:leave-end="opacity-0">
-                            <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" @click="deleteOpen = false"></div>
-                            <div class="relative z-10 w-full max-w-sm mx-4 bg-[#120F0A] border border-[#C9A84C]/25 rounded-sm shadow-2xl p-6 text-center">
-                                <div class="h-0.5 bg-gradient-to-r from-[#C9A84C] to-red-500 -mx-6 -mt-6 mb-5 rounded-t-sm"></div>
-                                <div class="w-12 h-12 border-2 border-red-600/50 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-900/30">
-                                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                </div>
-                                <h3 class="text-[#F5F0E8] font-bold mb-1">Supprimer cette photo ?</h3>
-                                <p class="text-[#7A6E5E]/70 text-xs uppercase tracking-widest mb-3">Action irréversible</p>
-                                <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed">
-                                    Cette photo restaurée sera <strong class="text-red-400">définitivement supprimée</strong> et ne pourra pas être récupérée.
-                                </p>
-                                <div class="flex gap-3 justify-center">
-                                    <button @click="deleteOpen = false"
-                                            class="px-5 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all">
-                                        Annuler
-                                    </button>
-                                    <button @click="deleteOpen = false; $wire.deleteRetouchedPhoto(pendingId)"
-                                            class="px-5 py-2 text-sm bg-red-900 border border-red-600/50 text-red-200 rounded-sm hover:bg-red-800 transition-colors font-bold">
-                                        🗑️ Supprimer
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-
+                <div>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         @foreach ($retouched as $media)
                         @php $isRejected = $media->getCustomProperty('is_rejected', false); @endphp
@@ -799,11 +773,16 @@ class extends Component
                             {{-- Bouton suppression (visible au survol, statuts avant DONE uniquement) --}}
                             @if (! in_array($order->status, ['DONE', 'PAID', 'DELIVERED']))
                             <button x-show="h"
-                                    @click.stop="pendingId = {{ $media->id }}; deleteOpen = true"
-                                    title="Supprimer cette photo"
-                                    class="absolute top-2 right-2 z-20 w-7 h-7 flex items-center justify-center rounded-full text-xs bg-red-900/90 border border-red-600/60 text-red-300 hover:bg-red-800 shadow-lg transition-colors">
-                                🗑
-                            </button>
+                                     @click.stop="const wire = $wire; omnyConfirm({
+                                         title: 'Supprimer Photo',
+                                         message: 'Voulez-vous supprimer définitivement cette photo restaurée ? Cette action est irréversible.',
+                                         confirmLabel: '🗑️ Supprimer',
+                                         danger: true
+                                     }).then(() => wire.deleteRetouchedPhoto({{ $media->id }}))"
+                                     title="Supprimer cette photo"
+                                     class="absolute top-2 right-2 z-20 w-7 h-7 flex items-center justify-center rounded-full text-xs bg-red-900/90 border border-red-600/60 text-red-300 hover:bg-red-800 shadow-lg transition-colors">
+                                 🗑
+                             </button>
                             @endif
                             @endif
                         </div>

@@ -231,6 +231,9 @@ class extends Component
 
         $media->delete();
 
+        // Mise à jour du compteur total de la commande
+        $this->order->decrement('photo_count');
+
         $this->recalcPriceFromActivePhotos();
         session()->flash('success', 'Photo supprimée définitivement de votre commande.');
         $this->order->refresh()->load(['media', 'delivery']);
@@ -403,7 +406,26 @@ class extends Component
     @endif
 
 
+    @php
+        $retouched      = $order->getMedia('retouched');
+        $activePhotos   = $retouched->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
+        $rejectedPhotos = $retouched->filter(fn($m) => $m->getCustomProperty('is_rejected', false));
+        
+        // TTC exact : somme des prix TTC individuels par photo active
+        $pricesTtc = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
+        $payTtc    = $activePhotos->sum(function ($m) use ($pricesTtc, $order) {
+            $level = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
+            return $pricesTtc[$level] ?? $pricesTtc['light'];
+        });
+
+        // HT net : on se base sur la valeur stockée en base qui est mise à jour par recalcPriceFromActivePhotos()
+        $payHt = $order->total_price_cents !== null ? $order->total_price_cents : ($order->base_price_cents ?? 0);
+        $discountC = $order->discount_cents ?? 0;
+        $baseHtC   = $order->base_price_cents ?? 0;
+    @endphp
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
 
         {{-- ── Contenu principal ── --}}
         <div class="lg:col-span-2 space-y-6">
@@ -451,10 +473,7 @@ class extends Component
                 </div>
                 <h3 class="text-[#F5F0E8] text-lg font-semibold mb-2">Vos photos sont prêtes !</h3>
                 <p class="text-[#7A6E5E] text-sm max-w-sm mx-auto leading-relaxed mb-2">
-                    Un email vous a été envoyé à <span class="text-[#C9A84C]">{{ $order->user->email }}</span>
-                    avec un lien pour accéder à vos photos restaurées.
-                </p>
-                <p class="text-[#7A6E5E] text-xs max-w-sm mx-auto mb-8">
+                             <p class="text-[#7A6E5E] text-xs max-w-sm mx-auto mb-8">
                     Cliquez sur le bouton dans l'email pour déverrouiller l'aperçu.
                     Si vous ne le trouvez pas, vérifiez vos spams.
                 </p>
@@ -467,20 +486,6 @@ class extends Component
                 </button>
             </div>
             @else
-            @php
-                $retouched      = $order->getMedia('retouched');
-                $activePhotos   = $retouched->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
-                $rejectedPhotos = $retouched->filter(fn($m) => $m->getCustomProperty('is_rejected', false));
-                // TTC exact : somme des prix TTC individuels par photo active
-                $pricesTtc      = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
-                $pricesHt       = \App\Services\PhotoDamageAnalyzer::PRICES;
-                $payTtc         = $activePhotos->sum(function ($m) use ($pricesTtc, $order) {
-                    $level = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
-                    return $pricesTtc[$level] ?? $pricesTtc['light'];
-                });
-                $payHt          = $order->total_price_cents !== null ? $order->total_price_cents : ($order->base_price_cents ?? 0);
-            @endphp
-
             <div class="flex items-start gap-3 px-4 py-3 bg-[#C9A84C]/8 border border-[#C9A84C]/25 rounded-sm mb-4">
                 <svg class="w-4 h-4 text-[#C9A84C] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <div>
@@ -510,65 +515,65 @@ class extends Component
                      @omr-delete.window="pendingId = $event.detail.id; deleteOpen = true">
 
                     {{-- ── Modal : Retirer (réversible) ── --}}
-                    <template x-teleport="body">
-                        <div x-show="confirmOpen" x-cloak
-                             class="fixed inset-0 z-[999] flex items-center justify-center"
-                             x-transition:enter="transition ease-out duration-150"
-                             x-transition:enter-start="opacity-0 scale-95"
-                             x-transition:enter-end="opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-100"
-                             x-transition:leave-start="opacity-100"
-                             x-transition:leave-end="opacity-0">
-                            <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="confirmOpen = false"></div>
-                            <div class="relative z-10 w-full max-w-sm mx-4 bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm shadow-2xl p-6 text-center">
-                                <div class="w-12 h-12 border border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-900/20">
-                                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                </div>
-                                <h3 class="text-[#F5F0E8] font-semibold mb-2">Retirer cette photo ?</h3>
-                                <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed">Elle sera exclue de votre commande et ne sera pas facturée. Vous pouvez la réintégrer à tout moment avant de payer.</p>
-                                <div class="flex gap-3 justify-center">
-                                    <button @click="confirmOpen = false"
-                                            class="px-5 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all">
-                                        Annuler
-                                    </button>
-                                    <button @click="confirmOpen = false; $wire.rejectPhoto(pendingId)"
-                                            class="px-5 py-2 text-sm bg-red-700 text-white rounded-sm hover:bg-red-600 transition-colors font-semibold">
-                                        Retirer
-                                    </button>
-                                </div>
+                    <div x-show="confirmOpen" 
+                         class="fixed inset-0 z-[9999] flex items-center justify-center"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100"
+                         x-transition:leave-end="opacity-0"
+                         x-cloak>
+                        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" @click="confirmOpen = false"></div>
+                        <div class="relative z-10 w-full max-w-sm mx-4 bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm shadow-2xl p-6 text-center">
+                            <div class="w-12 h-12 border border-red-500/30 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-900/20">
+                                <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </div>
+                            <h3 class="text-[#F5F0E8] font-semibold mb-2">Retirer cette photo ?</h3>
+                            <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed">Elle sera exclue de votre commande et ne sera pas facturée. Vous pouvez la réintégrer à tout moment avant de payer.</p>
+                            <div class="flex gap-3 justify-center">
+                                <button @click="confirmOpen = false"
+                                        class="px-5 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all">
+                                    Annuler
+                                </button>
+                                <button @click="confirmOpen = false; $wire.rejectPhoto(pendingId)"
+                                        class="px-5 py-2 text-sm bg-red-700 text-white rounded-sm hover:bg-red-600 transition-colors font-semibold">
+                                    Retirer
+                                </button>
                             </div>
                         </div>
+                    </div>
 
-                        {{-- ── Modal : Suppression définitive ── --}}
-                        <div x-show="deleteOpen" x-cloak
-                             class="fixed inset-0 z-[999] flex items-center justify-center"
-                             x-transition:enter="transition ease-out duration-150"
-                             x-transition:enter-start="opacity-0 scale-95"
-                             x-transition:enter-end="opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-100"
-                             x-transition:leave-start="opacity-100"
-                             x-transition:leave-end="opacity-0">
-                            <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" @click="deleteOpen = false"></div>
-                            <div class="relative z-10 w-full max-w-sm mx-4 bg-[#120F0A] border border-red-700/40 rounded-sm shadow-2xl p-6 text-center">
-                                <div class="w-12 h-12 border-2 border-red-600/50 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-900/30">
-                                    <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                </div>
-                                <h3 class="text-red-300 font-bold mb-1">Suppression définitive</h3>
-                                <p class="text-[#7A6E5E] text-xs mb-1 uppercase tracking-widest">Action irréversible</p>
-                                <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed mt-3">Cette photo sera <strong class="text-red-400">supprimée définitivement</strong> et ne pourra pas être récupérée.</p>
-                                <div class="flex gap-3 justify-center">
-                                    <button @click="deleteOpen = false"
-                                            class="px-5 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all">
-                                        Annuler
-                                    </button>
-                                    <button @click="deleteOpen = false; $wire.deletePhoto(pendingId)"
-                                            class="px-5 py-2 text-sm bg-red-900 border border-red-600/50 text-red-200 rounded-sm hover:bg-red-800 transition-colors font-bold">
-                                        🗑️ Supprimer définitivement
-                                    </button>
-                                </div>
+                    {{-- ── Modal : Suppression définitive ── --}}
+                    <div x-show="deleteOpen" 
+                         class="fixed inset-0 z-[9999] flex items-center justify-center"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100"
+                         x-transition:leave-end="opacity-0"
+                         x-cloak>
+                        <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" @click="deleteOpen = false"></div>
+                        <div class="relative z-10 w-full max-w-sm mx-4 bg-[#120F0A] border border-red-700/40 rounded-sm shadow-2xl p-6 text-center">
+                            <div class="w-12 h-12 border-2 border-red-600/50 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-900/30">
+                                <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            </div>
+                            <h3 class="text-red-300 font-bold mb-1">Suppression définitive</h3>
+                            <p class="text-[#7A6E5E] text-xs mb-1 uppercase tracking-widest">Action irréversible</p>
+                            <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed mt-3">Cette photo sera <strong class="text-red-400">supprimée définitivement</strong> et ne pourra pas être récupérée.</p>
+                            <div class="flex gap-3 justify-center">
+                                <button @click="deleteOpen = false"
+                                        class="px-5 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all">
+                                    Annuler
+                                </button>
+                                <button @click="deleteOpen = false; $wire.deletePhoto(pendingId)"
+                                        class="px-5 py-2 text-sm bg-red-900 border border-red-600/50 text-red-200 rounded-sm hover:bg-red-800 transition-colors font-bold">
+                                    🗑️ Supprimer définitivement
+                                </button>
                             </div>
                         </div>
-                    </template>
+                    </div>
 
                     {{-- ── Grille photos ── --}}
                     <div class="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -618,29 +623,23 @@ class extends Component
 
                             {{-- ── Overlay photo retirée ── --}}
                             @if ($isRejected)
-                            <div class="absolute inset-0 bg-red-950/60 flex items-center justify-center pointer-events-none">
-                                <span class="text-red-200 text-xs font-bold uppercase tracking-widest bg-red-900/80 px-3 py-1 rounded">Retirée</span>
+                            <div class="absolute inset-0 bg-red-950/80 flex flex-col items-center justify-center p-4">
+                                <span class="text-red-200 text-[10px] font-bold uppercase tracking-widest mb-3">Photo retirée</span>
+                                <div class="flex gap-2">
+                                    {{-- Bouton Restaurer --}}
+                                    <button wire:click="restorePhoto({{ $media->id }})"
+                                            title="Réintégrer cette photo"
+                                            class="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg hover:bg-emerald-500 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
+                                    </button>
+                                    {{-- Bouton Supprimer --}}
+                                    <button @click="$dispatch('omr-delete', { id: {{ $media->id }} })"
+                                            title="Supprimer définitivement"
+                                            class="w-10 h-10 flex items-center justify-center rounded-full bg-red-900 border border-red-600/50 text-red-200 shadow-lg hover:bg-red-800 transition-colors">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
                             </div>
-                            {{-- Bouton ↩ Réintégrer (haut-droit) --}}
-                            <button x-show="h"
-                                    x-transition:enter="transition ease-out duration-100"
-                                    x-transition:enter-start="opacity-0 scale-75"
-                                    x-transition:enter-end="opacity-100 scale-100"
-                                    wire:click="restorePhoto({{ $media->id }})"
-                                    title="Réintégrer cette photo"
-                                    class="absolute top-2 right-2 z-20 w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold bg-emerald-600 text-white shadow-lg hover:bg-emerald-500">
-                                ↩
-                            </button>
-                            {{-- Bouton 🗑️ Supprimer (haut-gauche) --}}
-                            <button x-show="h"
-                                    x-transition:enter="transition ease-out duration-100"
-                                    x-transition:enter-start="opacity-0 scale-75"
-                                    x-transition:enter-end="opacity-100 scale-100"
-                                    @click="$dispatch('omr-delete', { id: {{ $media->id }} })"
-                                    title="Supprimer définitivement"
-                                    class="absolute top-2 left-2 z-20 w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold bg-red-900 text-red-300 border border-red-600/50 shadow-lg hover:bg-red-800">
-                                🗑
-                            </button>
                             @else
                             {{-- Bouton ✕ Retirer (haut-droit) --}}
                             <button x-show="h"
@@ -922,7 +921,7 @@ class extends Component
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-[#7A6E5E]">Photos</dt>
-                        <dd class="text-[#F5F0E8]">{{ $order->photo_count }}</dd>
+                        <dd class="text-[#F5F0E8]">{{ $activePhotos->count() }} / {{ $order->photo_count }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-[#7A6E5E]">Type</dt>
@@ -939,25 +938,12 @@ class extends Component
                         </dd>
                     </div>
                     @php
-                        $baseHtC     = $order->base_price_cents ?? 0;
-                        $discountC   = $order->discount_cents ?? 0;
-                        $finalHtC    = $order->total_price_cents !== null
-                            ? $order->total_price_cents
-                            : max(0, $baseHtC - $discountC);
-                        // TTC exact : sommer les PRICES_TTC des photos originales
-                        // (même logique que create.blade.php — évite perte d'arrondi)
-                        $_pttc = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
-                        $_originals = $order->getMedia('originals');
-                        $baseTtcC = $_originals->sum(function ($m) use ($_pttc, $order) {
-                            $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
-                            return $_pttc[$lv] ?? $_pttc['light'];
-                        });
-                        // Si pas de photos analysées, fallback sur HT * 1.20
-                        if ($baseTtcC === 0) {
-                            $baseTtcC = $baseHtC + (int) round($baseHtC * 0.2);
-                        }
-                        $tvaC  = $baseTtcC - $baseHtC;    // TVA exacte = somme TVA individuelles
-                        $ttcC  = max(0, $baseTtcC - $discountC);
+                        // On utilise les variables dynamiques recalculées dans le composant (Volt)
+                        // $payTtc est le montant final TTC après retrait des photos et remise.
+                        // $payHt  est le montant final HT correspondant.
+                        $ttcC = $payTtc;
+                        $htC  = $payHt;
+                        $tvaC = max(0, $ttcC - $htC);
                     @endphp
                     @if ($baseHtC > 0)
                     <div class="pt-2 border-t border-[#C9A84C]/10 space-y-1.5">
@@ -976,7 +962,7 @@ class extends Component
                         {{-- HT net --}}
                         <div class="flex justify-between text-xs">
                             <dt class="text-[#7A6E5E]">HT{{ $discountC > 0 ? ' net' : '' }}</dt>
-                            <dd class="text-[#F5F0E8]">{{ number_format($finalHtC / 100, 2, ',', ' ') }} €</dd>
+                            <dd class="text-[#F5F0E8]">{{ number_format($htC / 100, 2, ',', ' ') }} €</dd>
                         </div>
                         {{-- TVA --}}
                         <div class="flex justify-between text-xs">

@@ -6,9 +6,72 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
-## [Unreleased]
+## [0.19.0] — 2026-05-13 — UI Password Toggle, AI Pricing Sensitivity & PDF Branding
 
-> Prochaines étapes : dashboard admin (URSSAF, coûts IA), export CSV des commandes, notifications push, page portfolio publique avant/après.
+### ✨ Nouvelles fonctionnalités
+
+- **UI : Basculement de Visibilité Mot de Passe** :
+  - Ajout d'une icône "œil" (show/hide) sur tous les champs sensibles : Connexion, Inscription, Confirmation de mot de passe, Réinitialisation et Mise à jour du profil.
+  - Traduction intégrale en français des libellés dans l'espace profil pour une cohérence parfaite.
+- **IA & Tarification (PhotoDamageAnalyzer)** :
+  - Optimisation du prompt GPT-4o : critères plus stricts pour le niveau "Heavy" (3,00 € TTC), incluant la reconstruction de visages et les zones manquantes.
+  - Règle de "Tie-breaker" : instruction à l'IA de privilégier systématiquement le tarif supérieur en cas d'hésitation entre deux niveaux de dommages.
+
+### 🎨 Design & Reporting
+
+- **Branding PDF** :
+  - Intégration du logo OmnyRestore (Base64) dans le **Rapport Financier Administrateur** et le **Rapport d'Incident (PRI)**.
+- **Dashboard Admin** :
+  - Synchronisation des compteurs (KPIs) et des listes actives avec la politique de filtrage des utilisateurs supprimés.
+  - Les commandes des comptes anonymisés sont désormais masquées par défaut dans les flux de travail pour éviter toute confusion opérationnelle.
+
+### 🛠️ Maintenance & Robustesse
+
+- **Sécurisation `omnyConfirm`** : Généralisation de la capture de référence `const wire = $wire` dans tous les modales AlpineJS pour garantir la persistance des appels Livewire lors de navigations asynchrones (`wire:navigate`).
+
+---
+
+## [0.18.0] — 2026-05-13 — RGPD Hardening & Admin Robustness
+
+### ✨ Nouvelles fonctionnalités
+
+- **Libre-service RGPD (Droit à l'effacement)** :
+  - Ajout d'un accès rapide "Supprimer mes données (RGPD)" dans le footer de l'espace client.
+  - Flux sécurisé : vérification mot de passe, case à cocher obligatoire et **popups OmnyStyle**.
+  - Alertes contextuelles : popup "Action requise" et popup finale "Suppression Définitive".
+- **Anonymisation Radicale (Zéro PII)** :
+  - **Identité** : Nom → "Utilisateur supprimé", Email → hash court `@data.deleted`.
+  - **Purge de Contenu** : Suppression irréversible des **photos**, des **instructions de commande** et des **témoignages/avis**.
+  - **Support** : Suppression automatique des tickets et des messages.
+  - **Infrastructure** : Anonymisation des logs d'audit (IP `0.0.0.0`, User Agent et payloads purgés).
+  - **Business** : Conservation anonymisée des totaux de commandes (10 ans).
+
+### 🛠️ Maintenance & Robustesse
+
+- **Robustesse Admin** : Fix `Attempt to read property "name" on null` + utilisation de `withTrashed()` + blocage emails anonymisés.
+- **Qualité & Tests** : Validation de la purge complète via `ProfileTest` (64/64 PASS).
+
+---
+
+## [0.17.0] — 2026-05-13 — Identité Visuelle & Cellule de Crise (PRI)
+
+### ✨ Nouvelles fonctionnalités
+
+- **Identité Visuelle Officielle** :
+  - Intégration du nouveau logo graphique "OmnyRestore" (Variantes Or/Blanc/Noir).
+  - Logo déployé sur la Landing Page, le Header Admin, les pages d'Authentification et les Factures PDF.
+- **Cellule de Crise (PRI)** :
+  - Nouveau poste de commandement sécurisé pour la gestion d'incidents majeurs.
+  - Déclencheur de crise avec confirmation et chronomètre légal de 72h (CNIL).
+  - Annuaire d'urgence (ANSSI, CNIL, OVHcloud) avec logos officiels.
+  - Centre de communication avec modèles de mails (RGPD, Maintenance, Rapport Technique).
+  - Preuves de sécurité (RBAC, Chiffrement AES-256) pour audit.
+  - **Export PDF Officiel** : Génération d'un rapport de crise structuré pour les autorités.
+
+### 🎨 Design & UI
+
+- **Facturation Premium** : Logo agrandi (180px) sur les factures PDF, encodé en Base64 pour une fiabilité totale du rendu DomPDF.
+- **Navigation Admin** : Nouveau bouton "🚨 CRISE" bordeaux harmonisé avec le thème.
 
 ---
 

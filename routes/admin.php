@@ -60,6 +60,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Volt::route('/revenue', 'pages.admin.revenue.index')
         ->name('revenue');
 
+    Route::get('/revenue/export',
+        \App\Http\Controllers\Admin\AdminRevenueExportController::class . '@download'
+    )->name('revenue.export');
+
     // ─── Témoignages (modération) ─────────────────────────────────────────
     // GET /admin/testimonials — Modération (publier / rejeter / supprimer)
     Volt::route('/testimonials', 'pages.admin.testimonials.index')
@@ -71,5 +75,14 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Route::get('/orders/{order}/photos/{media}',
         [\App\Http\Controllers\Admin\AdminSecurePhotoController::class, 'show']
     )->name('orders.photo.show');
+
+    // ─── Cellule de Crise (PRI) ──────────────────────────────────────────
+    // Poste de commandement en cas d'incident majeur ou RGPD
+    Volt::route('/incident-response', 'pages.admin.incident.index')
+        ->name('incident.response');
+
+    Route::get('/incident-response/export',
+        \App\Http\Controllers\Admin\IncidentReportController::class . '@download'
+    )->name('incident.export');
 
 });

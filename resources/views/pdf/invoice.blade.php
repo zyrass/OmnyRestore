@@ -50,7 +50,7 @@ body {
 .header-bg {
     border-top: 6px solid #C9A84C;
     background-color: #FDFAF4;
-    padding: 40px 60px 34px;
+    padding: 60px 60px 60px;
     border-bottom: 1px solid #E8E2D4;
 }
 .clearfix::after { content: ''; display: table; clear: both; }
@@ -286,6 +286,7 @@ table.totals tr.free-row td {
     $year       = $order->paid_at?->format('Y') ?? now()->format('Y');
     $seq        = str_pad(substr($order->reference, -4), 4, '0', STR_PAD_LEFT);
     $invoiceNum = "FAC-{$year}-{$seq}";
+    $tvaRate    = (float) ($order->tva_rate ?? 20);
 @endphp
 
 
@@ -298,13 +299,21 @@ table.totals tr.free-row td {
     G&eacute;n&eacute;r&eacute;e le {{ now()->format('d/m/Y') }} &mdash; Document officiel de r&egrave;glement &mdash; &copy; {{ date('Y') }} OmnyRestore
 </div>
 
-{{-- ══════════════════════════════════════════════════
-     HEADER — blanc / crème, bordure dorée en haut
-     ══════════════════════════════════════════════════ --}}
+@php
+    $logoPath = public_path('images/logo-text-light.png');
+    $logoData = "";
+    if (file_exists($logoPath)) {
+        $logoData = base64_encode(file_get_contents($logoPath));
+    }
+@endphp
+
 <div class="header-bg clearfix">
     <div class="header-logo">
-        <div class="brand">OMNY<span class="brand-accent">RESTORE</span></div>
-        <div class="brand-sub">Restauration photographique par IA</div>
+        @if($logoData)
+            <img src="data:image/png;base64,{{ $logoData }}" style="height: 180px;">
+        @else
+            <div class="brand">OMNY<span class="brand-accent">RESTORE</span></div>
+        @endif
     </div>
     <div class="header-right">
         <div class="inv-label">Facture</div>

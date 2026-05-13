@@ -23,9 +23,7 @@
     <nav class="max-w-6xl mx-auto px-6 flex items-center justify-between">
         {{-- Logo --}}
         <a href="/" class="flex items-center gap-3">
-            <div class="w-8 h-8 border border-[#C9A84C] flex items-center justify-center">
-                <span class="text-[#C9A84C] text-xs font-bold tracking-widest">OR</span>
-            </div>
+            <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-8 h-8 object-contain">
             <span class="font-semibold tracking-[0.15em] text-sm uppercase text-[#F5F0E8]">OmnyRestore</span>
         </a>
 
@@ -476,9 +474,7 @@
                 {{-- Colonne 1 : Marque --}}
                 <div class="md:col-span-1 space-y-4">
                     <a href="{{ route('home') }}" class="flex items-center gap-3 group">
-                        <div class="w-8 h-8 border border-[#C9A84C] flex items-center justify-center group-hover:bg-[#C9A84C]/10 transition-colors">
-                            <span class="text-[#C9A84C] text-[9px] font-bold tracking-widest">OR</span>
-                        </div>
+                        <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-10 h-10 object-contain group-hover:scale-110 transition-transform">
                         <span class="text-[#F5F0E8] font-semibold tracking-[0.12em] text-sm uppercase">OmnyRestore</span>
                     </a>
                     <p class="text-[#7A6E5E] text-xs leading-relaxed">

@@ -21,16 +21,19 @@
 
     html { scroll-behavior: smooth; }
 
+    html, body {
+        height: 100%;
+    }
+
     body {
         @apply bg-[#0D0B08] text-[#F5F0E8] antialiased;
         font-family: 'Inter', system-ui, sans-serif;
         display: flex;
         flex-direction: column;
-        min-height: 100vh;
     }
 
     main {
-        flex: 1 1 auto;
+        flex: 1 0 auto;
     }
 
     h1, h2, h3 { font-family: 'Playfair Display', serif; }

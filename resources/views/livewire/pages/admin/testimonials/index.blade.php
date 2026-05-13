@@ -161,7 +161,12 @@ class extends Component
                                hover:bg-emerald-500/20 hover:border-emerald-400 rounded-sm transition-all">
                     ✓ Publier
                 </button>
-                <button wire:click="reject({{ $t->id }})"
+                <button @click="const wire = $wire; omnyConfirm({
+                            title: 'Rejeter cet avis',
+                            message: 'Le témoignage sera masqué de la vitrine et déplacé dans l\'onglet des rejets.',
+                            confirmLabel: '✕ Rejeter',
+                            danger: true
+                        }).then(() => wire.reject({{ $t->id }}))"
                         class="px-4 py-2 text-xs border border-red-500/30 text-red-400/70
                                hover:bg-red-500/10 hover:border-red-400 hover:text-red-400 rounded-sm transition-all">
                     ✕ Rejeter
@@ -180,8 +185,12 @@ class extends Component
                                hover:bg-emerald-500/20 rounded-sm transition-all">
                     ✓ Publier quand même
                 </button>
-                <button wire:click="destroy({{ $t->id }})"
-                        wire:confirm="Supprimer définitivement cet avis ?"
+                <button @click="const wire = $wire; omnyConfirm({
+                            title: 'Suppression Définitive',
+                            message: 'Voulez-vous vraiment supprimer définitivement cet avis ? Cette action est irréversible.',
+                            confirmLabel: '🗑 Supprimer',
+                            danger: true
+                        }).then(() => wire.destroy({{ $t->id }}))"
                         class="px-4 py-2 text-xs border border-red-500/30 text-red-400/70
                                hover:bg-red-500/10 hover:text-red-400 rounded-sm transition-all">
                     🗑 Supprimer

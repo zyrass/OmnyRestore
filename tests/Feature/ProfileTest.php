@@ -91,20 +91,54 @@ class ProfileTest extends TestCase
         $this->assertNotNull($deletedUser->deleted_at);
     }
 
-    public function test_correct_password_must_be_provided_to_delete_account(): void
+    public function test_user_can_delete_their_account_with_full_anonymization(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+        ]);
+
+        // Créer une commande avec instructions
+        $order = \App\Models\Order::factory()->create([
+            'user_id' => $user->id,
+            'instructions' => 'Veuillez garder le grain de peau naturel.',
+        ]);
+
+        // Créer un témoignage
+        \App\Models\Testimonial::create([
+            'user_id' => $user->id,
+            'author_name' => 'John Doe',
+            'author_initials' => 'JD',
+            'rating' => 5,
+            'content' => 'Super service, je recommande !',
+            'is_published' => true,
+        ]);
 
         $this->actingAs($user);
 
-        $component = Volt::test('profile.delete-user-form')
-            ->set('password', 'wrong-password')
-            ->call('deleteUser');
+        // On simule l'appel au composant de suppression complète
+        $component = Volt::test('pages.client.account.delete')
+            ->set('password', 'password')
+            ->set('confirmed', true)
+            ->call('deleteAccount');
 
-        $component
-            ->assertHasErrors('password')
-            ->assertNoRedirect();
+        $component->assertRedirect('/');
+        $this->assertGuest();
 
-        $this->assertNotNull($user->fresh());
+        $user->refresh();
+
+        // Vérifications de l'anonymisation du profil
+        $this->assertTrue($user->trashed());
+        $this->assertNotNull($user->anonymized_at);
+        $this->assertSame('Utilisateur supprimé', $user->name);
+        $this->assertStringContainsString('@data.deleted', $user->email);
+
+        // Vérifier que les instructions de commande sont effacées
+        $this->assertNull($order->fresh()->instructions);
+
+        // Vérifier que les témoignages sont supprimés (purge RGPD)
+        $this->assertDatabaseMissing('testimonials', [
+            'user_id' => $user->id,
+        ]);
     }
 }

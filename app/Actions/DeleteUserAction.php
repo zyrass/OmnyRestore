@@ -53,19 +53,28 @@ class DeleteUserAction
 
         Order::whereIn('id', $orderIds)->each(function (Order $order) {
             try {
+                // Effacer les instructions (PII potentielles)
+                $order->update(['instructions' => null]);
+
                 $order->clearMediaCollection('originals');
                 $order->clearMediaCollection('retouched');
                 $order->clearMediaCollection('watermarked');
             } catch (\Throwable $e) {
-                Log::warning("DeleteUserAction: échec suppression média pour order={$order->id}", [
+                Log::warning("DeleteUserAction: échec suppression média/instructions pour order={$order->id}", [
                     'error' => $e->getMessage(),
                 ]);
             }
         });
 
-        Log::info("DeleteUserAction: médias supprimés pour {$orderIds->count()} commande(s)");
+        Log::info("DeleteUserAction: médias et instructions supprimés pour {$orderIds->count()} commande(s)");
 
-        // ── 2. Supprimer les tickets de support ────────────────────────────
+        // ── 2. Supprimer les avis (Témoignages) ─────────────────────────────
+        if (method_exists($user, 'testimonials')) {
+            $user->testimonials()->delete();
+            Log::info("DeleteUserAction: témoignages supprimés");
+        }
+
+        // ── 3. Supprimer les tickets de support ────────────────────────────
         // (Aucune obligation légale de conserver les messages de support)
         if (method_exists($user, 'supportTickets')) {
             $user->supportTickets->each(function ($ticket) {
@@ -76,7 +85,17 @@ class DeleteUserAction
             });
         }
 
-        // ── 3. Anonymiser les données identifiantes ────────────────────────
+        // ── 3. Anonymiser les logs d'audit ─────────────────────────────────
+        // IP et User Agent sont des PII. On les masque pour l'audit trail.
+        if (method_exists($user, 'auditLogs')) {
+            $user->auditLogs()->update([
+                'ip_address' => '0.0.0.0',
+                'user_agent' => 'Anonymized',
+                'payload'    => null, // Le payload peut contenir des données sensibles
+            ]);
+        }
+
+        // ── 4. Anonymiser les données identifiantes ────────────────────────
         // L'email anonymisé utilise un hash court de l'UUID (non-réversible).
         // Le format "deleted_{hash}@data.deleted" garantit :
         //   - Unicité (pas de collision si l'UUID est unique)
@@ -98,7 +117,7 @@ class DeleteUserAction
             // rgpd_consent_at est CONSERVÉ (preuve du consentement — RGPD Art. 7.1)
         ])->save();
 
-        // ── 4. Soft-delete (deleted_at) ─────────────────────────────────────
+        // ── 5. Soft-delete (deleted_at) ─────────────────────────────────────
         // Le soft-delete exclut l'utilisateur de toutes les requêtes normales.
         // L'enregistrement reste en base (nécessaire pour les FK des commandes).
         $user->delete();
