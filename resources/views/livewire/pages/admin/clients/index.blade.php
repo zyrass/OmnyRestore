@@ -72,7 +72,7 @@ class extends Component
                 <tr class="border-b border-[#C9A84C]/10">
                     <th class="px-5 py-3 text-left text-xs text-[#7A6E5E] uppercase tracking-widest">Client</th>
                     <th class="px-4 py-3 text-center text-xs text-[#7A6E5E] uppercase tracking-widest">Commandes</th>
-                    <th class="px-4 py-3 text-right text-xs text-[#7A6E5E] uppercase tracking-widest">CA payé HT</th>
+                    <th class="px-4 py-3 text-right text-xs text-[#7A6E5E] uppercase tracking-widest">CA payé TTC</th>
                     <th class="px-4 py-3 text-right text-xs text-[#7A6E5E] uppercase tracking-widest hidden md:table-cell">Inscription</th>
                     <th class="px-4 py-3 text-right text-xs text-[#7A6E5E] uppercase tracking-widest">Actions</th>
                 </tr>
@@ -98,10 +98,14 @@ class extends Component
                         <span class="text-[#F5F0E8] font-semibold">{{ $client->orders_count }}</span>
                     </td>
 
-                    {{-- CA payé HT --}}
+                    {{-- CA payé TTC (HT × 1,20) --}}
                     <td class="px-4 py-3.5 text-right">
-                        <span class="text-[#C9A84C] font-semibold">
-                            {{ number_format(($client->total_spent_cents ?? 0) / 100, 2, ',', ' ') }} €
+                        @php
+                            $htCents  = $client->total_spent_cents ?? 0;
+                            $ttcCents = $htCents + (int) round($htCents * 0.20);
+                        @endphp
+                        <span class="{{ $ttcCents > 0 ? 'text-[#C9A84C] font-semibold' : 'text-[#7A6E5E]' }}">
+                            {{ number_format($ttcCents / 100, 2, ',', ' ') }} €
                         </span>
                     </td>
 

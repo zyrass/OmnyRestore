@@ -69,11 +69,7 @@ class extends Component
             <h1 class="text-2xl font-bold text-[#F5F0E8]">Commandes</h1>
             <p class="text-[#7A6E5E] text-sm mt-1">{{ $counts['all'] }} commande{{ $counts['all'] > 1 ? 's' : '' }} au total</p>
         </div>
-        <a href="{{ route('admin.dashboard') }}" wire:navigate class="text-[#7A6E5E] hover:text-[#C9A84C] transition-colors text-sm flex items-center gap-1.5">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-            Dashboard
-        </a>
-    </div>
+        </div>
 
     {{-- Filtres --}}
     <div class="card-glass p-4 mb-6 flex flex-col sm:flex-row gap-4">
@@ -120,9 +116,9 @@ class extends Component
         <table class="w-full text-sm">
             <thead>
                 <tr class="border-b border-[#C9A84C]/10">
-                    @foreach(['Référence', 'Client', 'Photos', 'Statut', 'IA', 'Montant', 'Date', ''] as $h)
+                    @foreach(['Référence', 'Client', 'Photos', 'Statut', 'IA', 'Montant TTC', 'Date', ''] as $h)
                     <th class="text-left text-[#7A6E5E] text-xs tracking-widest uppercase px-5 py-4 font-medium
-                               {{ in_array($h, ['IA', 'Montant']) ? 'hidden lg:table-cell' : '' }}
+                               {{ in_array($h, ['IA', 'Montant TTC']) ? 'hidden lg:table-cell' : '' }}
                                {{ $h === '' ? '' : '' }}">{{ $h }}</th>
                     @endforeach
                 </tr>
@@ -160,8 +156,14 @@ class extends Component
                         </span>
                     </td>
                     <td class="px-5 py-3.5 text-[#F5F0E8] hidden lg:table-cell">
-                        @if ($order->total_price_cents ?? $order->base_price_cents)
-                            {{ number_format(($order->total_price_cents ?? $order->base_price_cents) / 100, 2, ',', ' ') }} €
+                        @php
+                            $htCents  = $order->total_price_cents ?? $order->base_price_cents;
+                            $ttcCents = $htCents !== null ? $htCents + (int) round($htCents * 0.20) : null;
+                        @endphp
+                        @if ($ttcCents !== null)
+                            <span class="{{ in_array($order->status, ['PAID','DELIVERED']) ? 'text-emerald-400 font-semibold' : '' }}">
+                                {{ number_format($ttcCents / 100, 2, ',', ' ') }} €
+                            </span>
                         @else
                             <span class="text-[#7A6E5E]">—</span>
                         @endif
