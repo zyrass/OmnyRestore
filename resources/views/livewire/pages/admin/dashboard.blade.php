@@ -71,7 +71,7 @@ class extends Component
     <div class="flex items-center justify-between mb-8">
         <div>
             <h1 class="text-2xl font-bold text-[#F5F0E8]">Panel Admin</h1>
-            <p class="text-[#7A6E5E] text-sm mt-1">{{ now()->format('l d F Y') }}</p>
+            <p class="text-[#7A6E5E] text-sm mt-1">{{ now()->locale('fr')->isoFormat('dddd D MMMM YYYY') }}</p>
         </div>
         <div class="flex items-center gap-4">
             {{-- Indicateur auto-refresh --}}
