@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Admin — Gestion d'une commande
  * Route: GET /admin/orders/{order}
@@ -132,18 +132,31 @@ class extends Component
             $tmpCopies[] = ['path' => $destPath, 'name' => 'restored_' . $safeName];
         }
 
+        // Construire un mapping index → ai_level depuis les photos originales
+        // pour propager le niveau IA sur chaque photo retouchée correspondante.
+        $originalsLevels = $this->order->getMedia('originals')
+            ->values()
+            ->mapWithKeys(fn($m, $i) => [$i => $m->getCustomProperty('ai_level', $this->order->damage_level ?? 'light')])
+            ->toArray();
+
         // Passer les copies stables à Spatie MediaLibrary
         $uploaded = 0;
-        foreach ($tmpCopies as $tmp) {
+        foreach ($tmpCopies as $idx => $tmp) {
+            // Niveau IA de la photo correspondante (même index que l'upload admin)
+            // Fallback : damage_level global de la commande
+            $aiLevel = $originalsLevels[$idx] ?? $this->order->damage_level ?? 'light';
             try {
                 $this->order
-                    ->addMedia($tmp['path'])          // path stable, pas encore supprimé
+                    ->addMedia($tmp['path'])
                     ->usingFileName($tmp['name'])
-                    ->withCustomProperties(['uploaded_by_admin' => true])
-                    ->preservingOriginal()            // ne pas supprimer le fichier source
+                    ->withCustomProperties([
+                        'uploaded_by_admin' => true,
+                        'ai_level'          => $aiLevel,   // ← propagé depuis l'original
+                    ])
+                    ->preservingOriginal()
                     ->toMediaCollection('retouched');
 
-                unlink($tmp['path']); // nettoyage manuel après succès
+                unlink($tmp['path']);
                 $uploaded++;
             } catch (\Throwable $e) {
                 @unlink($tmp['path']);

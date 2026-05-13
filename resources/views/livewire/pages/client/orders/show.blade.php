@@ -451,8 +451,14 @@ class extends Component
                 $retouched      = $order->getMedia('retouched');
                 $activePhotos   = $retouched->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
                 $rejectedPhotos = $retouched->filter(fn($m) => $m->getCustomProperty('is_rejected', false));
+                // TTC exact : somme des prix TTC individuels par photo active
+                $pricesTtc      = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
+                $pricesHt       = \App\Services\PhotoDamageAnalyzer::PRICES;
+                $payTtc         = $activePhotos->sum(function ($m) use ($pricesTtc, $order) {
+                    $level = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
+                    return $pricesTtc[$level] ?? $pricesTtc['light'];
+                });
                 $payHt          = $order->total_price_cents !== null ? $order->total_price_cents : ($order->base_price_cents ?? 0);
-                $payTtc         = $payHt + round($payHt * 0.2);
             @endphp
 
             <div class="flex items-start gap-3 px-4 py-3 bg-[#C9A84C]/8 border border-[#C9A84C]/25 rounded-sm mb-4">
@@ -547,7 +553,21 @@ class extends Component
                     {{-- ── Grille photos ── --}}
                     <div class="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
                         @forelse ($retouched as $media)
-                        @php $isRejected = $media->getCustomProperty('is_rejected', false); @endphp
+                        @php
+                            $isRejected  = $media->getCustomProperty('is_rejected', false);
+                            $photoLevel  = $media->getCustomProperty('ai_level', $order->damage_level ?? 'light');
+                            $photoTtcCts = $pricesTtc[$photoLevel] ?? $pricesTtc['light'];
+                            $photoPriceLabel = match($photoLevel) {
+                                'medium' => '2 €',
+                                'heavy'  => '3 €',
+                                default  => '1 €',
+                            };
+                            $photoBadgeColor = match($photoLevel) {
+                                'medium' => 'text-amber-400 bg-amber-950/60 border-amber-500/30',
+                                'heavy'  => 'text-orange-400 bg-orange-950/60 border-orange-500/30',
+                                default  => 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30',
+                            };
+                        @endphp
 
                         {{-- Carte : hover géré par Alpine (pas de group-hover Tailwind) --}}
                         <div x-data="{ h: false }"
@@ -612,6 +632,14 @@ class extends Component
                                 ✕
                             </button>
                             @endif
+
+                            {{-- Badge prix individuel — en bas de la carte --}}
+                            <div class="absolute bottom-2 left-2 z-10">
+                                <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded border
+                                    {{ $isRejected ? 'text-[#7A6E5E]/60 bg-[#1A1510]/80 border-[#7A6E5E]/20 line-through' : $photoBadgeColor }}">
+                                    {{ $photoPriceLabel }} TTC
+                                </span>
+                            </div>
 
                         </div>
                         @empty
