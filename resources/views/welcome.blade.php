@@ -34,6 +34,7 @@
             <a href="#examples" class="hover:text-[#C9A84C] transition-colors duration-200">Avant / Apr&egrave;s</a>
             <a href="#how" class="hover:text-[#C9A84C] transition-colors duration-200">Comment ça marche</a>
             <a href="#pricing" class="hover:text-[#C9A84C] transition-colors duration-200">Prix par photo</a>
+            <a href="#ia" class="hover:text-[#C9A84C] transition-colors duration-200">Technologie</a>
             <a href="#testimonials" class="hover:text-[#C9A84C] transition-colors duration-200">Témoignages</a>
         </div>
 
@@ -321,7 +322,7 @@
 </section>
 
 {{-- ========== SECTION IA ========== --}}
-<section class="py-32 border-y border-[#C9A84C]/10 bg-[#1A1510]/40">
+<section id="ia" class="py-32 border-y border-[#C9A84C]/10 bg-[#1A1510]/40">
     <div class="max-w-6xl mx-auto px-6">
         <div class="text-center mb-16">
             <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Technologie</p>
