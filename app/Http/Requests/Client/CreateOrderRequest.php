@@ -52,7 +52,7 @@ class CreateOrderRequest extends FormRequest
             'photos.*' => [
                 'required',
                 File::image()
-                    ->mimes(['jpg', 'jpeg', 'png', 'tiff', 'tif'])
+                    ->types(['image/jpeg', 'image/png', 'image/tiff'])
                     ->max(20 * 1024), // 20 Mo par photo
             ],
 
