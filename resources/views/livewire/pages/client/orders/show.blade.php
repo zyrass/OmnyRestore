@@ -767,10 +767,8 @@ class extends Component
                     </a>
                 </div>
             </div>
-            @endif
 
-                {{-- ✦ Laisser un avis — uniquement pour commandes DELIVERED ✦ --}}
-                @if ($order->status === 'DELIVERED')
+                {{-- ✦ Laisser un avis ✦ --}}
                 @php $existingTestimonial = \App\Models\Testimonial::where('order_id', $order->id)->first(); @endphp
                 <div class="mt-6 pt-5 border-t border-[#C9A84C]/10">
                     @if ($existingTestimonial)
@@ -831,10 +829,7 @@ class extends Component
                     </button>
                     @endif
                 </div>
-                @endif {{-- fin @if status = DELIVERED --}}
-
-            </div>
-            @endif
+            @endif {{-- fin @if ($order->status === 'DELIVERED') --}}
 
 
             {{-- === ÉTAT : ANNULÉ === --}}

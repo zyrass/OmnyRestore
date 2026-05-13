@@ -128,12 +128,16 @@ class GenerateOrderZipJob implements ShouldQueue
         ]);
 
         // ── Mettre à jour la commande ──────────────────────────────────────
+        // ⚠️ 'status' est EXCLU de $fillable → update() l'ignorerait silencieusement.
+        // On utilise forceFill() pour les champs protégés, update() pour les autres.
         $order->update([
-            'zip_path'      => "orders/zips/{$zipFilename}",
+            'zip_path'       => "orders/zips/{$zipFilename}",
             'zip_expires_at' => now()->addDays(90),
-            'status'        => 'DELIVERED',
-            'delivered_at'  => now(),
+            'delivered_at'   => now(),
         ]);
+
+        // Transition vers DELIVERED via forceFill (déclenche l'OrderObserver → email)
+        $order->forceFill(['status' => 'DELIVERED'])->save();
 
         Log::info("GenerateOrderZipJob: order {$order->reference} marked DELIVERED");
     }
