@@ -87,30 +87,38 @@ class PaymentSuccessController extends Controller
 
         // ── Idempotence : ne pas re-traiter si déjà PAID ───────────────────
         if ($order->payment_status === 'paid') {
-            Log::info("PaymentSuccessController: commande {$order->reference} déjà payée — redirect sans action");
-            return redirect()->route('client.orders.show', $order)
-                ->with('success', 'Paiement déjà confirmé. Votre archive ZIP est en cours de préparation.');
+            Log::info("PaymentSuccessController: commande {$order->reference} déjà payée — redirect vers page confirmation");
+            return redirect()->route('client.orders.payment-success', $order);
         }
 
         // ── Vérifier que Stripe confirme le paiement ───────────────────────
         if ($session->payment_status !== 'paid') {
             Log::warning("PaymentSuccessController: session {$sessionId} pas encore paid (status: {$session->payment_status})");
             return redirect()->route('client.orders.show', $order)
-                ->with('error', 'Le paiement est en cours de traitement. Rafraîchissez dans quelques secondes.');
+                ->with('error', 'Le paiement est en cours de traitement. Actualisez dans quelques secondes.');
         }
 
         // ── Marquer la commande PAID (fallback webhook) ────────────────────
-        $order->update([
-            'status'             => 'PAID',
-            'payment_status'     => 'paid',
-            'paid_at'            => now(),
-            'payment_intent_id'  => $session->payment_intent ?? $session->id,
-        ]);
+        // ⚠️ status et payment_status sont EXCLUS de $fillable intentionnellement.
+        // markAsPaid() est la seule méthode correcte. Elle appelle guardTransition()
+        // qui lève une exception si le statut n'est plus DONE (ex: webhook déjà passé).
+        try {
+            $paymentIntentId = $session->payment_intent ?? ('cs_' . $session->id);
+            $order->markAsPaid($paymentIntentId); // status=PAID, payment_status=paid, paid_at=now()
 
-        $this->audit->orderStatusChanged($order, 'DONE', 'PAID');
+            $this->audit->orderStatusChanged($order, 'DONE', 'PAID');
 
-        // ── Générer le ZIP (le webhook le dispatche aussi — idempotent) ─────
-        GenerateOrderZipJob::dispatch($order)->onQueue('default');
+            // ── Générer le ZIP (idempotent) ────────────────────────────────
+            GenerateOrderZipJob::dispatch($order)->onQueue('default');
+
+            Log::info("PaymentSuccessController: commande {$order->reference} marquée PAID via redirect Stripe", [
+                'session_id' => $sessionId,
+                'user_id'    => $order->user_id,
+            ]);
+        } catch (\InvalidArgumentException) {
+            // Le webhook a déjà transitionné — pas un problème, on redirige quand même.
+            Log::info("PaymentSuccessController: commande {$order->reference} déjà traitée par le webhook (statut: {$order->status})");
+        }
 
         // L'email OrderPaidConfirmation est envoyé par l'OrderObserver (status→PAID)
 
@@ -119,7 +127,6 @@ class PaymentSuccessController extends Controller
             'user_id'    => $order->user_id,
         ]);
 
-        return redirect()->route('client.orders.show', $order)
-            ->with('success', 'Paiement confirmé ! Votre archive ZIP est en cours de préparation. Vous recevrez un email dès qu\'elle sera prête.');
+        return redirect()->route('client.orders.payment-success', $order);
     }
 }

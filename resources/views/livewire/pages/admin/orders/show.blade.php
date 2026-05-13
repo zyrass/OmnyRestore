@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Admin — Gestion d'une commande
  * Route: GET /admin/orders/{order}
@@ -729,65 +729,79 @@ class extends Component
 
             {{-- === STATUT PAIEMENT + LIVRAISON ZIP === --}}
             @if ($order->getMedia('retouched')->isNotEmpty())
-            <div class="card-glass overflow-hidden"
+            <div class="card-glass overflow-hidden {{ in_array($order->status, ['PAID', 'DELIVERED']) ? 'border border-emerald-500/20' : '' }}"
                  {{ in_array($order->status, ['DONE']) ? 'wire:poll.10000ms="pollPaymentStatus"' : '' }}>
 
                 <div class="px-5 py-4 border-b border-[#C9A84C]/10 flex items-center justify-between">
                     <h2 class="text-[#F5F0E8] font-semibold">Statut paiement &amp; livraison</h2>
                     @if (in_array($order->status, ['PAID', 'DELIVERED']))
-                    <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 text-xs rounded-full">
+                    <span class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 text-xs rounded-full font-medium">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                         Paiement effectué
                     </span>
-                    @else
+                    @elseif ($order->status === 'DONE')
                     <span class="flex items-center gap-1.5 px-2.5 py-1 bg-yellow-900/20 border border-yellow-500/20 text-yellow-400/80 text-xs rounded-full">
-                        <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 12h4z"/></svg>
-                        Paiement en attente
+                        <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                        En attente du paiement
                     </span>
+                    @else
+                    <span class="px-2.5 py-1 bg-[#1A1510] border border-[#2A2520] text-[#4A3E2E] text-xs rounded-full">Non applicable</span>
                     @endif
                 </div>
 
                 <div class="p-5">
                     @if (in_array($order->status, ['PAID', 'DELIVERED']))
-                    {{-- Paiement reçu : afficher info + bouton livraison --}}
-                    <div class="flex items-center gap-3 mb-5 px-4 py-3 bg-emerald-900/15 border border-emerald-500/20 rounded-sm">
-                        <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    {{-- Paiement recu --}}
+                    <div class="flex items-start gap-3 mb-5 px-4 py-3.5 bg-emerald-900/15 border border-emerald-500/20 rounded-sm">
+                        <svg class="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <div>
-                            <p class="text-emerald-300 text-sm font-medium">Paiement effectué avec succès</p>
+                            <p class="text-emerald-300 text-sm font-medium">Paiement effectue avec succes</p>
                             @if ($order->paid_at)
-                            <p class="text-[#7A6E5E] text-xs mt-0.5">Le {{ $order->paid_at->format('d/m/Y \u00e0 H:i') }} &mdash; {{ number_format(($order->total_price_cents + round($order->total_price_cents * 0.2)) / 100, 2, ',', ' ') }}&nbsp;€ TTC</p>
+                            @php $ttcAdmin = ($order->total_price_cents ?? 0) + (int) round(($order->total_price_cents ?? 0) * 0.2); @endphp
+                            <p class="text-[#7A6E5E] text-xs mt-0.5">Le {{ $order->paid_at->format('d/m/Y \a H:i') }} &mdash; {{ number_format($ttcAdmin / 100, 2, ',', ' ') }}&nbsp;&euro; TTC</p>
                             @endif
                         </div>
                     </div>
 
-                    <p class="text-[#7A6E5E] text-xs mb-3">
-                        Envoyez l’email de livraison au client avec le lien de téléchargement du ZIP et la facture PDF.
-                        <span class="text-[#C9A84C]/70 block mt-0.5">Limité à 1 envoi toutes les 5 minutes.</span>
+                    <p class="text-[#7A6E5E] text-xs mb-3 leading-relaxed">
+                        Envoyez au client son archive ZIP (photos HD sans filigrane) et sa facture PDF.
+                        <span class="text-[#C9A84C]/60 block mt-0.5">Limite a 1 envoi toutes les 5 minutes.</span>
                     </p>
 
                     <button wire:click="sendDeliveryEmail"
                             wire:loading.attr="disabled"
-                            class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 hover:border-emerald-500/50 text-emerald-300 hover:text-emerald-200 text-sm rounded-sm transition-all font-medium">
+                            class="w-full flex items-center justify-center gap-2 px-4 py-3.5
+                                   bg-gradient-to-r from-[#C9A84C] to-[#E8C97A]
+                                   text-[#0F0C08] font-bold text-sm rounded-sm
+                                   hover:opacity-90 transition-all
+                                   shadow-[0_4px_20px_rgba(201,168,76,0.25)]
+                                   disabled:opacity-50">
                         <span wire:loading.remove wire:target="sendDeliveryEmail" class="flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Envoyer le ZIP + Facture PDF
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            Envoyer ZIP + Facture PDF au client
                         </span>
                         <span wire:loading wire:target="sendDeliveryEmail" class="flex items-center gap-2">
-                            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 12h4z"/></svg>
-                            Envoi…
+                            <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            Envoi en cours...
                         </span>
                     </button>
 
                     @if ($order->status === 'DELIVERED' && $order->delivered_at)
-                    <p class="text-emerald-400/60 text-[11px] mt-2 text-center">Livré le {{ $order->delivered_at->format('d/m H:i') }}</p>
+                    <div class="flex items-center justify-center gap-1.5 mt-3">
+                        <svg class="w-3 h-3 text-emerald-500/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <p class="text-emerald-400/50 text-[11px]">Livre le {{ $order->delivered_at->format('d/m/Y \a H:i') }}</p>
+                    </div>
                     @endif
 
                     @else
                     {{-- Paiement en attente --}}
-                    <p class="text-[#7A6E5E] text-sm text-center py-4">
-                        En attente du règlement client…
-                        <span class="block text-xs mt-1 text-[#7A6E5E]/60">La page se mettra à jour automatiquement dès la réception du paiement Stripe.</span>
-                    </p>
+                    <div class="py-6 text-center">
+                        <div class="flex items-center justify-center gap-2 mb-2">
+                            <svg class="w-4 h-4 animate-spin text-yellow-400/60" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            <p class="text-[#7A6E5E] text-sm">En attente du règlement client…</p>
+                        </div>
+                        <p class="text-xs text-[#4A3E2E]">La page se mettra à jour automatiquement dès la réception du paiement Stripe.</p>
+                    </div>
                     @endif
                 </div>
             </div>

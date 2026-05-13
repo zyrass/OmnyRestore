@@ -41,6 +41,10 @@ Route::middleware(['auth', 'verified', 'client'])->prefix('client')->name('clien
     \Livewire\Volt\Volt::route('/orders/{order}', 'pages.client.orders.show')
         ->name('orders.show');
 
+    // GET /client/orders/{order}/payment-success — Page confirmation post-Stripe
+    \Livewire\Volt\Volt::route('/orders/{order}/payment-success', 'pages.client.orders.payment-success')
+        ->name('orders.payment-success');
+
     // POST /client/orders/{order}/checkout → Stripe Checkout
     // Throttle : 10 tentatives par minute par utilisateur.
     // Prévient les doubles-clics, les scripts automatisés, et les abus de session.
