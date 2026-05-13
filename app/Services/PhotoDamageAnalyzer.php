@@ -82,10 +82,11 @@ Format obligatoire :
 Critères stricts :
 - "light"  : photo nette et peu endommagée, jaunissement léger, poussière, petites taches éparses → 1,00 € TTC
 - "medium" : rayures nettes, décoloration forte, pliures visibles, grain important, bruit numérique, visages partiellement altérés → 2,00 € TTC
-- "heavy"  : déchirures, zones manquantes (perte de matière), moisissures, brûlures, dégâts eau, visages fortement dégradés, nécessite une reconstruction importante de détails → 3,00 € TTC
+- "heavy"  : bords déchirés, coins manquants (perte de matière), déchirures, moisissures, brûlures, dégâts eau, visages fortement dégradés, nécessite une reconstruction importante de détails → 3,00 € TTC
 
 Règles absolues :
 - Si un dommage important touche un VISAGE ou le SUJET PRINCIPAL, privilégie le niveau supérieur.
+- Si une photo présente des BORDS DÉCHIRÉS ou des COINS MANQUANTS, elle doit être classée en "heavy" (3,00 €).
 - Si la photo est moderne et nette → "light"
 - Si tu hésites entre deux niveaux, choisis TOUJOURS le niveau le plus élevé pour refléter la complexité du travail manuel requis.
 - Si tu ne peux pas analyser l'image pour quelque raison que ce soit → réponds TOUJOURS {"level": "light", "confidence": 50, "reason": "Analyse non concluante, niveau standard appliqué"}
