@@ -80,9 +80,11 @@ class SecurePhotoController extends Controller
         );
 
         // 6. Lire le fichier depuis le disk sécurisé (local ou s3)
-        $contents = Storage::disk($media->disk)->get($media->getPath());
+        if (! file_exists($media->getPath())) {
+            abort(404, 'Fichier introuvable sur le disque.');
+        }
 
-        abort_if($contents === null || $contents === false, 404, 'Fichier introuvable.');
+        $contents = file_get_contents($media->getPath());
 
         // 7. Streamer le fichier avec le bon Content-Type
         $mimeType = $media->mime_type ?: 'image/jpeg';

@@ -27,8 +27,11 @@ class AdminSecurePhotoController extends Controller
             'Photo introuvable.'
         );
 
-        $contents = Storage::disk($media->disk)->get($media->getPath());
-        abort_if($contents === null || $contents === false, 404, 'Fichier introuvable.');
+        if (! file_exists($media->getPath())) {
+            abort(404, 'Fichier introuvable sur le disque.');
+        }
+
+        $contents = file_get_contents($media->getPath());
 
         return response($contents, 200, [
             'Content-Type'   => $media->mime_type ?: 'image/jpeg',
