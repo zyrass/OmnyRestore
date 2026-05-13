@@ -416,22 +416,25 @@
 {{-- ========== TRANSITION EMOTION ========== --}}
 <section class="py-24 overflow-hidden bg-gradient-to-b from-transparent to-[#0D0B08]">
     <div class="max-w-6xl mx-auto px-6">
-        <div class="relative rounded-sm overflow-hidden aspect-[21/9] md:aspect-[32/9] group border border-[#C9A84C]/10 cursor-default">
+        <div class="relative rounded-sm overflow-hidden aspect-[21/9] md:aspect-[32/9] group border border-[#C9A84C]/10 cursor-default shadow-2xl">
             <img src="/images/transition-heritage.png" 
                  alt="Transmission et émotion" 
-                 class="w-full h-full object-cover opacity-40 transform scale-100 group-hover:scale-105 transition-all duration-1000 ease-out">
+                 class="w-full h-full object-cover opacity-30 transform scale-100 group-hover:scale-105 transition-all duration-1000 ease-out">
             
-            {{-- Overlays pour l'intégration --}}
-            <div class="absolute inset-0 bg-gradient-to-r from-[#0D0B08] via-transparent to-[#0D0B08] pointer-events-none"></div>
-            <div class="absolute inset-0 bg-gradient-to-t from-[#0D0B08] via-transparent to-[#0D0B08] pointer-events-none"></div>
+            {{-- Overlay sombre global pour le contraste AAA --}}
+            <div class="absolute inset-0 bg-black/60 pointer-events-none"></div>
+            
+            {{-- Dégradés de finition --}}
+            <div class="absolute inset-0 bg-gradient-to-r from-[#0D0B08] via-transparent to-[#0D0B08] pointer-events-none opacity-80"></div>
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0D0B08] via-transparent to-[#0D0B08] pointer-events-none opacity-80"></div>
             
             <div class="absolute inset-0 flex items-center justify-center text-center p-8 pointer-events-none">
-                <div class="max-w-2xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-1000 opacity-80 group-hover:opacity-100">
-                    <div class="w-12 h-px bg-[#C9A84C]/30 mx-auto mb-6"></div>
-                    <h3 class="text-xl md:text-2xl font-light italic text-[#F5F0E8] leading-relaxed mb-4">
+                <div class="max-w-3xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-1000">
+                    <div class="w-16 h-px bg-[#C9A84C]/40 mx-auto mb-8"></div>
+                    <h3 class="text-2xl md:text-3xl font-medium italic text-[#F5F0E8] leading-relaxed mb-6 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                         &ldquo;Parce que chaque souvenir mérite d'être transmis dans sa plus belle lumière.&rdquo;
                     </h3>
-                    <p class="text-[#C9A84C] text-[10px] tracking-[0.4em] uppercase font-medium">L'art de la restauration</p>
+                    <p class="text-[#C9A84C] text-[11px] tracking-[0.5em] uppercase font-bold drop-shadow-md">L'art de la restauration</p>
                 </div>
             </div>
         </div>
