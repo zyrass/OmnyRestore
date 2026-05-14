@@ -69,12 +69,7 @@ class OrderCheckoutController extends Controller
             // Générer le ZIP comme après un vrai paiement Stripe
             GenerateOrderZipJob::dispatch($order)->onQueue('default');
 
-            // Notifier le client par email
-            try {
-                Mail::to($order->user->email)->queue(new OrderPaidConfirmation($order));
-            } catch (\Throwable $e) {
-                Log::error("Coupon free: mail échec {$order->reference}", ['error' => $e->getMessage()]);
-            }
+            // Notifier le client par email : On attend la fin du job ZIP pour envoyer l'email de livraison finale.
 
             return redirect()->route('client.orders.show', $order)
                 ->with('success', 'Votre commande est offerte grâce à votre coupon. Votre archive ZIP est en cours de préparation !');

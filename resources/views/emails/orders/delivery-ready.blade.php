@@ -131,8 +131,8 @@
         </p>
 
         <p class="text" style="margin-top: 24px;">
-            Une question sur votre commande ? Répondez directement à cet email ou écrivez à
-            <a href="mailto:contact@omnyrestore.fr" style="color:#C9A84C">contact@omnyrestore.fr</a>
+            Une question ? Contactez notre support technique directement depuis 
+            votre <strong>espace client</strong> sur la plateforme.
         </p>
     </div>
 
@@ -142,7 +142,6 @@
             Vos photos originales et restaurées sont conservées <strong style="color:#5A4E3E">6 mois</strong> après livraison, puis supprimées automatiquement.
             Votre facture est conservée <strong style="color:#5A4E3E">10 ans</strong> conformément aux obligations comptables françaises (art. L. 123-22 C. com.).
             Pour exercer votre droit à l'effacement, connectez-vous et accédez à <a href="{{ config('app.url') }}/client/account/delete" style="color:#7A6E5E">Supprimer mon compte</a>.
-            Pour toute question : <a href="mailto:contact@omnyrestore.fr" style="color:#7A6E5E">contact@omnyrestore.fr</a>
         </p>
     </div>
 

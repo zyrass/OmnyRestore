@@ -46,11 +46,9 @@ class extends Component
     public function mount(Order $order): void
     {
         $this->order      = $order->load(['user' => fn($u) => $u->withTrashed(), 'media', 'delivery', 'auditLogs', 'testimonial']);
-        // IMPORTANT : on utilise !== null car total_price_cents peut valoir 0
-        // (coupon 100%) — une comparaison truthy ferait tomber sur base_price_cents.
-        $this->finalPrice = $this->order->total_price_cents !== null
-            ? number_format($this->order->total_price_cents / 100, 2, '.', '')
-            : number_format(($this->order->base_price_cents ?? 0) / 100, 2, '.', '');
+        
+        // Initialisation du prix en TTC pour l'affichage admin
+        $this->finalPrice = number_format($this->order->getAmountTtcCents() / 100, 2, '.', '');
         $this->adminNotes = $this->order->admin_notes ?? '';
     }
 
@@ -105,7 +103,7 @@ class extends Component
             'finalPrice'       => ['required', 'numeric', 'min:0'],
         ]);
 
-        // Fixer le prix final et les notes
+        // Fixer le prix final TTC et les notes
         $this->order->update([
             'total_price_cents' => (int) round((float) $this->finalPrice * 100),
             'admin_notes'       => $this->adminNotes ?: null,
@@ -186,7 +184,7 @@ class extends Component
             'total_price_cents' => (int) round((float) $this->finalPrice * 100),
             'admin_notes'       => $this->adminNotes ?: null,
         ]);
-        session()->flash('success', 'Notes et prix sauvegardés.');
+        session()->flash('success', 'Notes et prix TTC sauvegardés.');
     }
 
     /** Annuler la commande */
@@ -1050,41 +1048,18 @@ class extends Component
                             {{ $lvlLabel }}
                         </dd>
                     </div>
-                    {{-- Calcul des prix harmonisé (Somme des TTC individuels des photos ACTIVES) --}}
+                    {{-- Calcul des prix unifié via le modèle --}}
                     @php
-                        $baseHtC     = $order->base_price_cents ?? 0;
-                        $discountC   = $order->discount_cents ?? 0;
-                        $finalHtC    = $order->total_price_cents ?? max(0, $baseHtC - $discountC);
-                        
-                        // Calcul TTC exact (somme des TTC par photo ACTIVE)
-                        $_pttc       = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
-                        
-                        // Priorité aux photos retouchées (actives uniquement)
-                        $_activeMedia = $order->getMedia('retouched');
-                        if ($_activeMedia->isNotEmpty()) {
-                            $_activeMedia = $_activeMedia->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
-                        } else {
-                            $_activeMedia = $order->getMedia('originals');
-                        }
-
-                        $baseTtcC = $_activeMedia->sum(function ($m) use ($_pttc, $order) {
-                            $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
-                            return $_pttc[$lv] ?? $_pttc['light'];
-                        });
-                        
-                        // Fallback si pas de media
-                        if ($baseTtcC === 0) {
-                            $baseTtcC = (int) round($finalHtC * 1.2);
-                        }
-
-                        $tvaC  = $baseTtcC - $finalHtC;
-                        $ttcC  = max(0, $baseTtcC - $discountC);
+                        $ttcC = $order->getAmountTtcCents();
+                        $htC  = $order->getAmountHtCents();
+                        $tvaC = max(0, $ttcC - $htC);
+                        $discountC = $order->discount_cents ?? 0;
                     @endphp
 
                     <div class="border-t border-[#C9A84C]/10 pt-4 space-y-1.5">
-                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT{{ $discountC > 0 ? ' net' : '' }}</dt><dd class="text-[#F5F0E8]">{{ number_format($finalHtC / 100, 2, ',', ' ') }} €</dd></div>
+                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT Net</dt><dd class="text-[#F5F0E8]">{{ number_format($htC / 100, 2, ',', ' ') }} €</dd></div>
                         <div class="flex justify-between"><dt class="text-[#7A6E5E]">TVA 20%</dt><dd class="text-[#F5F0E8]">{{ number_format($tvaC / 100, 2, ',', ' ') }} €</dd></div>
-                        <div class="flex justify-between font-bold"><dt class="text-[#C9A84C]">TTC</dt><dd class="text-[#C9A84C]">{{ number_format($ttcC / 100, 2, ',', ' ') }} €</dd></div>
+                        <div class="flex justify-between font-bold"><dt class="text-[#C9A84C]">TOTAL TTC</dt><dd class="text-[#C9A84C]">{{ number_format($ttcC / 100, 2, ',', ' ') }} €</dd></div>
                     </div>
                     @if ($order->paid_at)
                     <div class="flex justify-between border-t border-[#C9A84C]/5 pt-2 mt-2"><dt class="text-[#7A6E5E]">Payé le</dt><dd class="text-emerald-400 text-xs">{{ $order->paid_at->format('d/m/Y H:i') }}</dd></div>
@@ -1108,19 +1083,15 @@ class extends Component
                 @if (!in_array($order->status, ['PAID', 'DELIVERED', 'CANCELLED']))
                 <div class="mb-3">
                     <div class="flex gap-2 mb-1">
-                        <input wire:model="finalPrice" type="number" step="0.01" placeholder="Prix HT (€)"
-                               @input="finalHt = parseFloat($event.target.value) || 0"
+                        <input wire:model="finalPrice" type="number" step="0.01" placeholder="Prix TTC (€)"
+                               @input="finalTtc = parseFloat($event.target.value) || 0"
                                class="flex-1 bg-[#1A1510] border border-[#C9A84C]/20 text-[#C9A84C] text-sm rounded-sm px-3 py-2 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
                         <button wire:click="saveNotes" class="px-4 py-2 text-xs bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30 hover:bg-[#C9A84C]/30 rounded-sm transition-all">
                             Sauver
                         </button>
                     </div>
                     <p class="text-[#7A6E5E] text-xs">
-                        HT &rarr; TTC client :
-                        <span class="text-[#C9A84C] font-semibold" x-text="(finalHt * 1.2).toFixed(2).replace('.', ',') + ' €'">
-                            {{ number_format((float)$finalPrice * 1.2, 2, ',', ' ') }} €
-                        </span>
-                        <span class="text-[#7A6E5E]/60">(TVA 20% incluse)</span>
+                        TTC net client (TVA 20% incluse)
                     </p>
                 </div>
                 @endif

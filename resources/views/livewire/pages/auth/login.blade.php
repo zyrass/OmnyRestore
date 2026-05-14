@@ -15,12 +15,21 @@ new #[Layout('layouts.guest')] class extends Component
         $this->form->authenticate();
         Session::regenerate();
 
-        // Redirection selon le rôle :
+        $user = auth()->user();
+
+        // Détecter la première connexion (avant mise à jour)
+        $isFirstLogin = $user->isClient() && is_null($user->last_login_at);
+
+        // Mettre à jour la date de dernière connexion
+        $user->update(['last_login_at' => now()]);
+
+        // Redirection selon le rôle et l'historique :
         //   Admin → /admin/dashboard
-        //   Client → /client/orders (ou la page demandée avant le login)
-        $default = auth()->user()->isAdmin()
+        //   Client (1ère fois) → /client/profile
+        //   Client (habituel) → /client/orders
+        $default = $user->isAdmin()
             ? route('admin.dashboard', absolute: false)
-            : route('client.orders.index', absolute: false);
+            : ($isFirstLogin ? route('client.profile', absolute: false) : route('client.orders.index', absolute: false));
 
         $this->redirectIntended(default: $default, navigate: true);
     }

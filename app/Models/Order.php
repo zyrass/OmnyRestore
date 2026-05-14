@@ -529,8 +529,19 @@ class Order extends Model implements HasMedia
      * Calcule le montant TTC total en centimes d'après les photos actives.
      * C'est la source de vérité pour Stripe, la facture et les emails.
      */
+    /**
+     * Calcule le montant TTC total en centimes d'après les photos actives ou le prix forcé.
+     * C'est la source de vérité absolue pour Stripe, la facture et les emails.
+     */
     public function getAmountTtcCents(): int
     {
+        // 1. Priorité absolue : le prix total fixé (HT ou TTC selon contexte, mais on l'unifie en TTC Net)
+        // Note : Si l'admin a saisi un prix, il est stocké ici.
+        if ($this->total_price_cents !== null) {
+            return (int) max(0, $this->total_price_cents - ($this->discount_cents ?? 0));
+        }
+
+        // 2. Fallback : calcul dynamique par média (TTC exact par niveau)
         $_pttc = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
         
         $media = $this->getMedia('retouched');
@@ -545,12 +556,22 @@ class Order extends Model implements HasMedia
             return $_pttc[$lv] ?? $_pttc['light'];
         });
 
-        if ($baseTtcC === 0) {
-            $baseHtC = $this->total_price_cents ?? $this->base_price_cents ?? 0;
-            $baseTtcC = (int) round($baseHtC * 1.2);
+        // 3. Dernier recours : base_price_cents (converti en TTC si nécessaire)
+        if ($baseTtcC === 0 && $this->base_price_cents > 0) {
+            $baseTtcC = (int) round($this->base_price_cents * 1.2);
         }
 
         return (int) max(0, $baseTtcC - ($this->discount_cents ?? 0));
+    }
+
+    /**
+     * Calcule le montant HT à partir du TTC (Calcul inverse).
+     * Utilisé pour la transparence sur la facture PDF.
+     */
+    public function getAmountHtCents(): int
+    {
+        $ttc = $this->getAmountTtcCents();
+        return (int) round($ttc / 1.2);
     }
 
     /**

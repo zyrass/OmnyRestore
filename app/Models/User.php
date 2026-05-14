@@ -91,6 +91,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'role',
         'rgpd_consent_at',
         'marketing_consent',
+        'last_login_at',
     ];
 
     /**
@@ -121,6 +122,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'marketing_consent' => 'boolean',    // true/false (not 1/0)
             'password'          => 'hashed',     // Auto-hashes on set (Laravel 10+)
             'deleted_at'        => 'datetime',   // Carbon instance (soft delete)
+            'last_login_at'     => 'datetime',   // Carbon instance
         ];
     }
 

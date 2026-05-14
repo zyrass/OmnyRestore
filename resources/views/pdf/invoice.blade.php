@@ -272,16 +272,16 @@ table.totals tr.free-row td {
         ]]);
     }
 
-    // ── Totaux — source de vérité : photos retouchées actives ──────────────
-    // TTC réel = somme PRICES_TTC[ai_level] des retouched non rejetés
-    // = montant identique à ce qui a été envoyé à Stripe au checkout.
+    // ── Totaux unifiés (Source de vérité : Modèle Order) ──────────────────
+    $ttcC      = $order->getAmountTtcCents();
+    $htNetC    = $order->getAmountHtCents();
+    $tvaC      = max(0, $ttcC - $htNetC);
     $discountC = (int) ($order->discount_cents ?? 0);
-    $baseHtC   = (int) $lineItems->sum('total_ht_c');
-    $baseTtcC  = (int) $lineItems->sum('total_ttc_c');
-    $htNetC    = max(0, $baseHtC - $discountC);
-    $ttcC      = max(0, $baseTtcC - $discountC);   // remise appliquée sur le TTC
-    $tvaC      = $ttcC - $htNetC;                  // TVA exacte (pas d'arrondi flottant)
     $isFree    = $ttcC === 0;
+    
+    // Pour l'affichage du sous-total avant remise
+    $baseTtcC  = $ttcC + $discountC;
+    $baseHtC   = (int) round($baseTtcC / 1.2);
 
     $year       = $order->paid_at?->format('Y') ?? now()->format('Y');
     $seq        = str_pad(substr($order->reference, -4), 4, '0', STR_PAD_LEFT);

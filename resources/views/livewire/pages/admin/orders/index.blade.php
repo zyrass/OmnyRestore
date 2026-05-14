@@ -176,13 +176,14 @@ class extends Component
                     </td>
                     <td class="px-5 py-3.5 text-[#F5F0E8] hidden lg:table-cell">
                         @php
-                            $htCents  = $order->total_price_cents ?? $order->base_price_cents;
-                            $ttcCents = $htCents !== null ? $htCents + (int) round($htCents * 0.20) : null;
+                            $ttcCents = $order->getAmountTtcCents();
                         @endphp
-                        @if ($ttcCents !== null)
+                        @if ($ttcCents > 0)
                             <span class="{{ in_array($order->status, ['PAID','DELIVERED']) ? 'text-emerald-400 font-semibold' : '' }}">
                                 {{ number_format($ttcCents / 100, 2, ',', ' ') }} €
                             </span>
+                        @elseif ($order->coupon_code && $ttcCents === 0)
+                            <span class="text-emerald-400 font-medium">Offert</span>
                         @else
                             <span class="text-[#7A6E5E]">—</span>
                         @endif

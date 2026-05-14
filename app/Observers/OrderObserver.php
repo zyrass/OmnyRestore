@@ -53,11 +53,7 @@ class OrderObserver
                 // via le bouton dans le panel admin (resendClientNotification).
                 'DONE' => null,
 
-                // Stripe a confirmé le paiement → email "paiement reçu, ZIP en préparation"
-                // ⚠️ Le GenerateOrderZipJob est dispatched par PaymentSuccessController
-                //    ET StripeWebhookController — pas ici pour éviter le double dispatch.
-                'PAID' => Mail::to($userEmail, $userName)
-                              ->queue(new OrderPaidConfirmation($order)),
+                'PAID' => null,
 
                 // Le statut DELIVERED est atteint manuellement via l'admin qui envoie l'email
                 // de livraison (ZIP + facture). Le mail est déclenché dans sendDeliveryEmail().

@@ -51,9 +51,6 @@ class Coupon extends Model
 
     // ── Accessors / Helpers ──────────────────────────────────────────────────
 
-    /**
-     * Vérifie si le coupon est applicable pour un montant HT donné.
-     */
     public function isApplicableTo(int $amountHtCents): bool
     {
         if (! $this->is_active) { return false; }
@@ -65,13 +62,32 @@ class Coupon extends Model
     }
 
     /**
-     * Calcule la remise en centimes HT pour un montant donné.
+     * Version TTC pour cohérence avec le nouveau flux financier.
      */
+    public function isApplicableToTtc(int $amountTtcCents): bool
+    {
+        // On estime le HT pour comparer au seuil min_order_cents qui est en HT
+        $estimatedHt = (int) round($amountTtcCents / 1.2);
+        return $this->isApplicableTo($estimatedHt);
+    }
+
     public function discountCents(int $amountHtCents): int
     {
         return match($this->type) {
             'percentage' => (int) round($amountHtCents * $this->value / 100),
-            'fixed'      => min($this->value, $amountHtCents), // ne dépasse pas le montant
+            'fixed'      => min($this->value, $amountHtCents), 
+            default      => 0,
+        };
+    }
+
+    /**
+     * Calcule la remise directe sur le TTC pour éviter les décalages de TVA.
+     */
+    public function discountTtcCents(int $amountTtcCents): int
+    {
+        return match($this->type) {
+            'percentage' => (int) round($amountTtcCents * $this->value / 100),
+            'fixed'      => (int) min(round($this->value * 1.2), $amountTtcCents),
             default      => 0,
         };
     }

@@ -91,9 +91,9 @@
                             echo 'Mixte (' . implode(', ', $labels) . ')';
                         } else {
                             echo match($order->damage_level) {
-                                'heavy'  => 'Complète',
-                                'medium' => 'Avancée',
-                                default  => 'Standard',
+                                'heavy'  => 'Complète (3 € TTC)',
+                                'medium' => 'Avancée (2 € TTC)',
+                                default  => 'Standard (1 € TTC)',
                             };
                         }
                     @endphp
@@ -129,8 +129,8 @@
 
 
         <p class="text">
-            Une question ? Répondez directement à cet email ou contactez-nous à
-            <a href="mailto:contact@omnyrestore.fr" style="color:#C9A84C">contact@omnyrestore.fr</a>
+            Une question ? Contactez notre support technique directement depuis 
+            votre <strong>espace client</strong> sur la plateforme.
         </p>
     </div>
 

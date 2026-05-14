@@ -261,39 +261,41 @@ class extends Component
      */
     private function recalcPriceFromActivePhotos(): void
     {
-        $prices = \App\Services\PhotoDamageAnalyzer::PRICES;
+        $pricesTtc = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
 
         $activePhotos = $this->order->getMedia('retouched')
             ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
 
-        // Somme par photo selon son niveau individuel (ai_level en custom_property)
-        $newBaseHt = $activePhotos->sum(function ($media) use ($prices) {
+        // Somme par photo selon son niveau individuel TTC
+        $newBaseTtc = $activePhotos->sum(function ($media) use ($pricesTtc) {
             $level = $media->getCustomProperty('ai_level', $this->order->damage_level ?? 'light');
-            return $prices[$level] ?? $prices['light'];
+            return $pricesTtc[$level] ?? $pricesTtc['light'];
         });
 
-        $newDiscount = 0;
+        $newDiscountTtc = 0;
 
         if ($this->order->coupon_code) {
             $coupon = \App\Models\Coupon::where('code', $this->order->coupon_code)->first();
             if ($coupon) {
-                $newDiscount = $coupon->discountCents($newBaseHt);
+                // Utilisation de la nouvelle logique TTC pour éviter les décalages de TVA
+                $newDiscountTtc = $coupon->discountTtcCents($newBaseTtc);
             }
         }
 
-        $newTotalHt = max(0, $newBaseHt - $newDiscount);
+        $newTotalTtc = max(0, $newBaseTtc - $newDiscountTtc);
 
+        // total_price_cents est désormais le TTC net (Source de vérité)
         $this->order->update([
-            'total_price_cents' => $newTotalHt,
-            'discount_cents'    => $newDiscount,
+            'total_price_cents' => $newTotalTtc,
+            'discount_cents'    => $newDiscountTtc,
         ]);
 
         \Illuminate\Support\Facades\Log::info(
-            "Client recalc {$this->order->reference}: {$activePhotos->count()} photo(s) = {$newTotalHt} cts HT net.",
+            "Client recalc {$this->order->reference}: {$activePhotos->count()} photo(s) = {$newTotalTtc} cts TTC net.",
             ['breakdown' => $activePhotos->map(fn($m) => [
                 'id'    => $m->id,
                 'level' => $m->getCustomProperty('ai_level', $this->order->damage_level ?? 'light'),
-                'price' => $prices[$m->getCustomProperty('ai_level', $this->order->damage_level ?? 'light')] ?? $prices['light'],
+                'price' => $pricesTtc[$m->getCustomProperty('ai_level', $this->order->damage_level ?? 'light')] ?? $pricesTtc['light'],
             ])->values()->toArray()]
         );
     }
@@ -422,29 +424,28 @@ class extends Component
         $activePhotos   = $retouched->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
         $rejectedPhotos = $retouched->filter(fn($m) => $m->getCustomProperty('is_rejected', false));
         
-        // TTC exact : somme des prix TTC individuels par photo active
-        $pricesTtc = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
-        $payTtc    = $activePhotos->sum(function ($m) use ($pricesTtc, $order) {
-            $level = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
-            return $pricesTtc[$level] ?? $pricesTtc['light'];
-        });
-
-        // Fallback : si pas encore de photos retouchées (PENDING/IN_PROGRESS), on calcule le TTC estimé via les originales
-        if ($payTtc === 0 && in_array($order->status, ['PENDING', 'IN_PROGRESS'])) {
-            $payTtc = $order->getMedia('originals')->sum(function ($m) use ($pricesTtc, $order) {
+        // TTC net via le modèle (source de vérité)
+        $ttcC = $order->getAmountTtcCents();
+        $htC  = $order->getAmountHtCents();
+        $tvaC = max(0, $ttcC - $htC);
+        
+        // Pour l'affichage du prix estimé si pas encore de retouches
+        if ($ttcC === 0 && in_array($order->status, ['PENDING', 'IN_PROGRESS'])) {
+             $pricesTtc = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
+             $ttcC = $order->getMedia('originals')->sum(function ($m) use ($pricesTtc, $order) {
                 $level = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
                 return $pricesTtc[$level] ?? $pricesTtc['light'];
             });
-            // Déduction de la remise si déjà calculée
             if ($order->discount_cents > 0) {
-                $payTtc = max(0, $payTtc - $order->discount_cents);
+                $ttcC = max(0, $ttcC - $order->discount_cents);
             }
+            $htC = (int) round($ttcC / 1.2);
+            $tvaC = $ttcC - $htC;
         }
 
-        // HT net : on se base sur la valeur stockée en base qui est mise à jour par recalcPriceFromActivePhotos()
-        $payHt = $order->total_price_cents !== null ? $order->total_price_cents : ($order->base_price_cents ?? 0);
         $discountC = $order->discount_cents ?? 0;
-        $baseHtC   = $order->base_price_cents ?? 0;
+        $baseTtcC  = $ttcC + $discountC;
+        $baseHtC   = (int) round($baseTtcC / 1.2);
     @endphp
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -996,8 +997,8 @@ class extends Component
                     <div class="pt-2 border-t border-[#C9A84C]/10 space-y-1.5">
                         {{-- Estim. tarif --}}
                         <div class="flex justify-between text-xs">
-                            <dt class="text-[#7A6E5E]">Tarif HT estimé</dt>
-                            <dd class="text-[#7A6E5E]">{{ number_format($baseHtC / 100, 2, ',', ' ') }} €</dd>
+                            <dt class="text-[#7A6E5E]">Tarif TTC estimé</dt>
+                            <dd class="text-[#7A6E5E]">{{ number_format($baseTtcC / 100, 2, ',', ' ') }} €</dd>
                         </div>
                         {{-- Remise coupon (si applicable) --}}
                         @if ($discountC > 0)
