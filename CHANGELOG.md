@@ -6,6 +6,24 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.20.3] — 2026-05-14 — CSAM & NSFW AI Detection
+
+### 🛡️ Sécurité & Modération
+- **Détection Automatisée de Contenu (IA)** :
+  - Intégration de l'API OpenAI `omni-moderation-latest` pour analyser automatiquement toutes les photos téléchargées par les clients (Jobs asynchrones).
+  - Blocage instantané de la commande et suspension au statut `FLAGGED` si un contenu sensible ou illégal est détecté (NSFW / CSAM).
+  - Enregistrement de l'adresse IP (`client_ip`) lors de la création de la commande pour répondre aux exigences légales des autorités de signalement.
+- **Interface d'Administration de Crise** :
+  - Ajout d'une protection visuelle : floutage lourd des images identifiées comme sensibles avec obligation pour l'admin d'accepter de les révéler à ses propres risques.
+  - Nouvelles actions d'urgence :
+    - Faux positif : Remise en attente.
+    - Ban & Destruction : Suppression physique immédiate des fichiers et désactivation du compte utilisateur en un clic.
+    - Signalement PHAROS : Génération et téléchargement d'un fichier rapport (IP, Date, Email) formaté pour transmission aux autorités (cas de pédocriminalité CSAM).
+- **Notifications Administratives** :
+  - Création du `Mailable` `AdminOrderFlagged` envoyant un mail d'urgence au format "Alerte Rouge" lorsqu'un tel contenu est détecté.
+
+---
+
 ## [0.20.2] — 2026-05-14 — Dev Environment & SMTP Hardening
 
 ### 🛠️ Environnement & Configuration
