@@ -1137,11 +1137,11 @@ class extends Component
                 
                 {{-- Lexique des catégories --}}
                 <div x-data="{ openGlossary: false }" class="mb-4">
-                    <button @click="openGlossary = !openGlossary" class="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors">
+                    <button type="button" @click="openGlossary = !openGlossary" class="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors">
                         <svg class="w-3 h-3 transition-transform" :class="openGlossary ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                         Voir le lexique des catégories (OpenAI Moderation)
                     </button>
-                    <div x-show="openGlossary" x-collapse x-cloak class="mt-2 text-[10px] text-red-200/80 bg-red-900/30 p-3 rounded-sm border border-red-500/20">
+                    <div x-show="openGlossary" style="display: none;" class="mt-2 text-[10px] text-red-200/80 bg-red-900/30 p-3 rounded-sm border border-red-500/20 transition-all">
                         <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
                             <li><strong class="text-white">sexual</strong> : Contenu sexuellement explicite (pornographie).</li>
                             <li><strong class="text-white">sexual/minors</strong> : 🚨 Pédocriminalité (CSAM). Rapport PHAROS requis.</li>
