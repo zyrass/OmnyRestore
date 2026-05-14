@@ -37,12 +37,14 @@ class Testimonial extends Model
         'content',
         'is_published',
         'rejected_at',
+        'ignored_at',
     ];
 
     protected $casts = [
         'is_published' => 'boolean',
         'rating'       => 'integer',
         'rejected_at'  => 'datetime',
+        'ignored_at'   => 'datetime',
     ];
 
     // ─── Scopes ─────────────────────────────────────────────────────────────
@@ -56,7 +58,15 @@ class Testimonial extends Model
     /** Témoignages en attente de modération. */
     public function scopePending($query)
     {
-        return $query->where('is_published', false)->whereNull('rejected_at');
+        return $query->where('is_published', false)
+                     ->whereNull('rejected_at')
+                     ->whereNull('ignored_at');
+    }
+
+    /** Témoignages mis de côté par l'admin (ignorés). */
+    public function scopeIgnored($query)
+    {
+        return $query->whereNotNull('ignored_at');
     }
 
     /** Témoignages rejetés par l'admin. */

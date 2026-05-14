@@ -44,7 +44,7 @@ title('Lexique de Modération IA — OmnyRestore');
             </div>
 
             {{-- Grille des Flags --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
                 
                 {{-- Sexual --}}
                 <div class="card-glass p-6 border-l-4 border-l-[#C9A84C]/40 hover:bg-white/5 transition-all">
@@ -186,7 +186,7 @@ title('Lexique de Modération IA — OmnyRestore');
             </div>
 
             {{-- Légal --}}
-            <div class="p-8 rounded-sm bg-black/40 border border-[#C9A84C]/10">
+            <div class="mt-8 p-8 rounded-sm bg-black/40 border border-[#C9A84C]/10">
                 <h4 class="text-[#F5F0E8] text-[11px] font-bold uppercase tracking-widest mb-4">Base Légale (LCEN)</h4>
                 <p class="text-[11px] text-[#7A6E5E] leading-relaxed mb-6">
                     Conformément à l'article 6 de la Loi n° 2004-575 (LCEN), OmnyRestore est tenu de concourir à la lutte contre la diffusion des infractions visées aux troisième et quatrième alinéas de l'article 24 de la loi du 29 juillet 1881.

@@ -20,7 +20,7 @@ new
 #[Title('Modération — Témoignages')]
 class extends Component
 {
-    public string $filter = 'pending'; // pending | published | rejected
+    public string $filter = 'pending'; // pending | published | rejected | ignored
 
     /** Publie un témoignage en attente → visible sur la vitrine */
     public function publish(int $id): void
@@ -32,6 +32,19 @@ class extends Component
         ]);
         $this->dispatch('refresh-navbar-counts');
         session()->flash('success', '✅ Témoignage publié sur la vitrine.');
+    }
+
+    /** Met de côté un témoignage (ne compte plus comme "nouveau") */
+    public function ignore(int $id): void
+    {
+        $testimonial = Testimonial::findOrFail($id);
+        $testimonial->update([
+            'is_published' => false,
+            'rejected_at'  => null,
+            'ignored_at'   => now(),
+        ]);
+        $this->dispatch('refresh-navbar-counts');
+        session()->flash('success', '📥 Témoignage mis de côté (archivé).');
     }
 
     /** Rejette un témoignage (non supprimé — audit trail) */
@@ -60,6 +73,7 @@ class extends Component
         Testimonial::findOrFail($id)->update([
             'is_published' => false,
             'rejected_at'  => null,
+            'ignored_at'   => null,
         ]);
         $this->dispatch('testimonial-moderated');
         session()->flash('success', 'Témoignage dépublié (en attente).');
@@ -70,6 +84,7 @@ class extends Component
         $query = match ($this->filter) {
             'published' => Testimonial::published(),
             'rejected'  => Testimonial::rejected(),
+            'ignored'   => Testimonial::ignored(),
             default     => Testimonial::pending(),
         };
 
@@ -104,7 +119,7 @@ class extends Component
 
     {{-- Filtres --}}
     <div class="flex gap-2 mb-6">
-        @foreach (['pending' => 'En attente', 'published' => 'Publiés', 'rejected' => 'Rejetés'] as $key => $label)
+        @foreach (['pending' => 'En attente', 'published' => 'Publiés', 'rejected' => 'Rejetés', 'ignored' => 'Mis de côté'] as $key => $label)
         <button wire:click="$set('filter', '{{ $key }}')"
                 class="px-4 py-2 text-xs uppercase tracking-widest rounded-sm transition-all duration-150
                        {{ $filter === $key
@@ -160,6 +175,11 @@ class extends Component
                                hover:bg-emerald-500/20 hover:border-emerald-400 rounded-sm transition-all">
                     ✓ Publier
                 </button>
+                <button wire:click="ignore({{ $t->id }})"
+                        class="px-4 py-2 text-xs border border-[#C9A84C]/30 text-[#C9A84C]/70
+                               hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/50 hover:text-[#C9A84C] rounded-sm transition-all">
+                    📥 Ignorer
+                </button>
                 <button @click="const wire = $wire; omnyConfirm({
                             title: 'Rejeter cet avis',
                             message: 'Le témoignage sera masqué de la vitrine et déplacé dans l\'onglet des rejets.',
@@ -178,12 +198,24 @@ class extends Component
                     Dépublier
                 </button>
 
-                @elseif ($filter === 'rejected')
+                @elseif ($filter === 'rejected' || $filter === 'ignored')
                 <button wire:click="publish({{ $t->id }})"
                         class="px-4 py-2 text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400
                                hover:bg-emerald-500/20 rounded-sm transition-all">
                     ✓ Publier quand même
                 </button>
+                @if ($filter === 'ignored')
+                <button @click="const wire = $wire; omnyConfirm({
+                            title: 'Rejeter cet avis',
+                            message: 'Le témoignage sera déplacé dans l\'onglet des rejets.',
+                            confirmLabel: '✕ Rejeter',
+                            danger: true
+                        }).then(() => wire.reject({{ $t->id }}))"
+                        class="px-4 py-2 text-xs border border-red-500/30 text-red-400/70
+                               hover:bg-red-500/10 hover:text-red-400 rounded-sm transition-all">
+                    ✕ Rejeter
+                </button>
+                @endif
                 <button @click="const wire = $wire; omnyConfirm({
                             title: 'Suppression Définitive',
                             message: 'Voulez-vous vraiment supprimer définitivement cet avis ? Cette action est irréversible.',
