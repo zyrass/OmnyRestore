@@ -8,7 +8,7 @@ layout('layouts.app');
 title('Cellule de Crise — OmnyRestore');
 
 state([
-    'activeTab' => 'emergency',
+    'activeTab' => request()->query('tab', 'emergency'),
     'lastBackup' => now()->subHours(4)->format('d/m/Y H:i'),
     'dpoContact' => [
         'name' => 'Alain GUILLON (DPO Interne)',
@@ -58,7 +58,7 @@ $toggleCrisis = function() {
 ?>
 
 <div class="py-10 px-6 max-w-7xl mx-auto" x-data="{ 
-    activeTab: 'emergency',
+    activeTab: @entangle('activeTab'),
     timer: 72 * 3600,
     isCrisisActive: @entangle('isCrisisActive'),
     showTriggerConfirm: false,
@@ -138,6 +138,10 @@ $toggleCrisis = function() {
             <button @click="activeTab = 'comms'" :class="activeTab === 'comms' ? 'bg-red-900/20 text-red-400 border-red-500/30' : 'text-[#7A6E5E] border-transparent hover:text-[#F5F0E8]'" class="w-full text-left px-4 py-3 rounded-sm border transition-all text-sm font-medium flex items-center justify-between">
                 3. Communication
                 <svg x-show="activeTab === 'comms'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <button @click="activeTab = 'proofs'" :class="activeTab === 'proofs' ? 'bg-red-900/20 text-red-400 border-red-500/30' : 'text-[#7A6E5E] border-transparent hover:text-[#F5F0E8]'" class="w-full text-left px-4 py-3 rounded-sm border transition-all text-sm font-medium flex items-center justify-between">
+                4. Preuves de Sécurité
+                <svg x-show="activeTab === 'proofs'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
             <button @click="activeTab = 'moderation'" :class="activeTab === 'moderation' ? 'bg-red-900/20 text-red-400 border-red-500/30' : 'text-[#7A6E5E] border-transparent hover:text-[#F5F0E8]'" class="w-full text-left px-4 py-3 rounded-sm border transition-all text-sm font-medium flex items-center justify-between">
                 5. Lexique Modération IA
