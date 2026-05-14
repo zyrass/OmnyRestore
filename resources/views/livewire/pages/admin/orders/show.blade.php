@@ -1134,6 +1134,32 @@ class extends Component
                     Alerte Modération
                 </h3>
                 <p class="text-[#F5F0E8] text-sm mb-4">L'IA a signalé du contenu sensible/illégal. Veuillez vérifier les images (floutées par défaut).</p>
+                
+                {{-- Lexique des catégories --}}
+                <div x-data="{ openGlossary: false }" class="mb-4">
+                    <button @click="openGlossary = !openGlossary" class="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors">
+                        <svg class="w-3 h-3 transition-transform" :class="openGlossary ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        Voir le lexique des catégories (OpenAI Moderation)
+                    </button>
+                    <div x-show="openGlossary" x-collapse x-cloak class="mt-2 text-[10px] text-red-200/80 bg-red-900/30 p-3 rounded-sm border border-red-500/20">
+                        <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                            <li><strong class="text-white">sexual</strong> : Contenu sexuellement explicite (pornographie).</li>
+                            <li><strong class="text-white">sexual/minors</strong> : 🚨 Pédocriminalité (CSAM). Rapport PHAROS requis.</li>
+                            <li><strong class="text-white">hate</strong> : Incitation à la haine (race, genre, religion...).</li>
+                            <li><strong class="text-white">hate/threatening</strong> : Haine avec menaces de violence.</li>
+                            <li><strong class="text-white">harassment</strong> : Harcèlement (insultes, intimidation).</li>
+                            <li><strong class="text-white">harassment/threatening</strong> : Harcèlement avec menaces.</li>
+                            <li><strong class="text-white">illicit</strong> : Promotion/instructions d'activités illégales.</li>
+                            <li><strong class="text-white">illicit/violent</strong> : Instructions de création d'armes/violence.</li>
+                            <li><strong class="text-white">self-harm</strong> : Promotion de l'automutilation ou du suicide.</li>
+                            <li><strong class="text-white">self-harm/intent</strong> : Intentions d'automutilation.</li>
+                            <li><strong class="text-white">self-harm/instructions</strong> : Instructions sur comment s'automutiler.</li>
+                            <li><strong class="text-white">violence</strong> : Contenu promouvant ou incitant à la violence.</li>
+                            <li><strong class="text-white">violence/graphic</strong> : Images gores, macabres ou choquantes.</li>
+                        </ul>
+                    </div>
+                </div>
+
                 <div class="space-y-3">
                     <button wire:click="ignoreReport" wire:confirm="Êtes-vous sûr qu'il s'agit d'un faux positif ?" class="w-full py-2 px-3 text-xs bg-[#1A1510] text-[#7A6E5E] border border-[#7A6E5E]/30 hover:text-[#F5F0E8] hover:border-[#F5F0E8] rounded-sm transition-all text-left">
                         1. Faux Positif : Ignorer
