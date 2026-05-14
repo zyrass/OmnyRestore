@@ -200,6 +200,51 @@ class extends Component
         $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
     }
 
+    // ── Phase d'Urgence : CSAM / NSFW ────────────────────────────────────────
+
+    public function ignoreReport(): void
+    {
+        $this->order->forceFill(['status' => 'PENDING'])->save();
+        session()->flash('success', 'Signalement ignoré. La commande est de nouveau en attente.');
+        $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
+    }
+
+    public function banAndDestroy(): void
+    {
+        // Détruire tous les médias physiquement
+        $this->order->clearMediaCollection('originals');
+        $this->order->clearMediaCollection('retouched');
+        $this->order->clearMediaCollection('watermarked');
+        
+        // Annuler la commande
+        $this->order->cancel('Bannissement pour non-respect des CGU / Contenu sensible.');
+        
+        // Bannir l'utilisateur (Soft delete) si non déjà supprimé
+        if ($this->order->user && !$this->order->user->trashed()) {
+            $this->order->user->delete();
+        }
+
+        session()->flash('success', 'Médias détruits, commande annulée et utilisateur banni.');
+        $this->redirect(route('admin.dashboard'), navigate: true);
+    }
+
+    public function generatePharosReport(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $email = $this->order->user ? $this->order->user->email : $this->order->billing_email;
+        $ip = $this->order->client_ip ?? 'Non enregistrée';
+        $content = "RAPPORT SIGNALEMENT PHAROS\n"
+                 . "============================\n"
+                 . "Référence commande : {$this->order->reference}\n"
+                 . "Date : {$this->order->created_at->format('d/m/Y H:i:s')}\n"
+                 . "Email compte : {$email}\n"
+                 . "Adresse IP : {$ip}\n"
+                 . "Notes admin / Détection : {$this->order->admin_notes}\n";
+        
+        return response()->streamDownload(function () use ($content) {
+            echo $content;
+        }, 'rapport-pharos-' . $this->order->reference . '.txt');
+    }
+
     // ── Phase D : Rejet de photos restaurées ────────────────────────────────
 
     /**
@@ -504,8 +549,8 @@ class extends Component
                 <h1 class="text-2xl font-bold text-[#F5F0E8]">Commande</h1>
                 <span class="font-mono text-[#C9A84C]">{{ $order->reference }}</span>
                 @php
-                    $badges = ['PENDING'=>'bg-yellow-900/40 text-yellow-400 border-yellow-500/30','IN_PROGRESS'=>'bg-blue-900/40 text-blue-400 border-blue-500/30','DONE'=>'bg-[#C9A84C]/15 text-[#C9A84C] border-[#C9A84C]/30','PAID'=>'bg-emerald-900/40 text-emerald-400 border-emerald-500/30','CANCELLED'=>'bg-red-900/30 text-red-400 border-red-500/30'];
-                    $labels = ['PENDING'=>'En attente','IN_PROGRESS'=>'En cours','DONE'=>'Aperçu prêt','PAID'=>'Payé ✓','CANCELLED'=>'Annulé'];
+                    $badges = ['PENDING'=>'bg-yellow-900/40 text-yellow-400 border-yellow-500/30','IN_PROGRESS'=>'bg-blue-900/40 text-blue-400 border-blue-500/30','DONE'=>'bg-[#C9A84C]/15 text-[#C9A84C] border-[#C9A84C]/30','PAID'=>'bg-emerald-900/40 text-emerald-400 border-emerald-500/30','CANCELLED'=>'bg-red-900/30 text-red-400 border-red-500/30','FLAGGED'=>'bg-red-900 text-white border-red-400 animate-pulse'];
+                    $labels = ['PENDING'=>'En attente','IN_PROGRESS'=>'En cours','DONE'=>'Aperçu prêt','PAID'=>'Payé ✓','CANCELLED'=>'Annulé','FLAGGED'=>'🚨 SIGNALÉ (NSFW/CSAM)'];
                 @endphp
                 <span class="px-2.5 py-1 text-xs border rounded-full {{ $badges[$order->status] ?? '' }}">
                     {{ $labels[$order->status] ?? $order->status }}
@@ -534,10 +579,19 @@ class extends Component
                     @else
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                         @foreach ($order->getMedia('originals') as $media)
-                        <div class="group relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/10">
-                            <img src="{{ route('admin.orders.photo.show', [$order, $media]) }}" alt="{{ $media->file_name }}" class="w-full h-full object-cover">
-                            <a href="{{ route('admin.orders.photo.show', [$order, $media]) }}" target="_blank"
-                               class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <div x-data="{ revealed: false }" class="group relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden border {{ $media->getCustomProperty('is_nsfw') ? 'border-red-500' : 'border-[#C9A84C]/10' }}">
+                            <img src="{{ route('admin.orders.photo.show', [$order, $media]) }}" alt="{{ $media->file_name }}" class="w-full h-full object-cover transition-all duration-300" :class="revealed ? '' : '{{ $media->getCustomProperty('is_nsfw') ? 'blur-2xl' : '' }}'">
+                            
+                            @if($media->getCustomProperty('is_nsfw'))
+                            <div x-show="!revealed" class="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-center p-2 z-10">
+                                <svg class="w-8 h-8 text-red-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                <span class="text-xs text-white font-bold">NSFW / CSAM</span>
+                                <button @click="revealed = true" type="button" class="mt-2 text-[10px] bg-red-600/80 hover:bg-red-600 px-2 py-1 rounded text-white">Révéler</button>
+                            </div>
+                            @endif
+
+                            <a x-show="revealed || !{{ $media->getCustomProperty('is_nsfw') ? 'true' : 'false' }}" href="{{ route('admin.orders.photo.show', [$order, $media]) }}" target="_blank"
+                               class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                             </a>
                             {{-- Propriétés IA si disponibles --}}
@@ -1034,6 +1088,13 @@ class extends Component
                     </div>
                     @if ($order->paid_at)
                     <div class="flex justify-between border-t border-[#C9A84C]/5 pt-2 mt-2"><dt class="text-[#7A6E5E]">Payé le</dt><dd class="text-emerald-400 text-xs">{{ $order->paid_at->format('d/m/Y H:i') }}</dd></div>
+                    <div class="mt-4 pt-4 border-t border-[#C9A84C]/10">
+                        <a href="{{ route('admin.orders.invoice', $order) }}" target="_blank"
+                           class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#C9A84C]/10 hover:bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C] hover:text-[#E8C97A] text-xs font-medium rounded-sm transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Télécharger la facture PDF
+                        </a>
+                    </div>
                     @endif
                 </dl>
             </div>
@@ -1065,8 +1126,32 @@ class extends Component
                 @endif
             </div>
 
+            {{-- Urgence Légale (CSAM / NSFW) --}}
+            @if ($order->status === 'FLAGGED')
+            <div class="card-glass p-5 border-red-500 bg-red-950/20">
+                <h3 class="text-red-400 text-xs tracking-widest uppercase border-b border-red-500/20 pb-2 mb-4 font-bold flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    Alerte Modération
+                </h3>
+                <p class="text-[#F5F0E8] text-sm mb-4">L'IA a signalé du contenu sensible/illégal. Veuillez vérifier les images (floutées par défaut).</p>
+                <div class="space-y-3">
+                    <button wire:click="ignoreReport" wire:confirm="Êtes-vous sûr qu'il s'agit d'un faux positif ?" class="w-full py-2 px-3 text-xs bg-[#1A1510] text-[#7A6E5E] border border-[#7A6E5E]/30 hover:text-[#F5F0E8] hover:border-[#F5F0E8] rounded-sm transition-all text-left">
+                        1. Faux Positif : Ignorer
+                    </button>
+                    <button wire:click="banAndDestroy" wire:confirm="Action IRRÉVERSIBLE : Les photos seront physiquement détruites et l'utilisateur banni. Confirmer ?" class="w-full py-2 px-3 text-xs bg-red-900/30 text-red-400 border border-red-500/50 hover:bg-red-900 hover:text-white rounded-sm transition-all text-left font-bold">
+                        2. BANNIR ET DÉTRUIRE (CGU)
+                    </button>
+                    <button wire:click="generatePharosReport" class="w-full py-2 px-3 text-xs bg-red-600 text-white border border-red-500 hover:bg-red-500 rounded-sm transition-all text-left font-bold flex justify-between items-center">
+                        <span>3. RAPPORT LÉGAL (PHAROS)</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    </button>
+                    <p class="text-xs text-red-400/80 mt-2">Le rapport PHAROS contient l'IP et l'email pour dépôt sur internet-signalement.gouv.fr</p>
+                </div>
+            </div>
+            @endif
+
             {{-- Annulation --}}
-            @if (in_array($order->status, ['PENDING', 'IN_PROGRESS']))
+            @if (in_array($order->status, ['PENDING', 'IN_PROGRESS', 'FLAGGED']))
             <div class="card-glass p-5 border-red-500/15" x-data="{ open: false, confirmCancel: false }">
                 <button @click="open = !open; confirmCancel = false" class="w-full flex items-center justify-between text-red-400 text-xs hover:text-red-300 transition-colors">
                     <span class="font-medium">Annuler la commande</span>

@@ -199,6 +199,7 @@ class extends Component
             'total_price_cents' => $finalHtCents,         // Prix HT net (après remise coupon)
             'coupon_code'       => $couponCode,
             'discount_cents'    => $discountCents,
+            'client_ip'         => request()->ip(),
         ]);
 
         // Confirmer l'utilisation du coupon (incrémenter le compteur)
@@ -279,6 +280,10 @@ class extends Component
         ]);
 
         $audit->orderCreated($order);
+
+        // Lancer l'analyse CSAM/NSFW asynchrone via OpenAI
+        \App\Jobs\AnalyzeOrderSafetyJob::dispatch($order);
+
         $this->redirect(route('client.orders.show', $order), navigate: true);
     }
 }; ?>

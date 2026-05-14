@@ -76,6 +76,7 @@ class Order extends Model implements HasMedia
         'PAID',
         'DELIVERED',
         'CANCELLED',
+        'FLAGGED',
     ];
 
     /**
@@ -139,6 +140,7 @@ class Order extends Model implements HasMedia
         'preview_unlocked_at',   // Email-gate : renseigné par UnlockPreviewController au clic
         'billing_name',
         'billing_email',
+        'client_ip',
     ];
 
     /**

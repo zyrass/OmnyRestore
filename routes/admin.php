@@ -36,6 +36,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         \App\Http\Controllers\Admin\OrderController::class . '@updateStatus'
     )->name('orders.status');
 
+    // GET /admin/orders/{order}/invoice — Télécharger la facture PDF
+    Route::get('/orders/{order}/invoice',
+        [\App\Http\Controllers\Admin\AdminInvoiceController::class, 'download']
+    )->name('orders.invoice');
+
     // POST /admin/orders/{order}/auto-restore — Restauration IA automatique (Phase 8)
     Route::post('/orders/{order}/auto-restore',
         \App\Http\Controllers\Admin\OrderAutoRestoreController::class . '@dispatch'

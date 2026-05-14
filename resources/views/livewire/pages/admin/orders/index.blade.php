@@ -64,6 +64,7 @@ class extends Component
             'counts' => [
                 'all'          => Order::whereHas('user')->count(),
                 'PENDING'      => Order::whereHas('user')->where('status', 'PENDING')->count(),
+                'FLAGGED'      => Order::whereHas('user')->where('status', 'FLAGGED')->count(),
                 'IN_PROGRESS'  => Order::whereHas('user')->where('status', 'IN_PROGRESS')->count(),
                 'DONE'         => Order::whereHas('user')->where('status', 'DONE')->count(),
                 'PAID'         => Order::whereHas('user')->where('payment_status', 'paid')->count(),
@@ -101,6 +102,7 @@ class extends Component
             @foreach([
                 ['value' => '',           'label' => 'Tous',        'count' => $counts['all']],
                 ['value' => 'PENDING',    'label' => 'En attente',  'count' => $counts['PENDING']],
+                ['value' => 'FLAGGED',    'label' => 'Signalés',    'count' => $counts['FLAGGED']],
                 ['value' => 'IN_PROGRESS','label' => 'En cours',    'count' => $counts['IN_PROGRESS']],
                 ['value' => 'DONE',       'label' => 'Prêts',       'count' => $counts['DONE']],
                 ['value' => 'CANCELLED',  'label' => 'Annulés',     'count' => $counts['CANCELLED']],
@@ -144,13 +146,14 @@ class extends Component
                     $isUserDeleted = !$order->user || $order->user->trashed();
                     $badges = [
                         'PENDING'     => 'bg-yellow-900/40 text-yellow-400 border-yellow-500/30',
+                        'FLAGGED'     => 'bg-red-900 text-white border-red-400 animate-pulse',
                         'IN_PROGRESS' => 'bg-blue-900/40 text-blue-400 border-blue-500/30',
                         'DONE'        => 'bg-[#C9A84C]/15 text-[#C9A84C] border-[#C9A84C]/30',
                         'PAID'        => 'bg-emerald-900/40 text-emerald-400 border-emerald-500/30',
                         'DELIVERED'   => 'bg-emerald-900/60 text-emerald-300 border-emerald-400/40',
                         'CANCELLED'   => 'bg-red-900/30 text-red-400 border-red-500/30',
                     ];
-                    $labels = ['PENDING' => 'En attente', 'IN_PROGRESS' => 'En cours', 'DONE' => 'Prêt', 'PAID' => 'Payé ✓', 'DELIVERED' => 'Livré', 'CANCELLED' => 'Annulé'];
+                    $labels = ['PENDING' => 'En attente', 'FLAGGED' => '🚨 SIGNALÉ', 'IN_PROGRESS' => 'En cours', 'DONE' => 'Prêt', 'PAID' => 'Payé ✓', 'DELIVERED' => 'Livré', 'CANCELLED' => 'Annulé'];
                 @endphp
                 <tr class="hover:bg-[#C9A84C]/3 transition-colors cursor-pointer {{ $isUserDeleted ? 'opacity-60 grayscale-[0.3]' : '' }}"
                     onclick="window.location='{{ route('admin.orders.show', $order) }}'"

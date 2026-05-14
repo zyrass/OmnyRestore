@@ -49,11 +49,12 @@ class extends Component
                 'users_deleted' => User::onlyTrashed()->count(),
             ],
 
-            // ── File d'attente PENDING ────────────────────────────────────
+            // ── File d'attente PENDING & FLAGGED ────────────────────────────────────
             'pending_orders' => Order::whereHas('user')
-                ->where('status', 'PENDING')
+                ->whereIn('status', ['PENDING', 'FLAGGED'])
                 ->with(['user' => fn($u) => $u->withTrashed()])
-                ->oldest()  // Plus ancienne en premier (FIFO)
+                ->orderByRaw("status = 'FLAGGED' DESC") // Les FLAGGED en premier !
+                ->oldest()  // Puis par date
                 ->limit(10)
                 ->get(),
 
@@ -147,7 +148,7 @@ class extends Component
             @else
             <div class="divide-y divide-[#C9A84C]/8">
                 @foreach ($pending_orders as $order)
-                <div class="px-5 py-3.5 flex items-center justify-between hover:bg-[#C9A84C]/3 transition-colors">
+                <div class="px-5 py-3.5 flex items-center justify-between hover:bg-[#C9A84C]/3 transition-colors {{ $order->status === 'FLAGGED' ? 'bg-red-950/20 border-l-4 border-red-500' : '' }}">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2">
                             <span class="font-mono text-[#C9A84C] text-xs">{{ $order->reference }}</span>
@@ -160,11 +161,14 @@ class extends Component
                             @if ($order->damage_level === 'heavy')
                             <span class="text-orange-400 text-[10px] border border-orange-500/30 px-1.5 py-0.5 rounded-full">Complète</span>
                             @endif
+                            @if ($order->status === 'FLAGGED')
+                            <span class="text-red-400 text-[10px] font-bold border border-red-500 px-1.5 py-0.5 rounded-full animate-pulse">🚨 SIGNALÉ</span>
+                            @endif
                         </div>
                     </div>
                     <a href="{{ route('admin.orders.show', $order) }}" wire:navigate
-                       class="ml-3 px-3 py-1.5 text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30 rounded-sm transition-all shrink-0">
-                        Prendre en charge →
+                       class="ml-3 px-3 py-1.5 text-xs rounded-sm transition-all shrink-0 {{ $order->status === 'FLAGGED' ? 'bg-red-600 text-white border border-red-500 hover:bg-red-500' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30' }}">
+                        {{ $order->status === 'FLAGGED' ? 'Vérifier l\'alerte →' : 'Prendre en charge →' }}
                     </a>
                 </div>
                 @endforeach
