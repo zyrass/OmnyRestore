@@ -145,7 +145,7 @@ new class extends Component
                      class="absolute right-0 top-10 w-52 bg-[#1A1510] border border-[#C9A84C]/15 rounded-sm shadow-xl py-1 z-50">
                     @if (Auth::user()->role === 'admin')
 
-                    <a href="{{ route('admin.incident.response', ['tab' => 'moderation']) }}" wire:navigate
+                    <a href="{{ route('admin.moderation.lexicon') }}" wire:navigate
                        class="flex items-center justify-between px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-red-400 hover:bg-red-900/10 transition-colors border-b border-white/5">
                         <span class="flex items-center gap-3">
                             <span class="w-4 h-4 flex items-center justify-center">🛡️</span>

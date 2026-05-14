@@ -86,6 +86,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
         [\App\Http\Controllers\Admin\AdminSecurePhotoController::class, 'show']
     )->name('orders.photo.show');
 
+    // ─── Modération IA ────────────────────────────────────────────────────
+    Volt::route('/moderation/lexicon', 'pages.admin.moderation.lexicon')
+        ->name('moderation.lexicon');
+
     // ─── Cellule de Crise (PRI) ──────────────────────────────────────────
     // Poste de commandement en cas d'incident majeur ou RGPD
     Volt::route('/incident-response', 'pages.admin.incident.index')

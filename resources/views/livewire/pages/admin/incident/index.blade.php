@@ -8,7 +8,7 @@ layout('layouts.app');
 title('Cellule de Crise — OmnyRestore');
 
 state([
-    'activeTab' => request()->query('tab', 'emergency'),
+    'activeTab' => 'emergency',
     'lastBackup' => now()->subHours(4)->format('d/m/Y H:i'),
     'dpoContact' => [
         'name' => 'Alain GUILLON (DPO Interne)',
@@ -58,7 +58,7 @@ $toggleCrisis = function() {
 ?>
 
 <div class="py-10 px-6 max-w-7xl mx-auto" x-data="{ 
-    activeTab: @entangle('activeTab'),
+    activeTab: 'emergency',
     timer: 72 * 3600,
     isCrisisActive: @entangle('isCrisisActive'),
     showTriggerConfirm: false,
@@ -142,10 +142,6 @@ $toggleCrisis = function() {
             <button @click="activeTab = 'proofs'" :class="activeTab === 'proofs' ? 'bg-red-900/20 text-red-400 border-red-500/30' : 'text-[#7A6E5E] border-transparent hover:text-[#F5F0E8]'" class="w-full text-left px-4 py-3 rounded-sm border transition-all text-sm font-medium flex items-center justify-between">
                 4. Preuves de Sécurité
                 <svg x-show="activeTab === 'proofs'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-            </button>
-            <button @click="activeTab = 'moderation'" :class="activeTab === 'moderation' ? 'bg-red-900/20 text-red-400 border-red-500/30' : 'text-[#7A6E5E] border-transparent hover:text-[#F5F0E8]'" class="w-full text-left px-4 py-3 rounded-sm border transition-all text-sm font-medium flex items-center justify-between">
-                5. Lexique Modération IA
-                <svg x-show="activeTab === 'moderation'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
         </div>
 
@@ -266,106 +262,6 @@ $toggleCrisis = function() {
                     <div class="text-center">
                         <svg class="w-12 h-12 text-[#C9A84C]/20 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>
                         <span class="text-[10px] uppercase tracking-widest text-[#7A6E5E]">Diagramme d'Architecture Cloud OmnyRestore</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- TAB: MODERATION --}}
-            <div x-show="activeTab === 'moderation'" x-transition class="space-y-6">
-                <div class="bg-red-900/5 border border-red-900/20 p-6 rounded-sm">
-                    <h3 class="text-[#F5F0E8] font-bold mb-4 flex items-center gap-2">
-                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                        Lexique des Catégories de Modération (OpenAI)
-                    </h3>
-                    <p class="text-sm text-[#7A6E5E] mb-6">
-                        Toutes les images uploadées sur OmnyRestore sont analysées par le modèle <code class="text-red-400">omni-moderation-latest</code>. 
-                        Voici la liste des flags possibles et leur signification légale ou éthique.
-                    </p>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {{-- Catégorie Sexuelle --}}
-                        <div class="p-4 bg-black/40 border border-red-500/10 rounded-sm">
-                            <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-pink-500"></span>
-                                Contenu Sexuel
-                            </h4>
-                            <ul class="space-y-3">
-                                <li class="text-[11px] text-[#7A6E5E]">
-                                    <strong class="text-red-400 block">sexual</strong>
-                                    Pornographie ou contenu sexuellement explicite. Non toléré (Action: Destruction).
-                                </li>
-                                <li class="text-[11px] text-[#7A6E5E]">
-                                    <strong class="text-red-500 block">sexual/minors (CSAM) 🚨</strong>
-                                    Matériel pédocriminel. **Action Critique** : Rapport PHAROS obligatoire + Bannissement immédiat.
-                                </li>
-                            </ul>
-                        </div>
-
-                        {{-- Catégorie Haine & Harcèlement --}}
-                        <div class="p-4 bg-black/40 border border-red-500/10 rounded-sm">
-                            <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-orange-500"></span>
-                                Haine & Harcèlement
-                            </h4>
-                            <ul class="space-y-3">
-                                <li class="text-[11px] text-[#7A6E5E]">
-                                    <strong class="text-red-400 block">hate / hate/threatening</strong>
-                                    Discours de haine (race, religion, genre) ou menaces directes de violence.
-                                </li>
-                                <li class="text-[11px] text-[#7A6E5E]">
-                                    <strong class="text-red-400 block">harassment / harassment/threatening</strong>
-                                    Comportement répétitif abusif ou menaçant envers des individus.
-                                </li>
-                            </ul>
-                        </div>
-
-                        {{-- Catégorie Violence --}}
-                        <div class="p-4 bg-black/40 border border-red-500/10 rounded-sm">
-                            <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-red-600"></span>
-                                Violence & Gore
-                            </h4>
-                            <ul class="space-y-3">
-                                <li class="text-[11px] text-[#7A6E5E]">
-                                    <strong class="text-red-400 block">violence / violence/graphic</strong>
-                                    Promotion de la violence ou images macabres, gores et choquantes.
-                                </li>
-                            </ul>
-                        </div>
-
-                        {{-- Catégorie Activités Illicites --}}
-                        <div class="p-4 bg-black/40 border border-red-500/10 rounded-sm">
-                            <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-purple-500"></span>
-                                Activités Illicites
-                            </h4>
-                            <ul class="space-y-3">
-                                <li class="text-[11px] text-[#7A6E5E]">
-                                    <strong class="text-red-400 block">illicit / illicit/violent</strong>
-                                    Promotion d'activités illégales ou instructions pour la création d'armes.
-                                </li>
-                            </ul>
-                        </div>
-
-                        {{-- Catégorie Automutilation --}}
-                        <div class="p-4 bg-black/40 border border-red-500/10 rounded-sm">
-                            <h4 class="text-white font-bold text-xs uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <span class="w-2 h-2 rounded-full bg-blue-500"></span>
-                                Automutilation
-                            </h4>
-                            <ul class="space-y-3">
-                                <li class="text-[11px] text-[#7A6E5E]">
-                                    <strong class="text-red-400 block">self-harm / intent / instructions</strong>
-                                    Promotion ou instructions concernant le suicide ou l'automutilation.
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 p-4 bg-red-900/10 border-l-4 border-red-600">
-                        <p class="text-xs text-red-200 leading-relaxed">
-                            <strong>Note de conformité :</strong> Tout signalement <code class="text-white">FLAGGED</code> dans le système bloque automatiquement la commande. L'administrateur conserve le dernier mot (Faux positif vs Action de Crise).
-                        </p>
                     </div>
                 </div>
             </div>
