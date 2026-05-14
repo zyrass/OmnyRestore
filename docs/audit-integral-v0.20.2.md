@@ -1,6 +1,6 @@
-# Audit Intégral OmnyRestore — v0.20.1
+# Audit Intégral OmnyRestore — v0.20.2
 > **Date d'audit** : Mai 2026
-> **Version auditée** : `v0.20.1` (branche `test`)
+> **Version auditée** : `v0.20.2` (branche `test`)
 > **Auditeur** : Antigravity / Google DeepMind
 > **Périmètre** : Architecture, Sécurité (PRI), RGPD, Code source, Paiement, Infrastructure, UX.
 
@@ -8,7 +8,7 @@
 
 ## 🎯 INTRODUCTION & SCORE GLOBAL : **91 / 100**
 
-> *L'audit de la version 0.20.1 démontre une maturité exceptionnelle du projet OmnyRestore. En passant de 74/100 (v0.15.0) à 91/100, la plateforme a franchi le cap critique séparant un prototype fonctionnel d'un produit SaaS "Enterprise-Ready". L'implémentation de la Cellule de Crise (PRI), l'anonymisation RGPD totale, le workflow de livraison automatisé, l'intégrité comptable des factures, et les finitions UX récentes (Conformité Admin, affordances de menus) placent ce projet dans le haut du panier en termes de standards de qualité et de sécurité. Les derniers points d'attention se concentrent sur le déploiement de l'infrastructure de production.*
+> *L'audit de la version 0.20.2 démontre une maturité exceptionnelle du projet OmnyRestore. En passant de 74/100 (v0.15.0) à 91/100, la plateforme a franchi le cap critique séparant un prototype fonctionnel d'un produit SaaS "Enterprise-Ready". L'implémentation de la Cellule de Crise (PRI), l'anonymisation RGPD totale, le workflow de livraison automatisé, l'intégrité comptable des factures, et les finitions UX récentes (Conformité Admin, affordances de menus) placent ce projet dans le haut du panier en termes de standards de qualité et de sécurité. Les derniers points d'attention se concentrent sur le déploiement de l'infrastructure de production.*
 
 ---
 

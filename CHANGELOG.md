@@ -6,6 +6,19 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.20.2] — 2026-05-14 — Dev Environment & SMTP Hardening
+
+### 🛠️ Environnement & Configuration
+
+- **Reset de l'Environnement de Développement** :
+  - Nettoyage intégral de la base de données (`migrate:fresh --seed`).
+  - Suppression de toutes les archives ZIP orphelines et purge de la bibliothèque de médias (Spatie Media Library).
+  - Validation et re-configuration du SMTP (Mailtrap) pour l'envoi d'emails réels (vérification d'inscription, factures).
+- **Mise à jour Documentaire** :
+  - Ajout d'un encart explicatif détaillé sur la pondération des scores de l'audit intégral.
+
+---
+
 ## [0.20.1] — 2026-05-14 — GDPR Compliance & Financial Integrity
 
 ### 🔒 Sécurité & Conformité Légale
