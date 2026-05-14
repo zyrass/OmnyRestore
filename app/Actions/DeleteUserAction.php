@@ -59,8 +59,26 @@ class DeleteUserAction
                 $order->clearMediaCollection('originals');
                 $order->clearMediaCollection('retouched');
                 $order->clearMediaCollection('watermarked');
+                
+                // Suppression de l'archive ZIP générée sur le disque
+                if ($order->zip_path) {
+                    $disk = config('filesystems.default', 'local');
+                    if ($order->delivery && $order->delivery->zip_disk) {
+                        $disk = $order->delivery->zip_disk;
+                    }
+                    
+                    \Illuminate\Support\Facades\Storage::disk($disk)->delete($order->zip_path);
+                    
+                    $order->update(['zip_path' => null]);
+                    if ($order->delivery) {
+                        $order->delivery->update([
+                            'zip_path' => null,
+                            'signed_url' => null,
+                        ]);
+                    }
+                }
             } catch (\Throwable $e) {
-                Log::warning("DeleteUserAction: échec suppression média/instructions pour order={$order->id}", [
+                Log::warning("DeleteUserAction: échec suppression média/zip/instructions pour order={$order->id}", [
                     'error' => $e->getMessage(),
                 ]);
             }

@@ -137,6 +137,8 @@ class Order extends Model implements HasMedia
         'coupon_code',
         'discount_cents',
         'preview_unlocked_at',   // Email-gate : renseigné par UnlockPreviewController au clic
+        'billing_name',
+        'billing_email',
     ];
 
     /**

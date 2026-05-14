@@ -6,6 +6,25 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.20.1] — 2026-05-14 — GDPR Compliance & Financial Integrity
+
+### 🔒 Sécurité & Conformité Légale
+
+- **Intégrité Comptable des Factures** (Art. L.123-22 C. com.) :
+  - Création d'une migration pour stocker les informations de facturation (`billing_name`, `billing_email`) directement sur la commande (`Order`) au moment du paiement.
+  - Résout une faille majeure où la suppression d'un compte client modifiait rétroactivement le nom sur les factures PDF déjà émises en "Utilisateur supprimé".
+- **Anonymisation RGPD** (Art. 17) :
+  - L'action de suppression de compte (`DeleteUserAction`) supprime désormais physiquement l'archive ZIP contenant les photos restaurées du client sur le serveur.
+- **Purge Automatisée** (Art. 5.1.e) :
+  - La commande planifiée de purge à 6 mois (`PurgeExpiredMediaCommand`) vérifie maintenant le `zip_path` au niveau global de la commande, assurant une couverture de suppression totale.
+
+### 🐛 Corrections de Bugs
+
+- **Affichage des Prix (Email)** :
+  - Correction d'un bug dans l'email `ready-for-payment` où le montant facturé et le nombre de photos affichés étaient calculés sur la base des envois initiaux plutôt que sur les photos réellement traitées/retenues par l'admin.
+
+---
+
 ## [0.20.0] — 2026-05-14 — Admin Compliance & UX Polishing
 
 ### ✨ Nouveautés & Améliorations

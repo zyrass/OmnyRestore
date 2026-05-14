@@ -41,6 +41,18 @@ class OrderDownloadController extends Controller
         // Log audit RGPD
         $this->auditService->downloadInitiated($order);
 
+        // Enregistrement du téléchargement pour le support (refonte remboursement)
+        $delivery = $order->delivery;
+        if (! $delivery) {
+            $delivery = $order->delivery()->create([
+                'zip_disk' => config('filesystems.default', 'local'),
+                'zip_path' => $order->zip_path,
+                'zip_size' => 0, // Fallback safe, on ne veut pas bloquer le téléchargement pour la taille
+            ]);
+        }
+        
+        $delivery->recordDownload();
+
         // ── Disk local (développement) ──────────────────────────────────────
         $disk = config('filesystems.default', 'local');
         if ($disk === 'local') {

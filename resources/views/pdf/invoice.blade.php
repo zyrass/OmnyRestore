@@ -342,9 +342,9 @@ table.totals tr.free-row td {
         </div>
         <div class="party-block right">
             <div class="section-label">Facturé à</div>
-            <div class="party-name">{{ $order->user->name }}</div>
+            <div class="party-name">{{ $order->billing_name ?? $order->user->name }}</div>
             <div class="party-detail">
-                {{ $order->user->email }}<br>
+                {{ $order->billing_email ?? $order->user->email }}<br>
                 Client depuis {{ $order->user->created_at->format('d/m/Y') }}
             </div>
         </div>

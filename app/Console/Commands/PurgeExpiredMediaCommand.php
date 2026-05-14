@@ -98,14 +98,23 @@ class PurgeExpiredMediaCommand extends Command
                 $order->clearMediaCollection('watermarked');
 
                 // Suppression du fichier ZIP depuis S3 (s'il existe)
-                if ($order->delivery && $order->delivery->zip_path) {
-                    Storage::disk($order->delivery->zip_disk)
-                           ->delete($order->delivery->zip_path);
+                $zipPathToPurge = $order->zip_path ?? ($order->delivery ? $order->delivery->zip_path : null);
+                
+                if ($zipPathToPurge) {
+                    $disk = config('filesystems.default', 'local');
+                    if ($order->delivery && $order->delivery->zip_disk) {
+                        $disk = $order->delivery->zip_disk;
+                    }
+                    
+                    Storage::disk($disk)->delete($zipPathToPurge);
 
-                    $order->delivery->update([
-                        'zip_path'  => null,
-                        'signed_url'=> null,
-                    ]);
+                    $order->update(['zip_path' => null]);
+                    if ($order->delivery) {
+                        $order->delivery->update([
+                            'zip_path'  => null,
+                            'signed_url'=> null,
+                        ]);
+                    }
 
                     $this->line("     ✅ {$mediaCount} fichier(s) média + archive ZIP supprimés");
                 } else {

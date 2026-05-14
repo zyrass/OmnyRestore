@@ -159,6 +159,15 @@ class extends Component
     }
 
     /**
+     * Rafraîchit l'état de la commande (et de la livraison) après un clic sur "Télécharger".
+     * Permet la mise à jour dynamique du compteur sans rechargement complet de la page.
+     */
+    public function refreshAfterDownload(): void
+    {
+        $this->order->refresh()->load('delivery');
+    }
+
+    /**
      * Client rejette une photo restaurée (exclue du livrable et du calcul de prix).
      * Disponible uniquement au statut DONE (avant paiement).
      */
@@ -794,12 +803,22 @@ class extends Component
                     
                     @if ($order->zip_path)
                     <div class="mb-4">
-                        <a href="{{ route('client.orders.download', $order) }}"
+                        <a href="{{ route('client.orders.download', $order) }}?t={{ time() }}"
+                           target="_blank"
+                           @click="setTimeout(() => $wire.refreshAfterDownload(), 1500)"
                            class="btn-gold text-lg px-12 py-5 inline-flex items-center gap-3 shadow-[0_10px_30px_rgba(201,168,76,0.25)] hover:scale-[1.02] transition-transform">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                             Télécharger l'archive ZIP
                         </a>
                     </div>
+                    
+                    @if($order->delivery && $order->delivery->download_count > 0)
+                    <div class="flex items-center justify-center gap-1.5 mb-3 text-red-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <span class="text-[11px] font-bold tracking-wider">PRODUIT TÉLÉCHARGÉ (REMBOURSEMENT NON APPLICABLE)</span>
+                    </div>
+                    @endif
+                    
                     <p class="text-[#4A3E2E] text-[11px]">Format .ZIP · Haute Définition · Prêt pour impression</p>
                     @endif
                 </div>

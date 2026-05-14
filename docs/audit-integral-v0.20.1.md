@@ -1,14 +1,14 @@
-# Audit Intégral OmnyRestore — v0.20.0
+# Audit Intégral OmnyRestore — v0.20.1
 > **Date d'audit** : Mai 2026
-> **Version auditée** : `v0.20.0` (branche `test`)
+> **Version auditée** : `v0.20.1` (branche `test`)
 > **Auditeur** : Antigravity / Google DeepMind
 > **Périmètre** : Architecture, Sécurité (PRI), RGPD, Code source, Paiement, Infrastructure, UX.
 
 ---
 
-## 🎯 INTRODUCTION & SCORE GLOBAL : **90 / 100**
+## 🎯 INTRODUCTION & SCORE GLOBAL : **91 / 100**
 
-> *L'audit de la version 0.20.0 démontre une maturité exceptionnelle du projet OmnyRestore. En passant de 74/100 (v0.15.0) à 90/100, la plateforme a franchi le cap critique séparant un prototype fonctionnel d'un produit SaaS "Enterprise-Ready". L'implémentation de la Cellule de Crise (PRI), l'anonymisation RGPD totale, le workflow de livraison automatisé, et les finitions UX récentes (Conformité Admin, affordances de menus) placent ce projet dans le haut du panier en termes de standards de qualité et de sécurité. Les derniers points d'attention se concentrent sur le déploiement de l'infrastructure de production.*
+> *L'audit de la version 0.20.1 démontre une maturité exceptionnelle du projet OmnyRestore. En passant de 74/100 (v0.15.0) à 91/100, la plateforme a franchi le cap critique séparant un prototype fonctionnel d'un produit SaaS "Enterprise-Ready". L'implémentation de la Cellule de Crise (PRI), l'anonymisation RGPD totale, le workflow de livraison automatisé, l'intégrité comptable des factures, et les finitions UX récentes (Conformité Admin, affordances de menus) placent ce projet dans le haut du panier en termes de standards de qualité et de sécurité. Les derniers points d'attention se concentrent sur le déploiement de l'infrastructure de production.*
 
 ---
 
@@ -19,19 +19,21 @@
 | 🏗️ Architecture & Code | 19/20 | 20% | +19.0 | ↗️ +2 |
 | 🔐 Sécurité & PRI | 17/20 | 20% | +17.0 | ↗️ +3 |
 | 🛡️ RGPD & Conformité | 10/10 | 10% | +10.0 | 🌟 Parfait |
-| 💳 Paiement & Facturation | 9/10 | 10% | +9.0 | ↗️ +1 |
+| 💳 Paiement & Facturation | 10/10 | 10% | +10.0 | 🌟 Parfait |
 | 🧪 Tests & Qualité | 10/15 | 15% | +10.0 | ↗️ +2 |
 | 🚀 Infrastructure & DevOps | 8/15 | 15% | +8.0 | ➡️ = |
 | 📱 UX & Accessibilité | 10/10 | 5% | +10.0 | 🌟 Parfait |
 | 📚 Documentation | 5/5 | 5% | +5.0 | ↗️ +1 |
-| **TOTAL** | **90/100** | | | **+16 pts** |
+| **TOTAL** | **91/100** | | | **+17 pts** |
+
+> **💡 Comprendre la pondération** : La pondération (en %) reflète l'importance critique de chaque domaine pour ce projet SaaS. L'architecture (20%) et la sécurité (20%) ont un impact vital sur la survie du produit, tandis que la documentation (5%) ou l'UX (5%), bien qu'importantes, ne bloquent pas le cœur de métier. Le score final sur 100 est calculé en appliquant ce coefficient de pondération à chaque domaine.
 
 ```mermaid
 pie title Répartition des scores par domaine (sur base 100 pondérée)
     "Architecture & Code" : 19
     "Sécurité & PRI" : 17
     "RGPD & Conformité" : 10
-    "Paiement & Facturation" : 9
+    "Paiement & Facturation" : 10
     "Tests & Qualité" : 10
     "Infrastructure & DevOps" : 8
     "UX & Accessibilité" : 10

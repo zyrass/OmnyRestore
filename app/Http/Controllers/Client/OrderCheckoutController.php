@@ -62,6 +62,8 @@ class OrderCheckoutController extends Controller
                 'status'            => 'PAID',
                 'paid_at'           => now(),
                 'payment_intent_id' => 'coupon_free_' . $order->reference,
+                'billing_name'      => $order->user->name,
+                'billing_email'     => $order->user->email,
             ]);
 
             // Générer le ZIP comme après un vrai paiement Stripe
@@ -126,8 +128,12 @@ class OrderCheckoutController extends Controller
                 'locale'         => 'fr',
             ]);
 
-            // Sauvegarder le session ID pour le retrouver dans le webhook
-            $order->update(['payment_intent_id' => $session->payment_intent ?? $session->id]);
+            // Sauvegarder le session ID pour le retrouver dans le webhook et figer les infos de facturation
+            $order->update([
+                'payment_intent_id' => $session->payment_intent ?? $session->id,
+                'billing_name'      => $order->user->name,
+                'billing_email'     => $order->user->email,
+            ]);
 
             return redirect($session->url);
 

@@ -136,6 +136,16 @@ class GenerateOrderZipJob implements ShouldQueue
             'delivered_at'   => now(),
         ]);
 
+        // Créer l'entrée de livraison officielle pour le suivi (download_count)
+        $order->delivery()->updateOrCreate(
+            ['order_id' => $order->id],
+            [
+                'zip_disk' => config('filesystems.default', 'local'),
+                'zip_path' => "orders/zips/{$zipFilename}",
+                'zip_size' => filesize($zipPath),
+            ]
+        );
+
         // Transition vers DELIVERED via forceFill (déclenche l'OrderObserver → email)
         $order->forceFill(['status' => 'DELIVERED'])->save();
 

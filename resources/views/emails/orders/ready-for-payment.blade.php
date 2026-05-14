@@ -35,25 +35,9 @@
 <body>
 <div class="container">
     @php
-        $baseHtC     = $order->base_price_cents ?? 0;
-        $discountC   = $order->discount_cents ?? 0;
-        $finalHtC    = $order->total_price_cents !== null ? $order->total_price_cents : max(0, $baseHtC - $discountC);
-        
-        // TTC exact : sommer les PRICES_TTC des photos originales
-        $_pttc       = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
-        $_originals  = $order->getMedia('originals');
-        $baseTtcC    = $_originals->sum(function ($m) use ($_pttc, $order) {
-            $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
-            return $_pttc[$lv] ?? $_pttc['light'];
-        });
-
-        // Fallback si pas de media originals
-        if ($baseTtcC === 0) {
-            $baseTtcC = (int) round($baseHtC * 1.2);
-        }
-
-        $ttcCents = max(0, $baseTtcC - $discountC);
+        $ttcCents = $order->getAmountTtcCents();
         $isFree   = $ttcCents === 0;
+        $photoCount = $order->getActivePhotosCount();
     @endphp
 
     <div class="header">
@@ -92,7 +76,7 @@
             </div>
             <div class="order-box-row">
                 <span class="order-box-label">Nombre de photos</span>
-                <span class="order-box-value">{{ $order->photo_count }}</span>
+                <span class="order-box-value">{{ $photoCount }}</span>
             </div>
             <div class="order-box-row">
                 <span class="order-box-label">Détails restauration</span>

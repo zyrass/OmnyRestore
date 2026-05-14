@@ -334,6 +334,31 @@ class extends Component
                             </a>
                             <span class="text-[#7A6E5E] text-xs ml-2">{{ $ticket->order->status }}</span>
                         </dd>
+                        
+                        @if ($ticket->order->status === 'DELIVERED')
+                            @php
+                                $downloadCount = $ticket->order->delivery ? $ticket->order->delivery->download_count : 0;
+                            @endphp
+                            <div class="mt-3 p-4 rounded-sm text-[10px] border" 
+                                 style="{{ $downloadCount > 0 ? 'background-color: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); color: #ef4444;' : 'background-color: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.2); color: #22c55e;' }}">
+                                <div class="font-bold mb-1 flex items-center gap-1.5 uppercase tracking-wider">
+                                    @if($downloadCount > 0)
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                        Fichiers téléchargés
+                                    @else
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Aucun téléchargement
+                                    @endif
+                                </div>
+                                <p class="leading-tight opacity-90 text-[11px]">
+                                    @if($downloadCount > 0)
+                                        Le client a téléchargé le ZIP <b>{{ $downloadCount }} fois</b>.<br>Selon les CGV, le produit numérique étant consommé, un remboursement est normalement caduc.
+                                    @else
+                                        Le client n'a pas encore téléchargé le ZIP.<br>Un remboursement intégral est envisageable.
+                                    @endif
+                                </p>
+                            </div>
+                        @endif
                     </div>
                     @endif
                 </dl>
