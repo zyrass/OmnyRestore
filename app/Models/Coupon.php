@@ -24,12 +24,14 @@ class Coupon extends Model
     protected $fillable = [
         'code', 'description', 'type', 'value',
         'min_order_cents', 'max_uses', 'used_count',
-        'expires_at', 'is_active',
+        'starts_at', 'expires_at', 'is_active', 'is_seasonal',
     ];
 
     protected $casts = [
+        'starts_at'  => 'datetime',
         'expires_at' => 'datetime',
         'is_active'  => 'boolean',
+        'is_seasonal' => 'boolean',
         'value'      => 'integer',
         'min_order_cents' => 'integer',
         'max_uses'   => 'integer',
@@ -45,7 +47,39 @@ class Coupon extends Model
     {
         return $query
             ->where('is_active', true)
-            ->where(fn($q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()))
+            ->where(function ($q) {
+                $now = now();
+                $todayMd = $now->format('m-d');
+
+                // Cas 1 : Coupon Saisonier (Récurrent chaque année)
+                // On vérifie si le jour/mois actuel est dans l'intervalle (ignore l'année)
+                $q->where(function ($sq) use ($todayMd) {
+                    $sq->where('is_seasonal', true)
+                       ->whereNotNull('starts_at')
+                       ->whereNotNull('expires_at')
+                       ->where(function ($ssq) use ($todayMd) {
+                           // Gestion de l'intervalle normal (ex: 02-12 au 02-15)
+                           // et de l'intervalle chevauchant l'année (ex: 12-15 au 01-01)
+                           $ssq->where(function ($inner) use ($todayMd) {
+                               $inner->whereRaw("DATE_FORMAT(starts_at, '%m-%d') <= DATE_FORMAT(expires_at, '%m-%d')")
+                                     ->whereRaw("? BETWEEN DATE_FORMAT(starts_at, '%m-%d') AND DATE_FORMAT(expires_at, '%m-%d')", [$todayMd]);
+                           })->orWhere(function ($inner) use ($todayMd) {
+                               $inner->whereRaw("DATE_FORMAT(starts_at, '%m-%d') > DATE_FORMAT(expires_at, '%m-%d')")
+                                     ->where(function ($leaf) use ($todayMd) {
+                                         $leaf->whereRaw("? >= DATE_FORMAT(starts_at, '%m-%d')", [$todayMd])
+                                              ->orWhereRaw("? <= DATE_FORMAT(expires_at, '%m-%d')", [$todayMd]);
+                                     });
+                           });
+                       });
+                });
+
+                // Cas 2 : Coupon Standard (Une seule période fixe)
+                $q->orWhere(function ($sq) use ($now) {
+                    $sq->where('is_seasonal', false)
+                       ->where(fn($ssq) => $ssq->whereNull('starts_at')->orWhere('starts_at', '<=', $now))
+                       ->where(fn($ssq) => $ssq->whereNull('expires_at')->orWhere('expires_at', '>', $now));
+                });
+            })
             ->where(fn($q) => $q->whereNull('max_uses')->orWhereColumn('used_count', '<', 'max_uses'));
     }
 

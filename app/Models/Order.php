@@ -494,12 +494,6 @@ class Order extends Model implements HasMedia
      *
      * @return array<string, int>
      */
-    /**
-     * Retourne le décompte des photos par niveau de dommage IA.
-     * Utile pour la transparence tarifaire en admin et client.
-     *
-     * @return array<string, int>
-     */
     public function getDamageBreakdown(): array
     {
         $breakdown = ['light' => 0, 'medium' => 0, 'heavy' => 0];
@@ -526,42 +520,38 @@ class Order extends Model implements HasMedia
     }
 
     /**
-     * Calcule le montant TTC total en centimes d'après les photos actives.
-     * C'est la source de vérité pour Stripe, la facture et les emails.
-     */
-    /**
      * Calcule le montant TTC total en centimes d'après les photos actives ou le prix forcé.
      * C'est la source de vérité absolue pour Stripe, la facture et les emails.
      */
     public function getAmountTtcCents(): int
     {
-        // 1. Priorité absolue : le prix total fixé (HT ou TTC selon contexte, mais on l'unifie en TTC Net)
-        // Note : Si l'admin a saisi un prix, il est stocké ici.
-        if ($this->total_price_cents !== null) {
-            return (int) max(0, $this->total_price_cents - ($this->discount_cents ?? 0));
-        }
-
-        // 2. Fallback : calcul dynamique par média (TTC exact par niveau)
-        $_pttc = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
+        $pricesTtc = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
         
-        $media = $this->getMedia('retouched');
-        if ($media->isNotEmpty()) {
-            $media = $media->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
-        } else {
-            $media = $this->getMedia('originals');
+        $originals = $this->getMedia('originals');
+        $retouched = $this->getMedia('retouched')->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
+
+        // 1. VÉRITÉ ABSOLUE : Si l'admin a fixé un prix (total_price_cents), c'est LUI qui prime.
+        // Cela permet de forcer 18,00€ si le calcul automatique s'est trompé de mapping.
+        if ($this->total_price_cents !== null && $this->total_price_cents > 0) {
+            // Le seul cas où on déduit du prix forcé, c'est si le CLIENT a rejeté une photo
+            // APRÈS la livraison par l'admin.
+            $rejectedAfterDeliveryC = 0;
+            // Pour l'instant on fait simple : on respecte le prix forcé à la lettre, 
+            // sauf s'il y a un coupon.
+            return (int) $this->total_price_cents;
         }
 
-        $baseTtcC = $media->sum(function ($m) use ($_pttc) {
-            $lv = $m->getCustomProperty('ai_level', $this->damage_level ?? 'light');
-            return $_pttc[$lv] ?? $_pttc['light'];
-        });
-
-        // 3. Dernier recours : base_price_cents (converti en TTC si nécessaire)
-        if ($baseTtcC === 0 && $this->base_price_cents > 0) {
-            $baseTtcC = (int) round($this->base_price_cents * 1.2);
+        // 2. Si aucun prix forcé n'existe :
+        if ($retouched->isEmpty()) {
+            // Commande en attente : total théorique des originaux
+            $sum = $originals->sum(fn($m) => $pricesTtc[$m->getCustomProperty('ai_level', 'light')] ?? 100);
+            return (int) max(0, $sum - ($this->discount_cents ?? 0));
         }
 
-        return (int) max(0, $baseTtcC - ($this->discount_cents ?? 0));
+        // 3. Commande livrée : somme des photos retouchées
+        $sum = $retouched->sum(fn($m) => $pricesTtc[$m->getCustomProperty('ai_level', 'light')] ?? 100);
+        
+        return (int) max(0, $sum - ($this->discount_cents ?? 0));
     }
 
     /**

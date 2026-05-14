@@ -6,6 +6,28 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.21.0] — 2026-05-14 — Pilotage Financier & Simulateur Objectifs
+
+### ✨ Nouveautés & Améliorations
+
+- **Dashboard Pilotage Financier** (`/admin/revenue`) :
+  - Centralisation analytique avec graphiques d'évolution journalière, hebdomadaire et mensuelle (Chart.js via Livewire Volt).
+  - Indicateurs de performance (KPI) : CA HT, CA TTC, volume de commandes, coûts d'IA estimés, cotisations URSSAF (BNC).
+  - Résultat net estimé après déductions.
+- **Simulateur d'Objectifs Dynamique** (`/admin/revenue/simulation`) :
+  - Outil temps réel pour calculer le Chiffre d'Affaires cible (TTC) requis pour garantir un salaire net au dirigeant et à un collaborateur.
+  - Intégration automatique des coûts incompressibles : URSSAF (21.2%), coûts d'IA (moyenne 30 jours), frais Stripe (1.5% + 0.25€) et Frais fixes (BFR/Serveurs).
+  - Module "Détail par le calcul" prouvant mathématiquement le reste à vivre après toutes déductions.
+  - Persistance dans le Cache de la configuration de simulation pour synchronisation avec le tableau de bord principal.
+  - Affichage visuel puissant de la "Progression vers l'objectif" sur l'accueil financier.
+- **Rapports & Exports PDF** :
+  - Ajout d'une annexe dédiée à la simulation (Page 2) lors de l'export du rapport financier PDF (via DomPDF).
+  - Mise en forme élégante des paramètres et du détail de calcul dans le document confidentiel généré.
+- **Typographie Globale** :
+  - Augmentation de la taille de police de base de `16px` à `17px` sur l'ensemble de l'application (ajout au tag html) pour améliorer le confort de lecture.
+
+---
+
 ## [0.20.3] — 2026-05-14 — CSAM & NSFW AI Detection
 
 ### 🛡️ Sécurité & Modération

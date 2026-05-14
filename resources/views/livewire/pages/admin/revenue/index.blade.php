@@ -162,6 +162,29 @@ class extends Component
             9 => 'Sept', 10 => 'Oct', 11 => 'Nov', 12 => 'Déc',
         ];
 
+        // ── 5. Calcul de l'objectif (Simulateur) ─────────────────────────
+        $simulatorSettings = \Illuminate\Support\Facades\Cache::get('admin_simulator_settings', []);
+        
+        $targetNetDirigeant = $simulatorSettings['dirigeant'] ?? 2500;
+        $targetNetCollab = $simulatorSettings['collab'] ?? 1800;
+        $fixedCosts = $simulatorSettings['fixed'] ?? 150;
+        
+        $collabInvoice = $targetNetCollab / (1 - 0.212); 
+        $averageOrderPrice = $simulatorSettings['averageOrderPrice'] ?? ($stats['count'] > 0 ? ($stats['ttc_cents'] / 100 / $stats['count']) : 19);
+        $iaRatio = $simulatorSettings['iaRatio'] ?? ($stats['ttc_cents'] > 0 ? ($stats['ai_cost'] / $stats['ttc_cents'] * 100) : 8.0);
+        
+        $stripePct = 0.015;
+        $stripeFixedRatio = $averageOrderPrice > 0 ? (0.25 / $averageOrderPrice) : 0;
+        
+        $effectiveMarginRate = 1 - 0.212 - ($iaRatio / 100) - $stripePct - $stripeFixedRatio;
+        
+        $targetCaTtc = 0;
+        if ($effectiveMarginRate > 0) {
+            $targetCaTtc = ($targetNetDirigeant + $collabInvoice + $fixedCosts) / $effectiveMarginRate;
+        }
+
+        $progressPercentage = $targetCaTtc > 0 ? min(100, round((($stats['ttc_cents'] / 100) / $targetCaTtc) * 100, 1)) : 0;
+
         return [
             'stats'       => $stats,
             'growth'      => $growth,
@@ -170,6 +193,8 @@ class extends Component
             'weeklyData'  => $weeklyData,
             'years'       => $years,
             'moisFr'      => $moisFr,
+            'targetCaTtc' => $targetCaTtc,
+            'progressPercentage' => $progressPercentage,
             'currentLabel'=> $this->view === 'year' ? "Année {$this->year}" : ($moisFr[(int)$this->month] . ' ' . $this->year)
         ];
     }
@@ -198,6 +223,12 @@ class extends Component
                     </button>
                 @endforeach
             </div>
+            
+            <a href="{{ route('admin.revenue.simulation') }}" wire:navigate
+               class="px-5 py-2 text-sm font-medium rounded-sm border border-[#C9A84C]/30 text-[#C9A84C] hover:bg-[#C9A84C]/10 transition-all flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                Simulateur
+            </a>
             
             <a href="{{ route('admin.revenue.export', ['year' => $year, 'month' => $month]) }}" 
                class="btn-gold !py-2 px-6 flex items-center gap-2">
@@ -236,8 +267,8 @@ class extends Component
 
         <div class="space-y-8">
             {{-- KPIs Top Row --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {{-- CA Mensuel --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {{-- CA HT Mensuel --}}
                 <div class="card-glass p-5 border-l-4 border-l-[#C9A84C]">
                     <p class="text-[#7A6E5E] text-[10px] uppercase tracking-widest mb-1">CA HT ({{ $view === 'year' ? 'Année' : 'Mois' }})</p>
                     <div class="flex items-end justify-between">
@@ -249,6 +280,13 @@ class extends Component
                         @endif
                     </div>
                     <p class="text-[#7A6E5E]/60 text-[10px] mt-2">vs {{ $view === 'year' ? 'année' : 'mois' }} précédent</p>
+                </div>
+
+                {{-- CA TTC --}}
+                <div class="card-glass p-5 border-l-4 border-l-emerald-900/50">
+                    <p class="text-[#7A6E5E] text-[10px] uppercase tracking-widest mb-1">CA TTC ({{ $view === 'year' ? 'Année' : 'Mois' }})</p>
+                    <p class="text-emerald-400 text-2xl font-bold">{{ number_format($stats['ttc_cents'] / 100, 2, ',', ' ') }} €</p>
+                    <p class="text-[#7A6E5E]/60 text-[10px] mt-2">Montant total facturé</p>
                 </div>
 
                 {{-- Commandes --}}
@@ -307,6 +345,30 @@ class extends Component
                 <div class="text-center md:text-right">
                     <p class="text-emerald-400 text-4xl font-black">{{ number_format($stats['net'] / 100, 2, ',', ' ') }} €</p>
                     <p class="text-[#7A6E5E] text-[10px] mt-1 uppercase tracking-widest">Disponible après taxes</p>
+                </div>
+            </div>
+
+            {{-- Progression de l'objectif (Simulateur par défaut) --}}
+            <div class="card-glass p-8 border-l-4 border-l-[#C9A84C] bg-[#C9A84C]/5">
+                <div class="flex flex-col md:flex-row md:items-end justify-between mb-6 gap-4">
+                    <div>
+                        <h3 class="text-[#F5F0E8] font-bold text-lg">Progression vers l'objectif</h3>
+                        <p class="text-[#7A6E5E] text-sm mt-1">Vos objectifs de la simulation : Dirigeant, Collab, et Frais incompressibles</p>
+                    </div>
+                    <div class="text-left md:text-right">
+                        <p class="text-[#C9A84C] text-[10px] uppercase tracking-widest mb-1">Cible TTC à atteindre</p>
+                        <p class="text-[#F5F0E8] text-4xl font-black mb-1">{{ number_format($targetCaTtc, 2, ',', ' ') }} €</p>
+                        <p class="text-[#7A6E5E] text-sm">
+                            Fait : <strong class="text-white">{{ number_format($stats['ttc_cents'] / 100, 2, ',', ' ') }} €</strong>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="flex-grow bg-[#120F0A] rounded-full h-4 border border-[#C9A84C]/20 overflow-hidden relative">
+                        <div class="bg-gradient-to-r from-[#C9A84C]/50 to-[#C9A84C] h-4 rounded-full transition-all duration-1000 ease-out" style="width: {{ $progressPercentage }}%"></div>
+                    </div>
+                    <span class="text-[#C9A84C] font-black text-xl w-16 text-right">{{ $progressPercentage }}%</span>
                 </div>
             </div>
         </div>

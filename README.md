@@ -13,7 +13,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
 [![Tests](https://img.shields.io/badge/Tests-64%2F64%20%E2%9C%85-22c55e?style=for-the-badge&logo=php&logoColor=white)](tests/)
-[![Version](https://img.shields.io/badge/Version-0.20.3-6366f1?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-0.21.0-6366f1?style=for-the-badge)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
 </div>
@@ -653,7 +653,11 @@ git commit -m "feat(tickets): interface admin tickets support" \
   - [x] Centre de communication de crise (modèles RGPD/ANSSI)
 - [x] `v0.18.0` — **RGPD Hardening & Anonymisation Totale**
 - [x] `v0.19.0` — **Delivery UX, Invoice PDF & Documentation**
-- [x] `v0.20.0` — **Admin Compliance & UX Polishing** ← *actuel*
+- [x] `v0.20.0` — **Admin Compliance & UX Polishing**
+- [x] `v0.21.0` — **Pilotage Financier & Simulateur Objectifs** ← *actuel*
+  - [x] Dashboard analytique du CA (HT/TTC/Net) avec graphiques d'évolution
+  - [x] Simulateur en temps réel (Dirigeant, Collab, URSSAF, IA, Stripe)
+  - [x] Export PDF du rapport financier détaillé avec annexe de simulation
 - [ ] `v1.0.0` — **MVP — Déploiement production (OVH)**
 - [ ] `v2.0.0` — Multi-prestataires + messagerie avancée
 

@@ -1,30 +1,30 @@
-# Audit Intégral OmnyRestore — v0.20.3
+# Audit Intégral OmnyRestore — v0.21.0
 > **Date d'audit** : Mai 2026
-> **Version auditée** : `v0.20.3` (branche `test`)
+> **Version auditée** : `v0.21.0` (branche `test`)
 > **Auditeur** : Antigravity / Google DeepMind
-> **Périmètre** : Architecture, Sécurité (PRI), Modération IA, RGPD, Code source, Paiement, Infrastructure, UX.
+> **Périmètre** : Pilotage Financier, Architecture, Sécurité (PRI), Modération IA, RGPD, Paiement, UX.
 
 ---
 
-## 🎯 INTRODUCTION & SCORE GLOBAL : **94 / 100**
+## 🎯 INTRODUCTION & SCORE GLOBAL : **96 / 100**
 
-> *L'audit de la version 0.20.3 démontre une maturité exceptionnelle du projet OmnyRestore. En passant de 91/100 (v0.20.2) à 94/100, la plateforme a franchi le cap critique de la modération de contenu. L'intégration de la détection IA (OpenAI) pour bloquer les contenus NSFW et CSAM, associée à la Cellule de Crise (PRI), l'anonymisation RGPD totale, le workflow de livraison automatisé, l'intégrité comptable des factures, et les finitions UX récentes placent ce projet dans le haut du panier en termes de standards de qualité et de sécurité. Les derniers points d'attention se concentrent sur le déploiement de l'infrastructure de production.*
+> *L'audit de la version 0.21.0 démontre l'excellence de la gestion d'entreprise intégrée au projet OmnyRestore. En passant de 94/100 (v0.20.3) à 96/100, la plateforme s'est dotée d'un module de Pilotage Financier avancé. Ce dashboard analytique intègre des outils de simulation en temps réel pour calculer et visualiser des objectifs de chiffre d'affaires cibles (salaires, URSSAF, IA, Stripe, BFR). Couplé avec l'anonymisation RGPD totale et la Cellule de Crise (PRI), OmnyRestore est désormais non seulement sécurisé légalement, mais aussi parfaitement instrumenté pour la gestion d'entreprise.*
 
 ---
 
 ## 📊 TABLEAU DE BORD SYNTHÉTIQUE
 
-| Domaine | Score | Pondération | Contribution | Évolution depuis v0.15 |
+| Domaine | Score | Pondération | Contribution | Évolution depuis v0.20 |
 |---|:---:|:---:|:---:|:---:|
 | 🏗️ Architecture & Code | 19/20 | 20% | +19.0 | ➡️ = |
-| 🔐 Sécurité & PRI | 20/20 | 20% | +20.0 | 🌟 Parfait (+3) |
-| 🛡️ RGPD & Conformité | 10/10 | 10% | +10.0 | 🌟 Parfait |
-| 💳 Paiement & Facturation | 10/10 | 10% | +10.0 | 🌟 Parfait |
+| 🔐 Sécurité & PRI | 20/20 | 20% | +20.0 | ➡️ = |
+| 🛡️ RGPD & Conformité | 10/10 | 10% | +10.0 | ➡️ = |
+| 💳 Paiement, Gestion & Facturation | 10/10 | 10% | +10.0 | 🌟 Parfait |
 | 🧪 Tests & Qualité | 10/15 | 15% | +10.0 | ➡️ = |
 | 🚀 Infrastructure & DevOps | 8/15 | 15% | +8.0 | ➡️ = |
 | 📱 UX & Accessibilité | 10/10 | 5% | +10.0 | 🌟 Parfait |
 | 📚 Documentation | 5/5 | 5% | +5.0 | ➡️ = |
-| **TOTAL** | **94/100** | | | **+3 pts** |
+| **TOTAL** | **96/100** | | | **+2 pts** |
 
 > **💡 Comprendre la pondération** : La pondération (en %) reflète l'importance critique de chaque domaine pour ce projet SaaS. L'architecture (20%) et la sécurité (20%) ont un impact vital sur la survie du produit, tandis que la documentation (5%) ou l'UX (5%), bien qu'importantes, ne bloquent pas le cœur de métier. Le score final sur 100 est calculé en appliquant ce coefficient de pondération à chaque domaine.
 

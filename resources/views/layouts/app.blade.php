@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {{-- OmnyRestore App Layout --}}
-<html lang="fr">
+<html lang="fr" style="font-size: 17px;">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

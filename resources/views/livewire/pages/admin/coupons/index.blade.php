@@ -23,6 +23,8 @@ class extends Component
     public int    $min_order   = 0;
     public ?int   $max_uses    = null;
     public string $expires_at  = '';
+    public string $starts_at   = '';
+    public bool   $is_seasonal = false;
     public bool   $showForm    = false;
 
     // ── Données ────────────────────────────────────────────────────────────
@@ -43,7 +45,9 @@ class extends Component
             'value'       => 'required|integer|min:1|max:10000',
             'min_order'   => 'integer|min:0',
             'max_uses'    => 'nullable|integer|min:1',
-            'expires_at'  => 'nullable|date|after:today',
+            'expires_at'  => $this->is_seasonal ? 'required|date' : 'required|date|after_or_equal:starts_at',
+            'starts_at'   => $this->is_seasonal ? 'required|date' : 'nullable|date',
+            'is_seasonal' => 'boolean',
             'description' => 'nullable|string|max:255',
         ], [
             'code.unique'     => 'Ce code existe déjà.',
@@ -58,11 +62,13 @@ class extends Component
             'value'           => $this->value,
             'min_order_cents' => $this->min_order * 100,
             'max_uses'        => $this->max_uses,
+            'starts_at'       => $this->starts_at ?: null,
             'expires_at'      => $this->expires_at ?: null,
             'is_active'       => true,
+            'is_seasonal'     => $this->is_seasonal,
         ]);
 
-        $this->reset(['code', 'description', 'type', 'value', 'min_order', 'max_uses', 'expires_at']);
+        $this->reset(['code', 'description', 'type', 'value', 'min_order', 'max_uses', 'expires_at', 'starts_at', 'is_seasonal']);
         $this->type = 'percentage';
         $this->value = 10;
         $this->showForm = false;
@@ -164,19 +170,57 @@ class extends Component
                        class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-sm rounded-sm px-3 py-2.5 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
             </div>
 
+            {{-- Debut validite --}}
+            <div>
+                <label class="block text-[#7A6E5E] text-xs uppercase tracking-widest mb-1.5">
+                    {{ $is_seasonal ? 'Début (Jour/Mois)' : 'Date de début' }}
+                </label>
+                <input wire:model="starts_at" type="date"
+                       class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-sm rounded-sm px-3 py-2.5 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
+                @if($is_seasonal) <p class="text-[#7A6E5E] text-[10px] mt-1">L'année sera ignorée.</p> @endif
+                @error('starts_at') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+            </div>
+
             {{-- Expiration --}}
             <div>
-                <label class="block text-[#7A6E5E] text-xs uppercase tracking-widest mb-1.5">Date d'expiration</label>
+                <label class="block text-[#7A6E5E] text-xs uppercase tracking-widest mb-1.5">
+                    {{ $is_seasonal ? 'Fin (Jour/Mois)' : "Date d'expiration" }}
+                </label>
                 <input wire:model="expires_at" type="date"
                        class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-sm rounded-sm px-3 py-2.5 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
+                @if($is_seasonal) <p class="text-[#7A6E5E] text-[10px] mt-1">L'année sera ignorée.</p> @endif
                 @error('expires_at') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
             </div>
 
             {{-- Description --}}
-            <div class="md:col-span-2 lg:col-span-3">
+            <div class="md:col-span-1 lg:col-span-2">
                 <label class="block text-[#7A6E5E] text-xs uppercase tracking-widest mb-1.5">Description (usage interne)</label>
-                <input wire:model="description" type="text" placeholder="Ex: Code de bienvenue pour les nouveaux clients"
+                <input wire:model="description" type="text" placeholder="Ex: Offre de Noël récurrente"
                        class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-sm rounded-sm px-3 py-2.5 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
+            </div>
+
+            {{-- Seasonal Toggle --}}
+            <div class="flex items-center md:col-span-1 lg:col-span-1 pt-6">
+                <label class="flex items-center cursor-pointer group">
+                    <div class="relative">
+                        <input type="checkbox" wire:model.live="is_seasonal" class="sr-only">
+                        <div @class([
+                            'w-10 h-5 border border-[#C9A84C]/30 rounded-full transition-all duration-200',
+                            'bg-[#C9A84C]' => $is_seasonal,
+                            'bg-[#1A1510]' => !$is_seasonal,
+                        ])></div>
+                        <div @class([
+                            'absolute top-1 w-3 h-3 rounded-full transition-all duration-200',
+                            'left-6 bg-black' => $is_seasonal,
+                            'left-1 bg-[#7A6E5E]' => !$is_seasonal,
+                        ])></div>
+                    </div>
+                    <span @class([
+                        'ms-3 text-[10px] font-bold uppercase tracking-widest transition-colors',
+                        'text-[#C9A84C]' => $is_seasonal,
+                        'text-[#7A6E5E]' => !$is_seasonal,
+                    ])>Récurrent chaque année</span>
+                </label>
             </div>
         </div>
 
@@ -215,9 +259,29 @@ class extends Component
             <tbody class="divide-y divide-[#C9A84C]/5">
                 @foreach ($coupons as $coupon)
                 @php
-                    $isValid = $coupon->is_active
-                        && (! $coupon->expires_at || $coupon->expires_at->isFuture())
-                        && (! $coupon->max_uses || $coupon->used_count < $coupon->max_uses);
+                    $now = now();
+                    $todayMd = $now->format('m-d');
+                    
+                    if ($coupon->is_seasonal) {
+                        $startMd = $coupon->starts_at->format('m-d');
+                        $endMd = $coupon->expires_at->format('m-d');
+                        
+                        if ($startMd <= $endMd) {
+                            $isCurrent = ($todayMd >= $startMd && $todayMd <= $endMd);
+                        } else {
+                            // Chevauchement année (ex: 12-15 au 01-01)
+                            $isCurrent = ($todayMd >= $startMd || $todayMd <= $endMd);
+                        }
+                        $isValid = $coupon->is_active && $isCurrent && (! $coupon->max_uses || $coupon->used_count < $coupon->max_uses);
+                        $isFuture = $coupon->is_active && ! $isCurrent;
+                    } else {
+                        $isValid = $coupon->is_active
+                            && (! $coupon->starts_at || $coupon->starts_at->isPast() || $coupon->starts_at->isToday())
+                            && (! $coupon->expires_at || $coupon->expires_at->isFuture())
+                            && (! $coupon->max_uses || $coupon->used_count < $coupon->max_uses);
+
+                        $isFuture = $coupon->is_active && $coupon->starts_at && $coupon->starts_at->isFuture();
+                    }
                 @endphp
                 <tr class="hover:bg-[#C9A84C]/3 transition-colors">
                     <td class="px-5 py-3.5">
@@ -241,7 +305,12 @@ class extends Component
                         @endif
                     </td>
                     <td class="px-4 py-3.5 text-sm text-[#7A6E5E]">
-                        @if ($coupon->expires_at)
+                        @if ($coupon->is_seasonal)
+                            <div class="flex items-center gap-1.5 text-[#C9A84C]/80">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                <span>{{ $coupon->starts_at->format('d/m') }} au {{ $coupon->expires_at->format('d/m') }}</span>
+                            </div>
+                        @elseif ($coupon->expires_at)
                             <span class="{{ $coupon->expires_at->isPast() ? 'text-red-400' : '' }}">
                                 {{ $coupon->expires_at->format('d/m/Y') }}
                             </span>
@@ -253,6 +322,10 @@ class extends Component
                         @if ($isValid)
                         <span class="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-900/30 border border-emerald-500/25 px-2 py-0.5 rounded-full">
                             <span class="w-1 h-1 bg-emerald-400 rounded-full"></span> Actif
+                        </span>
+                        @elseif ($isFuture)
+                        <span class="inline-flex items-center gap-1 text-xs text-blue-400 bg-blue-900/30 border border-blue-500/25 px-2 py-0.5 rounded-full">
+                            <span class="w-1 h-1 bg-blue-400 rounded-full"></span> {{ $coupon->is_seasonal ? 'En attente' : 'Planifié' }}
                         </span>
                         @elseif (! $coupon->is_active)
                         <span class="text-xs text-[#7A6E5E] bg-[#1A1510] border border-[#C9A84C]/10 px-2 py-0.5 rounded-full">Désactivé</span>

@@ -53,50 +53,57 @@ class extends Component
     /** Résultat de l'application du coupon (null = pas encore appliqué) */
     public ?array $couponResult = null;
 
+    /** Propriété temporaire pour le wire:model de l'input file (évite d'écraser $photos) */
+    public $newPhotos = [];
+
     /**
-     * Déclenché automatiquement quand les photos changent (wire:model.live).
-     * Lance l'analyse IA pour chaque photo uploadée.
+     * Déclenché quand de nouvelles photos sont sélectionnées.
+     * On les AJOUTE à la liste existante au lieu de les remplacer.
      */
-    public function updatedPhotos(): void
+    public function updatedNewPhotos(): void
     {
-        if (empty($this->photos)) {
-            $this->reset(['analysisResults', 'analyzing', 'analysisComplete', 'damage_level']);
-            return;
-        }
+        if (empty($this->newPhotos)) return;
 
-        // Limite de sécurité côté serveur (la limite HTML n'est pas fiable)
-        if (count($this->photos) > 20) {
+        // Conversion en tableau si Livewire envoie un seul fichier
+        $incoming = is_array($this->newPhotos) ? $this->newPhotos : [$this->newPhotos];
+
+        // Vérification de la limite globale (20 photos)
+        if ((count($this->photos) + count($incoming)) > 20) {
             $this->addError('photos', 'Vous pouvez envoyer au maximum 20 photos par commande.');
-            $this->reset(['analysisResults', 'analyzing', 'analysisComplete', 'damage_level']);
+            $this->newPhotos = [];
             return;
         }
 
-        $this->analyzing       = true;
+        $this->analyzing        = true;
         $this->analysisComplete = false;
-        $this->analysisResults  = [];
 
         $analyzer = app(PhotoDamageAnalyzer::class);
-        $worstLevel = 'light';
         $levelPriority = ['light' => 0, 'medium' => 1, 'heavy' => 2];
+        $worstLevel = $this->damage_level;
 
         try {
-            foreach ($this->photos as $i => $photo) {
+            foreach ($incoming as $photo) {
+                // Ajouter à la collection principale
+                $this->photos[] = $photo;
+                $i = count($this->photos) - 1;
+
+                // Analyser seulement la nouvelle photo
                 $result = $analyzer->analyze($photo);
                 $this->analysisResults[$i] = $result;
 
-                // Worst-case : niveau le plus élevé détermine le damage_level global
+                // Update worst-case global
                 if (($levelPriority[$result['level']] ?? 0) > ($levelPriority[$worstLevel] ?? 0)) {
                     $worstLevel = $result['level'];
                 }
             }
         } finally {
-            // Garantit que le bouton submit est TOUJOURS débloqué, même en cas d'erreur
             $this->damage_level     = $worstLevel;
             $this->analyzing        = false;
             $this->analysisComplete = true;
+            $this->newPhotos        = []; // Reset l'input file pour la prochaine sélection
         }
 
-        // Réinitialiser le coupon si les photos changent (le montant HT a pu changer)
+        // Réinitialiser le coupon si les photos changent
         $this->couponResult = null;
         $this->couponCode   = '';
     }
@@ -177,17 +184,20 @@ class extends Component
         ]);
 
         // Le damage_level est déterminé par l'IA — non modifiable par le client
-        $baseHtCents   = $this->baseHtCents();
+        $baseTtcCents  = $this->baseTtcCents();
         $discountCents = 0;
         $couponCode    = null;
 
-        // Appliquer le coupon si valide
+        // Appliquer le coupon si valide (calcul de la remise directement sur le TTC)
         if ($this->couponResult && $this->couponResult['valid']) {
-            $discountCents = $this->couponResult['discount_cents'];
-            $couponCode    = strtoupper(trim($this->couponCode));
+            $couponCode = strtoupper(trim($this->couponCode));
+            $coupon = \App\Models\Coupon::where('code', $couponCode)->first();
+            if ($coupon) {
+                $discountCents = $coupon->discountTtcCents($baseTtcCents);
+            }
         }
 
-        $finalHtCents = max(0, $baseHtCents - $discountCents);
+        $finalTtcCents = max(0, $baseTtcCents - $discountCents);
 
         $order = Order::create([
             'user_id'           => auth()->id(),
@@ -195,8 +205,8 @@ class extends Component
             'photo_count'       => count($this->photos),
             'damage_level'      => $this->damage_level,
             'instructions'      => $this->instructions,
-            'base_price_cents'  => $baseHtCents,         // Prix HT brut (avant remise)
-            'total_price_cents' => $finalHtCents,         // Prix HT net (après remise coupon)
+            'base_price_cents'  => $baseTtcCents,         // Prix TTC brut (Source de Vérité)
+            'total_price_cents' => $finalTtcCents,        // Prix TTC net (Payé par client)
             'coupon_code'       => $couponCode,
             'discount_cents'    => $discountCents,
             'client_ip'         => request()->ip(),
@@ -246,8 +256,10 @@ class extends Component
         $uploaded = 0;
         foreach ($this->photos as $i => $photo) {
             $src      = $photo->getRealPath();
-            $ext      = $photo->getClientOriginalExtension() ?: 'jpg';
-            $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $photo->getClientOriginalName());
+            $ext      = strtolower($photo->getClientOriginalExtension() ?: 'jpg');
+            // Format standardisé : ORD-2026-0003-IMG-01.jpg
+            $indexStr = str_pad($i + 1, 2, '0', STR_PAD_LEFT);
+            $safeName = "{$order->reference}-IMG-{$indexStr}.{$ext}";
             $destPath = $tmpDir . '/' . uniqid("orig_{$i}_") . '.' . $ext;
 
             copy($src, $destPath);
@@ -321,14 +333,14 @@ class extends Component
                         </svg>
                         <p class="text-[#F5F0E8] text-sm font-medium mb-1">Glissez vos photos ici</p>
                         <p class="text-[#7A6E5E] text-xs">ou <span class="text-[#C9A84C] underline">cliquez pour sélectionner</span></p>
-                        <input id="photos-input" type="file" wire:model.live="photos" multiple accept=".jpg,.jpeg,.png,.tiff,.tif" class="hidden">
+                        <input id="photos-input" type="file" wire:model.live="newPhotos" multiple accept=".jpg,.jpeg,.png,.tiff,.tif" class="hidden">
                     </label>
 
                     @error('photos') <p class="text-red-400 text-sm mt-2 font-medium">&#9888; {{ $message }}</p> @enderror
                     @error('photos.*') <p class="text-red-400 text-xs mt-2">{{ $message }}</p> @enderror
 
                     {{-- Loading upload --}}
-                    <div wire:loading wire:target="photos" class="mt-4 flex items-center gap-2 text-[#7A6E5E] text-sm">
+                    <div wire:loading wire:target="newPhotos" class="mt-4 flex items-center gap-2 text-[#7A6E5E] text-sm">
                         <svg class="animate-spin w-4 h-4 text-[#C9A84C]" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                         Chargement des photos&hellip; estimation du tarif en cours&hellip;
                     </div>

@@ -70,6 +70,10 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Volt::route('/revenue', 'pages.admin.revenue.index')
         ->name('revenue');
 
+    // GET /admin/revenue/simulation — Simulateur d'objectifs (2 personnes)
+    Volt::route('/revenue/simulation', 'pages.admin.revenue.simulation')
+        ->name('revenue.simulation');
+
     Route::get('/revenue/export',
         \App\Http\Controllers\Admin\AdminRevenueExportController::class . '@download'
     )->name('revenue.export');

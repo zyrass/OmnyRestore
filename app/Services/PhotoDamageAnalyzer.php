@@ -41,9 +41,9 @@ class PhotoDamageAnalyzer
      * PAS en appliquant la TVA sur le total HT cumulé.
      */
     public const PRICES = [
-        'light'  => 83,    // 0,83 € HT → 1,00 € TTC
-        'medium' => 167,   // 1,67 € HT → 2,00 € TTC
-        'heavy'  => 250,   // 2,50 € HT → 3,00 € TTC
+        'light'  => 83,    // 0,83 € HT (pour 1,00 € TTC)
+        'medium' => 167,   // 1,67 € HT (pour 2,00 € TTC)
+        'heavy'  => 250,   // 2,50 € HT (pour 3,00 € TTC)
     ];
 
     /**

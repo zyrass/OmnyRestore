@@ -34,6 +34,32 @@ class extends Component
     }
 
     /**
+     * Fournit les données calculées dynamiquement pour la vue.
+     */
+    public function with(): array
+    {
+        $allPhotos = $this->order->getMedia('retouched');
+        $activePhotos = $allPhotos->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
+
+        // On utilise les méthodes du modèle qui gèrent déjà les fallbacks et le TTC Net
+        $payTtc = $this->order->getAmountTtcCents();
+        $payHt  = $this->order->getAmountHtCents();
+        
+        // Base TTC avant remise pour l'affichage du détail
+        $baseTtcC = $payTtc + ($this->order->discount_cents ?? 0);
+        $baseHtC = (int) round($baseTtcC / 1.2);
+
+        return [
+            'activePhotos' => $activePhotos,
+            'baseTtcC'     => $baseTtcC,
+            'baseHtC'      => $baseHtC,
+            'discountC'    => $this->order->discount_cents ?? 0,
+            'payTtc'       => $payTtc,
+            'payHt'        => $payHt,
+        ];
+    }
+
+    /**
      * Renvoie l'email de déverrouillage (OrderReadyForPayment) avec une nouvelle URL signée.
      * Limité à 1 envoi toutes les 5 minutes pour éviter le spam.
      */
@@ -603,7 +629,6 @@ class extends Component
                         @php
                             $isRejected  = $media->getCustomProperty('is_rejected', false);
                             $photoLevel  = $media->getCustomProperty('ai_level', $order->damage_level ?? 'light');
-                            $photoTtcCts = $pricesTtc[$photoLevel] ?? $pricesTtc['light'];
                             $photoPriceLabel = match($photoLevel) {
                                 'medium' => '2 €',
                                 'heavy'  => '3 €',

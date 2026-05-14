@@ -131,7 +131,6 @@ class extends Component
         }
 
         // Construire un mapping index → ai_level depuis les photos originales
-        // pour propager le niveau IA sur chaque photo retouchée correspondante.
         $originalsLevels = $this->order->getMedia('originals')
             ->values()
             ->mapWithKeys(fn($m, $i) => [$i => $m->getCustomProperty('ai_level', $this->order->damage_level ?? 'light')])
@@ -140,16 +139,26 @@ class extends Component
         // Passer les copies stables à Spatie MediaLibrary
         $uploaded = 0;
         foreach ($tmpCopies as $idx => $tmp) {
-            // Niveau IA de la photo correspondante (même index que l'upload admin)
-            // Fallback : damage_level global de la commande
-            $aiLevel = $originalsLevels[$idx] ?? $this->order->damage_level ?? 'light';
+            // Tenter de retrouver l'index depuis le nom du fichier (ex: IMG-02)
+            $aiLevel = $this->order->damage_level ?? 'light';
+            
+            if (preg_match('/IMG-(\d+)/i', $tmp['name'], $matches)) {
+                $imgIndex = (int)$matches[1] - 1; // Retour à 0-based
+                if (isset($originalsLevels[$imgIndex])) {
+                    $aiLevel = $originalsLevels[$imgIndex];
+                }
+            } else {
+                // Fallback si l'admin n'a pas utilisé le bon nommage
+                $aiLevel = $originalsLevels[$idx] ?? $this->order->damage_level ?? 'light';
+            }
+
             try {
                 $this->order
                     ->addMedia($tmp['path'])
                     ->usingFileName($tmp['name'])
                     ->withCustomProperties([
                         'uploaded_by_admin' => true,
-                        'ai_level'          => $aiLevel,   // ← propagé depuis l'original
+                        'ai_level'          => $aiLevel,
                     ])
                     ->preservingOriginal()
                     ->toMediaCollection('retouched');
@@ -158,6 +167,7 @@ class extends Component
                 $uploaded++;
             } catch (\Throwable $e) {
                 @unlink($tmp['path']);
+
                 \Illuminate\Support\Facades\Log::error("Admin upload failed: {$e->getMessage()}", [
                     'order_id' => $this->order->id,
                     'file'     => $tmp['name'],
@@ -298,42 +308,42 @@ class extends Component
      */
     private function recalcPriceFromActivePhotos(): void
     {
-        $pricesHt      = \App\Services\PhotoDamageAnalyzer::PRICES;
-        $pricePerPhoto = $pricesHt[$this->order->damage_level] ?? $pricesHt['light'];
-
+        $pricesTtc = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
+        
         // 1. Compter les photos actives (non rejetées)
-        $activeCount = $this->order->getMedia('retouched')
-            ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))
-            ->count();
+        $activePhotos = $this->order->getMedia('retouched')
+            ->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
 
-        $newBaseHt = $activeCount * $pricePerPhoto;
+        // Somme TTC par photo selon son niveau individuel
+        $newBaseTtc = $activePhotos->sum(function ($media) use ($pricesTtc) {
+            $level = $media->getCustomProperty('ai_level', $this->order->damage_level ?? 'light');
+            return $pricesTtc[$level] ?? $pricesTtc['light'];
+        });
 
-        // 2. Réappliquer le coupon sur la nouvelle base HT
+        // 2. Réappliquer le coupon sur la nouvelle base TTC
         $newDiscount = 0;
         if ($this->order->coupon_code) {
             $coupon = \App\Models\Coupon::where('code', $this->order->coupon_code)->first();
             if ($coupon) {
-                $newDiscount = $coupon->discountCents($newBaseHt);
+                // Utilisation de la nouvelle logique TTC
+                $newDiscount = $coupon->discountTtcCents($newBaseTtc);
             }
         }
 
-        $newTotalHt = max(0, $newBaseHt - $newDiscount);
+        $newTotalTtc = max(0, $newBaseTtc - $newDiscount);
 
-        // 3. Sauvegarder : base_price_cents reste intacte (estimation d'origine),
-        //    seuls total_price_cents et discount_cents sont recalculés.
+        // 3. Sauvegarder : total_price_cents est désormais le TTC net
         $this->order->update([
-            'total_price_cents' => $newTotalHt,
+            'total_price_cents' => $newTotalTtc,
             'discount_cents'    => $newDiscount,
         ]);
 
         \Illuminate\Support\Facades\Log::info(
-            "Prix recalculé {$this->order->reference}: {$activeCount} photo(s) × {$pricePerPhoto} cts = {$newBaseHt} cts brut" .
-            ($newDiscount > 0 ? " − {$newDiscount} cts remise ({$this->order->coupon_code})" : '') .
-            " = {$newTotalHt} cts HT net."
+            "Prix TTC recalculé {$this->order->reference}: {$activePhotos->count()} photo(s) = {$newTotalTtc} cts TTC net."
         );
 
         // 4. Synchroniser finalPrice dans l'interface admin
-        $this->finalPrice = number_format($newTotalHt / 100, 2, '.', '');
+        $this->finalPrice = number_format($newTotalTtc / 100, 2, '.', '');
     }
     /**
      * Supprime définitivement une photo retouchée de la collection 'retouched'.
@@ -430,7 +440,7 @@ class extends Component
             ->queue(new \App\Mail\OrderDeliveryReady($this->order));
 
         session()->put($sessionKey, now());
-        session()->flash('success', "📦 Email de livraison (ZIP + facture) envoyé à {$this->order->user->email}.");
+        session()->flash('success', "📧 Email de livraison renvoyé (lien de téléchargement + facture) à {$this->order->user->email}.");
         $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs', 'testimonial']);
     }
 
@@ -547,8 +557,8 @@ class extends Component
                 <h1 class="text-2xl font-bold text-[#F5F0E8]">Commande</h1>
                 <span class="font-mono text-[#C9A84C]">{{ $order->reference }}</span>
                 @php
-                    $badges = ['PENDING'=>'bg-yellow-900/40 text-yellow-400 border-yellow-500/30','IN_PROGRESS'=>'bg-blue-900/40 text-blue-400 border-blue-500/30','DONE'=>'bg-[#C9A84C]/15 text-[#C9A84C] border-[#C9A84C]/30','PAID'=>'bg-emerald-900/40 text-emerald-400 border-emerald-500/30','CANCELLED'=>'bg-red-900/30 text-red-400 border-red-500/30','FLAGGED'=>'bg-red-900 text-white border-red-400 animate-pulse'];
-                    $labels = ['PENDING'=>'En attente','IN_PROGRESS'=>'En cours','DONE'=>'Aperçu prêt','PAID'=>'Payé ✓','CANCELLED'=>'Annulé','FLAGGED'=>'🚨 SIGNALÉ (NSFW/CSAM)'];
+                    $badges = ['PENDING'=>'bg-yellow-900/40 text-yellow-400 border-yellow-500/30','IN_PROGRESS'=>'bg-blue-900/40 text-blue-400 border-blue-500/30','DONE'=>'bg-[#C9A84C]/15 text-[#C9A84C] border-[#C9A84C]/30','PAID'=>'bg-emerald-900/40 text-emerald-400 border-emerald-500/30','DELIVERED'=>'bg-emerald-900/40 text-emerald-400 border-emerald-500/30','CANCELLED'=>'bg-red-900/30 text-red-400 border-red-500/30','FLAGGED'=>'bg-red-900 text-white border-red-400 animate-pulse'];
+                    $labels = ['PENDING'=>'En attente','IN_PROGRESS'=>'En cours','DONE'=>'Aperçu prêt','PAID'=>'Payé ✓','DELIVERED'=>'Livrée ✓','CANCELLED'=>'Annulé','FLAGGED'=>'🚨 SIGNALÉ (NSFW/CSAM)'];
                 @endphp
                 <span class="px-2.5 py-1 text-xs border rounded-full {{ $badges[$order->status] ?? '' }}">
                     {{ $labels[$order->status] ?? $order->status }}
@@ -598,7 +608,7 @@ class extends Component
                             <div class="absolute top-1 left-1">
                                 <span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold 
                                     {{ $aiLevel === 'heavy' ? 'bg-orange-500 text-black' : ($aiLevel === 'medium' ? 'bg-[#C9A84C] text-black' : 'bg-emerald-500 text-black') }}">
-                                    {{ $aiLevel === 'heavy' ? '⚠' : ($aiLevel === 'medium' ? '✧' : '✓') }} IA
+                                    {{ $aiLevel === 'heavy' ? '3 €' : ($aiLevel === 'medium' ? '2 €' : '1 €') }}
                                 </span>
                             </div>
                             @endif
@@ -795,8 +805,8 @@ class extends Component
                 {{-- Prix final --}}
                 <div class="mb-4">
                     <label class="block text-[#7A6E5E] text-xs uppercase tracking-widest mb-1.5">
-                        Prix HT &mdash; le client sera facturé <span class="text-[#C9A84C] font-semibold" x-text="(finalHt * 1.2).toFixed(2).replace('.', ',') + ' € TTC'">
-                            {{ number_format((float)$finalPrice * 1.2, 2, ',', ' ') }} € TTC
+                        LE PRIX HT EST DE <span class="text-[#F5F0E8]" x-text="(finalHt / 1.2).toFixed(2).replace('.', ',') + ' €'">
+                            {{ number_format((float)$finalPrice / 1.2, 2, ',', ' ') }} €
                         </span>
                     </label>
                     <div class="flex items-center gap-3">
@@ -804,21 +814,8 @@ class extends Component
                                @input="finalHt = parseFloat($event.target.value) || 0"
                                class="w-36 bg-[#1A1510] border border-[#C9A84C]/20 text-[#C9A84C] font-bold text-lg text-center rounded-sm px-4 py-2 focus:outline-none focus:border-[#C9A84C]/60 transition-all">
                         <div class="text-sm">
-                            <p class="text-[#7A6E5E]">€ HT</p>
-                            @php
-                                $baseHint    = ($order->base_price_cents ?? 0);
-                                $discountHint = ($order->discount_cents ?? 0);
-                                $netHint     = max(0, $baseHint - $discountHint);
-                            @endphp
-                            @if ($discountHint > 0)
-                            <p class="text-emerald-400 text-xs mt-0.5">
-                                Brut IA : {{ number_format($baseHint / 100, 2, ',', ' ') }} €
-                                &middot; Remise ({{ $order->coupon_code }}) : &minus;{{ number_format($discountHint / 100, 2, ',', ' ') }} €
-                                &middot; Net : {{ number_format($netHint / 100, 2, ',', ' ') }} €
-                            </p>
-                            @else
-                            <p class="text-[#7A6E5E]/60 text-xs mt-0.5">IA suggérait : {{ number_format($baseHint / 100, 2, ',', ' ') }} € HT</p>
-                            @endif
+                            <p class="text-[#7A6E5E]">€ TTC (Facturé)</p>
+                            <p class="text-[#7A6E5E]/60 text-xs mt-0.5">IA suggérait : {{ number_format($order->getAmountTtcCents() / 100, 2, ',', ' ') }} € TTC</p>
                         </div>
                     </div>
                     @error('finalPrice') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
@@ -936,15 +933,14 @@ class extends Component
                         <div>
                             <p class="text-emerald-300 text-sm font-medium">Paiement effectue avec succes</p>
                             @if ($order->paid_at)
-                            @php $ttcAdmin = ($order->total_price_cents ?? 0) + (int) round(($order->total_price_cents ?? 0) * 0.2); @endphp
-                            <p class="text-[#7A6E5E] text-xs mt-0.5">Le {{ $order->paid_at->format('d/m/Y \a H:i') }} &mdash; {{ number_format($ttcAdmin / 100, 2, ',', ' ') }}&nbsp;&euro; TTC</p>
+                            <p class="text-[#7A6E5E] text-xs mt-0.5">Le {{ $order->paid_at->format('d/m/Y \a H:i') }} &mdash; {{ number_format($order->getAmountTtcCents() / 100, 2, ',', ' ') }}&nbsp;&euro; TTC</p>
                             @endif
                         </div>
                     </div>
 
                     <p class="text-[#7A6E5E] text-xs mb-3 leading-relaxed">
-                        Envoyez au client son archive ZIP (photos HD sans filigrane) et sa facture PDF.
-                        <span class="text-[#C9A84C]/60 block mt-0.5">Limite a 1 envoi toutes les 5 minutes.</span>
+                        Renvoyez au client le mail contenant son lien de téléchargement (photos HD) et sa facture PDF.
+                        <span class="text-[#C9A84C]/60 block mt-0.5">Limite à 1 envoi toutes les 5 minutes.</span>
                     </p>
 
                     <button wire:click="sendDeliveryEmail"
@@ -957,11 +953,11 @@ class extends Component
                                    disabled:opacity-50">
                         <span wire:loading.remove wire:target="sendDeliveryEmail" class="flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                            Envoyer le mail comprenant la facture et le lien pour télécharger le fichier
+                            Renvoyer l'email de livraison (lien de téléchargement + facture)
                         </span>
                         <span wire:loading wire:target="sendDeliveryEmail" class="flex items-center gap-2">
                             <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                            Envoi en cours...
+                            Renvoi en cours...
                         </span>
                     </button>
 
@@ -1048,10 +1044,16 @@ class extends Component
                             {{ $lvlLabel }}
                         </dd>
                     </div>
-                    {{-- Calcul des prix unifié via le modèle --}}
+                    {{-- Calcul des prix unifié via le modèle ou la saisie en cours --}}
                     @php
-                        $ttcC = $order->getAmountTtcCents();
-                        $htC  = $order->getAmountHtCents();
+                        // Priorité à la saisie en cours dans le formulaire (réactivité)
+                        if (isset($finalPrice) && is_numeric($finalPrice) && $finalPrice > 0) {
+                            $ttcC = (int) round((float)$finalPrice * 100);
+                        } else {
+                            $ttcC = $order->getAmountTtcCents();
+                        }
+                        
+                        $htC  = (int) round($ttcC / 1.2);
                         $tvaC = max(0, $ttcC - $htC);
                         $discountC = $order->discount_cents ?? 0;
                     @endphp
@@ -1260,18 +1262,19 @@ class extends Component
                     @php
                         $actionLabels = [
                             'ORDER_CREATED'        => '✦ Commande créée',
-                            'ORDER_STATUS_CHANGED'  => '➤ Statut modifié',
-                            'ORDER_CANCELLED'       => '✕ Commande annulée',
-                            'ORDER_UPDATED'         => '✎ Commande modifiée',
-                            'ORDER_PAID'            => '✔ Paiement reçu',
-                            'ORDER_DELIVERED'       => '📦 Photos livrées',
-                            'COUPON_USED'           => '🏷️ Coupon appliqué',
+                            'ORDER_STATUS_CHANGED' => '➤ Statut modifié',
+                            'ORDER_CANCELLED'      => '✕ Commande annulée',
+                            'ORDER_UPDATED'        => '✎ Commande modifiée',
+                            'ORDER_PAID'           => '✔ Paiement reçu',
+                            'ORDER_DELIVERED'      => '📦 Photos livrées',
+                            'COUPON_USED'          => '🏷️ Coupon appliqué',
+                            'DOWNLOAD_INITIATED'   => '⬇ Téléchargement initié',
                         ];
                         $label = $actionLabels[$log->action] ?? $log->action;
                         // Si meta contient from/to, afficher la transition
                         $meta  = is_array($log->meta) ? $log->meta : (json_decode($log->meta ?? '{}', true) ?? []);
                         if (!empty($meta['from']) && !empty($meta['to'])) {
-                            $statusFr = ['PENDING'=>'En attente','IN_PROGRESS'=>'En cours','DONE'=>'Terminé','PAID'=>'Payé','CANCELLED'=>'Annulé'];
+                            $statusFr = ['PENDING'=>'En attente','IN_PROGRESS'=>'En cours','DONE'=>'Terminé','PAID'=>'Payé','DELIVERED'=>'Livré','CANCELLED'=>'Annulé','FLAGGED'=>'Signalé'];
                             $label .= ' : ' . ($statusFr[$meta['from']] ?? $meta['from']) . ' → ' . ($statusFr[$meta['to']] ?? $meta['to']);
                         }
                     @endphp
