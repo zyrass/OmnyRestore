@@ -198,16 +198,15 @@ title('Lexique de Modération IA — OmnyRestore');
 
         </div>
     </div>
+    <style>
+        .card-glass {
+            background: rgba(26, 21, 16, 0.4);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(201, 168, 76, 0.1);
+            border-radius: 4px;
+        }
+        .text-gold-glow {
+            text-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+        }
+    </style>
 </div>
-
-<style>
-    .card-glass {
-        background: rgba(26, 21, 16, 0.4);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(201, 168, 76, 0.1);
-        border-radius: 4px;
-    }
-    .text-gold-glow {
-        text-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
-    }
-</style>
