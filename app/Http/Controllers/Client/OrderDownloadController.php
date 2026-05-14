@@ -53,6 +53,21 @@ class OrderDownloadController extends Controller
         
         $delivery->recordDownload();
 
+        // 4. Notification Support (Anti-remboursement)
+        // Si un ticket est ouvert pour cette commande, on ajoute un message système.
+        $ticket = \App\Models\SupportTicket::where('order_id', $order->id)
+            ->where('status', '!=', 'closed')
+            ->first();
+
+        if ($ticket) {
+            $ticket->messages()->create([
+                'user_id' => null, // Message système
+                'body'    => "⚠️ **NOTIFICATION SYSTÈME** : Le client a téléchargé l'archive ZIP des photos retouchées le " . now()->format('d/m/Y à H:i') . ". Conformément à nos CGV, la prestation est considérée comme exécutée et plus aucun remboursement n'est possible pour cette commande.",
+                'is_admin' => true,
+                'is_read'  => false,
+            ]);
+        }
+
         // ── Disk local (développement) ──────────────────────────────────────
         $disk = config('filesystems.default', 'local');
         if ($disk === 'local') {

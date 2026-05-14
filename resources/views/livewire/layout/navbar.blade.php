@@ -45,7 +45,7 @@ new class extends Component
     }
 }; ?>
 
-<header class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
+<header wire:poll.30s="refreshCounts" class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
     <div class="max-w-[1400px] mx-auto app-layout h-16 flex items-center justify-between">
 
         <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3">
