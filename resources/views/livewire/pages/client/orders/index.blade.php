@@ -121,20 +121,12 @@ class extends Component
                             <div class="flex flex-col gap-0.5">
                                 {{-- Ligne 1 : montant prévu (gris, petit) --}}
                                 <span class="text-[#7A6E5E] text-xs">
-                                    @if ($mTtc === 0)
-                                        Offert ✓
-                                    @else
-                                        Prévu : {{ number_format($mTtc / 100, 2, ',', ' ') }} €
-                                    @endif
+                                    Prévu : {{ number_format($mTtc / 100, 2, ',', ' ') }} €
                                 </span>
                                 {{-- Ligne 2 : montant payé (blanc, affiché seulement si réglé) --}}
                                 @if ($isPaid)
                                 <span class="text-emerald-400 font-semibold text-sm">
-                                    @if ($mTtc === 0)
-                                        Gratuit ✓
-                                    @else
-                                        ✓ {{ number_format($mTtc / 100, 2, ',', ' ') }} € payé
-                                    @endif
+                                    ✓ {{ number_format($mTtc / 100, 2, ',', ' ') }} € payé
                                 </span>
                                 @endif
                             </div>

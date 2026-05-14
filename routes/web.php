@@ -16,7 +16,16 @@ use Illuminate\Support\Facades\Route;
 // ─── Public Showcase (Landing Page) ───────────────────────────────────────────
 // The landing page is the only fully public route.
 // No auth required — anyone can visit to learn about the service.
-Route::view('/', 'welcome')->name('home');
+Route::get('/', function () {
+    // Chiffres réels pour les compteurs dynamiques.
+    $clientsCount = \App\Models\User::where('role', 'client')->count();
+    $photosCount = (int) \App\Models\Order::whereIn('status', ['PAID', 'DELIVERED'])->sum('photo_count');
+
+    return view('welcome', [
+        'clientsCount' => $clientsCount,
+        'photosCount' => $photosCount,
+    ]);
+})->name('home');
 
 // ─── Redirection dashboard (compatibilité Breeze) ──────────────────────────────
 // Breeze génère des composants qui font `route('dashboard')` (ex: confirm-password).

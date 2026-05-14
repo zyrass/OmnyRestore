@@ -490,12 +490,26 @@ class Order extends Model implements HasMedia
      *
      * @return array<string, int>
      */
+    /**
+     * Retourne le décompte des photos par niveau de dommage IA.
+     * Utile pour la transparence tarifaire en admin et client.
+     *
+     * @return array<string, int>
+     */
     public function getDamageBreakdown(): array
     {
         $breakdown = ['light' => 0, 'medium' => 0, 'heavy' => 0];
-        $originals = $this->getMedia('originals');
+        
+        // Priorité aux photos retouchées (actives uniquement)
+        $media = $this->getMedia('retouched');
+        if ($media->isNotEmpty()) {
+            $media = $media->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
+        } else {
+            // Sinon on se base sur les originaux
+            $media = $this->getMedia('originals');
+        }
 
-        foreach ($originals as $m) {
+        foreach ($media as $m) {
             $lv = $m->getCustomProperty('ai_level', $this->damage_level ?? 'light');
             if (isset($breakdown[$lv])) {
                 $breakdown[$lv]++;
@@ -505,5 +519,46 @@ class Order extends Model implements HasMedia
         }
 
         return array_filter($breakdown); // On ne garde que les niveaux présents
+    }
+
+    /**
+     * Calcule le montant TTC total en centimes d'après les photos actives.
+     * C'est la source de vérité pour Stripe, la facture et les emails.
+     */
+    public function getAmountTtcCents(): int
+    {
+        $_pttc = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
+        
+        $media = $this->getMedia('retouched');
+        if ($media->isNotEmpty()) {
+            $media = $media->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
+        } else {
+            $media = $this->getMedia('originals');
+        }
+
+        $baseTtcC = $media->sum(function ($m) use ($_pttc) {
+            $lv = $m->getCustomProperty('ai_level', $this->damage_level ?? 'light');
+            return $_pttc[$lv] ?? $_pttc['light'];
+        });
+
+        if ($baseTtcC === 0) {
+            $baseHtC = $this->total_price_cents ?? $this->base_price_cents ?? 0;
+            $baseTtcC = (int) round($baseHtC * 1.2);
+        }
+
+        return (int) max(0, $baseTtcC - ($this->discount_cents ?? 0));
+    }
+
+    /**
+     * Retourne le nombre de photos actives (non rejetées).
+     */
+    public function getActivePhotosCount(): int
+    {
+        $retouched = $this->getMedia('retouched');
+        if ($retouched->isEmpty()) {
+            return $this->getMedia('originals')->count() ?: $this->photo_count;
+        }
+
+        return $retouched->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false))->count();
     }
 }

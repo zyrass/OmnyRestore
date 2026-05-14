@@ -56,7 +56,7 @@ class extends Component
     }
 }; ?>
 
-<div x-data="{ zipReady: @js($order->status === 'DELIVERED') }"
+<div x-data="{ zipReady: @js($order->status === 'DELIVERED'), showInvoice: false }"
      @zip-ready.window="zipReady = true">
 
     {{-- En-tête page --}}
@@ -99,27 +99,6 @@ class extends Component
                     Merci pour votre confiance, {{ $order->user->name }}.
                 </p>
 
-                {{-- Récapitulatif --}}
-                @php
-                    $baseHtC     = $order->base_price_cents ?? 0;
-                    $discountC   = $order->discount_cents ?? 0;
-                    $finalHtC    = $order->total_price_cents !== null ? $order->total_price_cents : max(0, $baseHtC - $discountC);
-                    
-                    // TTC exact : sommer les PRICES_TTC des photos originales
-                    $_pttc       = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
-                    $_originals  = $order->getMedia('originals');
-                    $baseTtcC    = $_originals->sum(function ($m) use ($_pttc, $order) {
-                        $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
-                        return $_pttc[$lv] ?? $_pttc['light'];
-                    });
-
-                    // Fallback si pas de media originals
-                    if ($baseTtcC === 0) {
-                        $baseTtcC = (int) round($baseHtC * 1.2);
-                    }
-
-                    $ttcC = max(0, $baseTtcC - $discountC);
-                @endphp
                 <div class="bg-[#0F0C08]/60 border border-[#C9A84C]/15 rounded-sm px-6 py-5 mb-8 text-sm text-left space-y-3">
                     <div class="flex justify-between">
                         <span class="text-[#7A6E5E]">Référence</span>
@@ -127,11 +106,11 @@ class extends Component
                     </div>
                     <div class="flex justify-between">
                         <span class="text-[#7A6E5E]">Photos restaurées</span>
-                        <span class="text-[#F5F0E8]">{{ $order->photo_count }}</span>
+                        <span class="text-[#F5F0E8]">{{ $order->getActivePhotosCount() }}</span>
                     </div>
                     <div class="flex justify-between border-t border-[#C9A84C]/10 pt-3">
                         <span class="text-[#7A6E5E] font-medium">Montant réglé TTC</span>
-                        <span class="text-emerald-400 font-bold text-base">{{ number_format($ttcC / 100, 2, ',', ' ') }} €</span>
+                        <span class="text-emerald-400 font-bold text-base">{{ number_format($order->getAmountTtcCents() / 100, 2, ',', ' ') }} €</span>
                     </div>
                     @if ($order->paid_at)
                     <div class="flex justify-between">
@@ -186,10 +165,61 @@ class extends Component
                         Télécharger le ZIP
                     </a>
 
-                    <a href="{{ route('client.orders.invoice', $order) }}" target="_blank"
-                       class="block text-xs text-[#C9A84C]/70 hover:text-[#C9A84C] transition-colors mt-2">
-                        Télécharger la facture PDF →
-                    </a>
+                    <div class="mt-6 flex flex-col items-center gap-3">
+                        <button @click="showInvoice = true"
+                                class="inline-flex items-center gap-2 text-xs text-[#C9A84C] hover:text-[#E8C97A] transition-colors font-medium">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            Consulter ma facture
+                        </button>
+                        
+                        <a href="{{ route('client.orders.invoice', $order) }}"
+                           class="text-[10px] text-[#7A6E5E] hover:text-[#C9A84C] transition-colors">
+                            Télécharger en PDF →
+                        </a>
+                    </div>
+                </div>
+
+                {{-- ── Modal Facture ── --}}
+                <div x-show="showInvoice" 
+                     class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                     x-cloak>
+                    <div class="absolute inset-0 bg-[#0F0C08]/90 backdrop-blur-md" @click="showInvoice = false"></div>
+                    
+                    <div class="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto scrollbar-hide bg-[#1A1510] border border-[#C9A84C]/20 rounded-sm shadow-2xl"
+                         x-transition:enter="transition ease-out duration-300 delay-100"
+                         x-transition:enter-start="opacity-0 translate-y-8 scale-95"
+                         x-transition:enter-end="opacity-100 translate-y-0 scale-100">
+                        
+                        {{-- Header modal --}}
+                        <div class="sticky top-0 z-20 bg-[#1A1510]/80 backdrop-blur-md px-6 py-4 border-b border-[#C9A84C]/10 flex items-center justify-between">
+                            <h3 class="text-[#F5F0E8] font-semibold flex items-center gap-2">
+                                <svg class="w-4 h-4 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                Récapitulatif de paiement
+                            </h3>
+                            <button @click="showInvoice = false" class="text-[#7A6E5E] hover:text-[#F5F0E8] transition-colors">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+
+                        <div class="p-6 sm:p-10">
+                            <x-invoice-preview :order="$order" />
+                        </div>
+                        
+                        {{-- Footer modal --}}
+                        <div class="px-6 py-4 border-t border-[#C9A84C]/10 flex justify-center bg-[#1A1510]/50">
+                            <a href="{{ route('client.orders.invoice', $order) }}" 
+                               class="btn-gold text-xs px-6 py-2.5 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Télécharger le PDF officiel
+                            </a>
+                        </div>
+                    </div>
                 </div>
 
             </div>

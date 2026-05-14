@@ -6,6 +6,8 @@
 
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
+use App\Models\Coupon;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
@@ -17,6 +19,18 @@ class extends Component
 {
     public SupportTicket $ticket;
     public string $reply = '';
+    public string $selectedCouponId = '';
+    
+    // Pour la génération dynamique
+    public string $newCouponType = 'percentage';
+    public int $newCouponValue = 10;
+
+    public function with(): array
+    {
+        return [
+            'availableCoupons' => Coupon::valid()->orderBy('created_at', 'desc')->get(),
+        ];
+    }
 
     public function mount(SupportTicket $ticket): void
     {
@@ -28,11 +42,7 @@ class extends Component
             ->where('is_read', false)
             ->update(['is_read' => true]);
 
-        // Passer en "pending" si c'était "open" (admin a pris connaissance)
-        if ($ticket->status === 'open') {
-            $ticket->update(['status' => 'pending']);
-            $this->ticket->refresh();
-        }
+        $this->dispatch('refresh-navbar-counts');
     }
 
     public function sendReply(): void
@@ -51,18 +61,69 @@ class extends Component
 
         $this->reply = '';
         $this->ticket->refresh()->load(['user', 'order', 'messages.user']);
+        $this->dispatch('refresh-navbar-counts');
     }
 
     public function closeTicket(): void
     {
         $this->ticket->update(['status' => 'closed', 'closed_at' => now()]);
         $this->ticket->refresh();
+        $this->dispatch('refresh-navbar-counts');
     }
 
     public function reopenTicket(): void
     {
         $this->ticket->update(['status' => 'open', 'closed_at' => null]);
         $this->ticket->refresh();
+        $this->dispatch('refresh-navbar-counts');
+    }
+
+    public function generateAndAppendCoupon(): void
+    {
+        if ($this->newCouponValue <= 0) return;
+
+        $base = preg_replace('/[^A-Za-z0-9]/', '', $this->ticket->user->name);
+        $code = strtoupper(substr($base, 0, 8));
+        
+        if (Coupon::where('code', $code)->exists()) {
+            $code .= strtoupper(Str::random(4));
+        }
+
+        $coupon = Coupon::create([
+            'code' => $code,
+            'description' => "Geste commercial (Ticket #{$this->ticket->reference})",
+            'type' => $this->newCouponType,
+            'value' => $this->newCouponValue,
+            'max_uses' => 1,
+            'is_active' => true,
+            'expires_at' => now()->addDays(30),
+            'min_order_cents' => 0,
+        ]);
+
+        $label = $this->newCouponType === 'percentage' 
+            ? "-{$this->newCouponValue}%" 
+            : "-" . number_format($this->newCouponValue, 2, ',', ' ') . "€";
+
+        $text = "\n\nPour l'occasion, je vous ai généré un bon de réduction de {$label} à usage unique.\nSaisissez le code : {$code}\nIl expirera le " . $coupon->expires_at->format('d/m/Y') . ".";
+        
+        $this->reply .= $text;
+        $this->dispatch('coupon-appended');
+    }
+
+    public function appendExistingCoupon(): void
+    {
+        if (!$this->selectedCouponId) return;
+
+        $coupon = Coupon::find($this->selectedCouponId);
+        if ($coupon) {
+            $text = "\n\nPour information, vous pouvez utiliser le code de réduction suivant lors de votre commande : {$coupon->code} ({$coupon->discount_label}).";
+            if ($coupon->expires_at) {
+                $text .= "\nIl expirera le " . $coupon->expires_at->format('d/m/Y') . ".";
+            }
+            $this->reply .= $text;
+            $this->dispatch('coupon-appended');
+        }
+        $this->selectedCouponId = '';
     }
 }; ?>
 
@@ -166,7 +227,63 @@ class extends Component
                           onblur="this.style.borderColor='rgba(201,168,76,0.2)'">
                 </textarea>
                 @error('reply') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
-                <div class="flex items-center gap-3 mt-3">
+                
+                {{-- Outils de réduction --}}
+                <div class="mt-5 border-t border-[#C9A84C]/10 pt-4" x-data="{ mode: 'generate' }">
+                    <div class="flex items-center justify-between mb-4">
+                        <label class="text-[#C9A84C] text-xs uppercase tracking-widest flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>
+                            Ajouter une réduction
+                        </label>
+                        <div class="flex items-center bg-[#0F0C08] rounded-sm border border-[#C9A84C]/20 p-0.5">
+                            <button type="button" @click="mode = 'generate'" :class="mode === 'generate' ? 'bg-[#C9A84C]/20 text-[#C9A84C]' : 'text-[#7A6E5E] hover:text-[#F5F0E8]'" class="text-[10px] uppercase font-bold tracking-wider px-3 py-1.5 rounded-sm transition-all">Générer</button>
+                            <button type="button" @click="mode = 'select'" :class="mode === 'select' ? 'bg-[#C9A84C]/20 text-[#C9A84C]' : 'text-[#7A6E5E] hover:text-[#F5F0E8]'" class="text-[10px] uppercase font-bold tracking-wider px-3 py-1.5 rounded-sm transition-all">Existant</button>
+                        </div>
+                    </div>
+                    
+                    {{-- Mode: Générer un nouveau bon --}}
+                    <div x-show="mode === 'generate'" x-cloak class="flex flex-col gap-3">
+                        <div class="flex items-center gap-0 w-full">
+                            <input wire:model="newCouponValue" type="number" min="1" 
+                                   class="w-full bg-[#0F0C08] text-[#F5F0E8] border border-[#C9A84C]/20 border-r-0 rounded-l-sm px-3 py-2 text-sm outline-none focus:border-[#C9A84C]/50 transition-colors text-center"
+                                   style="background-color: #0F0C08; color: #F5F0E8;">
+                            <select wire:model="newCouponType" 
+                                    class="appearance-none bg-[#1A1510] text-[#C9A84C] border border-[#C9A84C]/20 rounded-r-sm pl-3 pr-8 py-2 text-sm font-bold outline-none cursor-pointer hover:bg-[#C9A84C]/5 transition-colors shrink-0"
+                                    style="background-color: #1A1510; color: #C9A84C; background-image: url('data:image/svg+xml;utf8,<svg fill=\'%23C9A84C\' height=\'24\' viewBox=\'0 0 24 24\' width=\'24\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M7 10l5 5 5-5z\'/></svg>'); background-repeat: no-repeat; background-position: right 4px center; background-size: 18px;">
+                                <option value="percentage" style="background:#1A1510; color:#C9A84C;">%</option>
+                                <option value="fixed" style="background:#1A1510; color:#C9A84C;">€</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-[#7A6E5E] text-[10px] uppercase tracking-wider whitespace-nowrap">
+                                Valable 30 j. • Unique
+                            </span>
+                            <button wire:click.prevent="generateAndAppendCoupon" 
+                                    class="text-xs px-4 py-2 bg-[#C9A84C]/10 hover:bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30 rounded-sm transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
+                                <span>+ Générer & Insérer</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {{-- Mode: Sélectionner un bon existant --}}
+                    <div x-show="mode === 'select'" x-cloak class="flex flex-col gap-3">
+                        <select wire:model="selectedCouponId" 
+                                class="appearance-none w-full bg-[#0F0C08] text-[#F5F0E8] border border-[#C9A84C]/20 text-sm rounded-sm pl-3 pr-10 py-2 outline-none focus:border-[#C9A84C]/50 cursor-pointer"
+                                style="background-color: #0F0C08; color: #F5F0E8; background-image: url('data:image/svg+xml;utf8,<svg fill=\'%237A6E5E\' height=\'24\' viewBox=\'0 0 24 24\' width=\'24\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M7 10l5 5 5-5z\'/></svg>'); background-repeat: no-repeat; background-position: right 8px center; background-size: 20px;">
+                            <option value="" style="background:#0F0C08;color:#F5F0E8;">— Choisir un bon existant —</option>
+                            @foreach($availableCoupons as $c)
+                                <option value="{{ $c->id }}" style="background:#0F0C08;color:#F5F0E8;">{{ $c->code }} ({{ $c->discount_label }})</option>
+                            @endforeach
+                        </select>
+                        <button wire:click.prevent="appendExistingCoupon" 
+                                class="w-full text-xs px-4 py-2 bg-[#1A1510] hover:bg-[#C9A84C]/10 text-[#7A6E5E] hover:text-[#C9A84C] border border-[#C9A84C]/20 rounded-sm transition-colors disabled:opacity-50 text-center"
+                                wire:loading.attr="disabled" wire:target="appendExistingCoupon">
+                            Insérer au message
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 mt-4">
                     <button wire:click="sendReply" wire:loading.attr="disabled" class="btn-gold text-sm">
                         <span wire:loading.remove wire:target="sendReply">Envoyer la réponse</span>
                         <span wire:loading wire:target="sendReply" class="flex items-center gap-2">

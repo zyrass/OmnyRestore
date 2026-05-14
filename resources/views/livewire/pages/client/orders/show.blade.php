@@ -151,6 +151,8 @@ class extends Component
             'is_published'    => false, // en attente de modération admin
         ]);
 
+        $this->dispatch('refresh-navbar-counts');
+
         $this->testimonialContent = '';
         $this->testimonialRating  = 5;
         session()->flash('success', '⭐ Merci pour votre avis ! Il sera visible après validation par notre équipe.');
@@ -292,7 +294,7 @@ class extends Component
     Toast Alpine.js — notification live « ZIP prêt »
     Déclenché par l'event Livewire 'zip-ready' (via wire:poll + pollDelivery)
 --}}
-<div x-data="{ showZipToast: false, showStatusToast: false }"
+<div x-data="{ showZipToast: false, showStatusToast: false, showInvoice: false }"
      @zip-ready.window="showZipToast = true"
      @status-ready.window="showStatusToast = true"
      class="contents">
@@ -418,6 +420,18 @@ class extends Component
             return $pricesTtc[$level] ?? $pricesTtc['light'];
         });
 
+        // Fallback : si pas encore de photos retouchées (PENDING/IN_PROGRESS), on calcule le TTC estimé via les originales
+        if ($payTtc === 0 && in_array($order->status, ['PENDING', 'IN_PROGRESS'])) {
+            $payTtc = $order->getMedia('originals')->sum(function ($m) use ($pricesTtc, $order) {
+                $level = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
+                return $pricesTtc[$level] ?? $pricesTtc['light'];
+            });
+            // Déduction de la remise si déjà calculée
+            if ($order->discount_cents > 0) {
+                $payTtc = max(0, $payTtc - $order->discount_cents);
+            }
+        }
+
         // HT net : on se base sur la valeur stockée en base qui est mise à jour par recalcPriceFromActivePhotos()
         $payHt = $order->total_price_cents !== null ? $order->total_price_cents : ($order->base_price_cents ?? 0);
         $discountC = $order->discount_cents ?? 0;
@@ -472,17 +486,15 @@ class extends Component
                     </svg>
                 </div>
                 <h3 class="text-[#F5F0E8] text-lg font-semibold mb-2">Vos photos sont prêtes !</h3>
-                <p class="text-[#7A6E5E] text-sm max-w-sm mx-auto leading-relaxed mb-2">
-                             <p class="text-[#7A6E5E] text-xs max-w-sm mx-auto mb-8">
-                    Cliquez sur le bouton dans l'email pour déverrouiller l'aperçu.
-                    Si vous ne le trouvez pas, vérifiez vos spams.
+                <p class="text-[#7A6E5E] text-sm max-w-sm mx-auto leading-relaxed mb-8">
+                    Vous allez recevoir (ou avez reçu) un email contenant un lien sécurisé pour visionner vos photos filigranées. Cliquez sur le bouton présent dans cet email pour déverrouiller l'aperçu.
                 </p>
                 <button wire:click="resendUnlockEmail"
                         wire:loading.attr="disabled"
                         class="btn-outline text-sm px-8 py-3 flex items-center gap-2 mx-auto">
                     <svg wire:loading wire:target="resendUnlockEmail" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                     <svg wire:loading.remove wire:target="resendUnlockEmail" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                    Renvoyer l'email
+                    Je n'ai pas reçu l'email
                 </button>
             </div>
             @else
@@ -605,19 +617,8 @@ class extends Component
                                  alt="Photo restaurée"
                                  class="w-full h-full object-cover pointer-events-none" draggable="false">
 
-                            {{-- ── Watermark SVG pattern pleine couverture ── --}}
+                            {{-- Le vrai watermark est incrusté côté serveur (SecurePhotoController) --}}
                             @if (! $isRejected)
-                            <svg class="absolute inset-0 w-full h-full pointer-events-none select-none"
-                                 xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                <defs>
-                                    <pattern id="wm-{{ $media->id }}" x="0" y="0" width="130" height="52"
-                                             patternUnits="userSpaceOnUse" patternTransform="rotate(-35)">
-                                        <text x="4" y="36" font-family="Arial,sans-serif" font-size="10" font-weight="700"
-                                              letter-spacing="3" fill="rgba(255,255,255,0.18)">OmnyRestore</text>
-                                    </pattern>
-                                </defs>
-                                <rect width="100%" height="100%" fill="url(#wm-{{ $media->id }})"/>
-                            </svg>
                             <div class="absolute inset-0 pointer-events-none" style="box-shadow:inset 0 0 20px rgba(201,168,76,0.12);"></div>
                             @endif
 
@@ -693,11 +694,7 @@ class extends Component
                     <form action="{{ route('client.orders.checkout', $order) }}" method="POST">
                         @csrf
                         <button type="submit" class="btn-gold whitespace-nowrap">
-                            @if ($payTtc === 0)
-                                Confirmer — Offert ✓
-                            @else
-                                Payer — {{ number_format($payTtc / 100, 2, ',', ' ') }} € TTC
-                            @endif
+                            Payer — {{ number_format($payTtc / 100, 2, ',', ' ') }} € TTC
                         </button>
                     </form>
                     @endif
@@ -728,7 +725,7 @@ class extends Component
 
                     <h3 class="text-[#F5F0E8] text-xl font-semibold mb-2">En cours de traitement</h3>
                     <p class="text-[#7A6E5E] text-sm max-w-sm mx-auto leading-relaxed mb-2">
-                        Votre paiement a bien été confirmé. L'équipe OmnyRestore prépare votre dossier.
+                        Votre paiement a bien été confirmé. Notre équipe procède à la vérification finale avant l'envoi de vos fichiers haute définition.
                     </p>
                     <p class="text-[#C9A84C]/70 text-xs max-w-xs mx-auto mb-8">
                         Vous recevrez un email dès que vos photos seront disponibles au téléchargement.
@@ -821,11 +818,18 @@ class extends Component
                                 <p class="text-[#7A6E5E] text-xs">Référence : {{ $order->reference }} · Reçu officiel</p>
                             </div>
                         </div>
-                        <a href="{{ route('client.orders.invoice', $order) }}" target="_blank"
-                           class="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-[#C9A84C]/10 hover:bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C] text-sm font-bold rounded-sm transition-all group">
-                            <svg class="w-4 h-4 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Télécharger la facture (PDF)
-                        </a>
+                        <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                            <button @click="showInvoice = true"
+                                    class="flex items-center justify-center gap-2 px-6 py-3 bg-[#C9A84C]/10 hover:bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C] text-sm font-bold rounded-sm transition-all group">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                Consulter
+                            </button>
+                            <a href="{{ route('client.orders.invoice', $order) }}"
+                               class="flex items-center justify-center gap-2 px-6 py-3 bg-transparent hover:bg-[#C9A84C]/5 border border-[#C9A84C]/20 text-[#C9A84C]/80 hover:text-[#C9A84C] text-sm font-medium rounded-sm transition-all group">
+                                <svg class="w-4 h-4 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                PDF
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -940,14 +944,25 @@ class extends Component
                         <dt class="text-[#7A6E5E]">Type</dt>
                         <dd class="text-[#F5F0E8]">
                             @php
-                                $lvl = match($order->damage_level) {
-                                    'light'  => 'Standard',
-                                    'medium' => 'Avancée',
-                                    'heavy'  => 'Complète',
-                                    default  => ucfirst($order->damage_level ?? 'N/A'),
-                                };
+                                $breakdown = $order->getDamageBreakdown();
+                                $isMixed = count($breakdown) > 1;
+
+                                if ($isMixed) {
+                                    $labels = [];
+                                    if (isset($breakdown['heavy']))  $labels[] = $breakdown['heavy'] . ' Compl.';
+                                    if (isset($breakdown['medium'])) $labels[] = $breakdown['medium'] . ' Avanc.';
+                                    if (isset($breakdown['light']))  $labels[] = $breakdown['light'] . ' Std';
+                                    $lvlLabel = 'Mixte (' . implode(', ', $labels) . ')';
+                                } else {
+                                    $lvlLabel = match($order->damage_level) {
+                                        'light'  => 'Standard',
+                                        'medium' => 'Avancée',
+                                        'heavy'  => 'Complète',
+                                        default  => ucfirst($order->damage_level ?? 'N/A'),
+                                    };
+                                }
                             @endphp
-                            {{ $lvl }}
+                            {{ $lvlLabel }}
                         </dd>
                     </div>
                     @php
@@ -986,11 +1001,7 @@ class extends Component
                         <div class="flex justify-between font-semibold">
                             <dt class="text-[#C9A84C]">Total TTC</dt>
                             <dd class="text-[#C9A84C]">
-                                @if ($ttcC === 0)
-                                    Offert ✓
-                                @else
-                                    {{ number_format($ttcC / 100, 2, ',', ' ') }} €
-                                @endif
+                                {{ number_format($ttcC / 100, 2, ',', ' ') }} €
                             </dd>
                         </div>
                     </div>
@@ -1027,6 +1038,47 @@ class extends Component
                 </a>
             </div>
 
+        </div>
+    </div>
+
+    {{-- ── Modal Facture ── --}}
+    <div x-show="showInvoice" 
+         class="fixed inset-0 z-[100] flex items-center justify-center p-4"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         x-cloak>
+        <div class="absolute inset-0 bg-[#0F0C08]/90 backdrop-blur-md" @click="showInvoice = false"></div>
+        
+        <div class="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto scrollbar-hide bg-[#1A1510] border border-[#C9A84C]/20 rounded-sm shadow-2xl"
+             x-transition:enter="transition ease-out duration-300 delay-100"
+             x-transition:enter-start="opacity-0 translate-y-8 scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100">
+            
+            <div class="sticky top-0 z-20 bg-[#1A1510]/80 backdrop-blur-md px-6 py-4 border-b border-[#C9A84C]/10 flex items-center justify-between">
+                <h3 class="text-[#F5F0E8] font-semibold flex items-center gap-2">
+                    <svg class="w-4 h-4 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    Récapitulatif de paiement
+                </h3>
+                <button @click="showInvoice = false" class="text-[#7A6E5E] hover:text-[#F5F0E8] transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="p-6 sm:p-10">
+                <x-invoice-preview :order="$order" />
+            </div>
+            
+            <div class="px-6 py-4 border-t border-[#C9A84C]/10 flex justify-center bg-[#1A1510]/50">
+                <a href="{{ route('client.orders.invoice', $order) }}" 
+                   class="btn-gold text-xs px-6 py-2.5 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Télécharger le PDF officiel
+                </a>
+            </div>
         </div>
     </div>
 </div>

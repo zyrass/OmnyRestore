@@ -79,15 +79,29 @@ class SecurePhotoController extends Controller
             'Cette photo a été retirée de la commande.'
         );
 
-        // 6. Lire le fichier depuis le disk sécurisé (local ou s3)
-        if (! file_exists($media->getPath())) {
-            abort(404, 'Fichier introuvable sur le disque.');
+        // 6. Si la commande est DONE (non payée), on FORCE le renvoi de la version filigranée !
+        // FAIL-SAFE CRITIQUE : Ne JAMAIS envoyer l'original (retouched) avant paiement (PAID/DELIVERED).
+        $pathToServe = $media->getPath();
+
+        if ($order->status === 'DONE') {
+            $expectedFilename = 'watermark_' . pathinfo($media->file_name, PATHINFO_FILENAME) . '.jpg';
+            $watermarkedMedia = $order->getMedia('watermarked')->firstWhere('file_name', $expectedFilename);
+
+            if (! $watermarkedMedia || ! file_exists($watermarkedMedia->getPath())) {
+                abort(403, 'Aperçu filigrané en cours de génération, veuillez patienter.');
+            }
+            $pathToServe = $watermarkedMedia->getPath();
+        } else {
+            // Statut PAID ou DELIVERED
+            if (! file_exists($pathToServe)) {
+                abort(404, 'Fichier original introuvable sur le disque.');
+            }
         }
 
-        $contents = file_get_contents($media->getPath());
+        $contents = file_get_contents($pathToServe);
 
         // 7. Streamer le fichier avec le bon Content-Type
-        $mimeType = $media->mime_type ?: 'image/jpeg';
+        $mimeType = $order->status === 'DONE' ? 'image/jpeg' : ($media->mime_type ?: 'image/jpeg');
 
         return response($contents, 200, [
             'Content-Type'        => $mimeType,

@@ -27,6 +27,8 @@ class extends Component
 
         // Marquer les messages admin comme lus
         $ticket->messages()->where('is_admin', true)->where('is_read', false)->update(['is_read' => true]);
+
+        $this->dispatch('refresh-navbar-counts');
     }
 
     public function sendReply(): void
@@ -45,6 +47,8 @@ class extends Component
         // Repasser en "open" pour notifier l'admin
         $this->ticket->update(['status' => 'open', 'updated_at' => now()]);
 
+        $this->dispatch('refresh-navbar-counts');
+
         $this->reply = '';
         $this->ticket->refresh()->load(['order', 'messages.user']);
     }
@@ -54,6 +58,7 @@ class extends Component
         abort_if($this->ticket->user_id !== auth()->id(), 403);
         $this->ticket->update(['status' => 'closed', 'closed_at' => now()]);
         $this->ticket->refresh();
+        $this->dispatch('refresh-navbar-counts');
     }
 }; ?>
 

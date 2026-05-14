@@ -68,6 +68,8 @@ class extends Component
             'is_admin'  => false,
         ]);
 
+        $this->dispatch('refresh-navbar-counts');
+
         $this->redirect(route('client.tickets.show', $ticket), navigate: true);
     }
 }; ?>

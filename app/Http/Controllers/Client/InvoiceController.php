@@ -44,7 +44,7 @@ class InvoiceController extends Controller
         // inline = s'ouvre dans le navigateur (téléchargeable via le bouton du PDF viewer)
         return response($pdf->output(), 200, [
             'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => "inline; filename=\"{$filename}\"",
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
     }
 }

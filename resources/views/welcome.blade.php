@@ -13,10 +13,12 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="noise" x-data="{ scrolled: window.scrollY > 50 }" @scroll.window="scrolled = window.scrollY > 50">
+<body class="noise">
 
 {{-- ========== NAVIGATION ========== --}}
 <header
+    x-data="{ scrolled: window.scrollY > 50 }" 
+    @scroll.window="scrolled = window.scrollY > 50"
     class="fixed top-0 left-0 right-0 z-50 transition-all duration-500 py-6"
     :class="scrolled ? 'bg-[#0D0B08]/95 backdrop-blur-md border-b border-[#C9A84C]/10 !py-4' : ''"
 >
@@ -28,12 +30,13 @@
         </a>
 
         {{-- Nav links — ordre calé sur l'ordre réel des sections dans la page --}}
-        <div class="hidden md:flex items-center gap-8 text-sm text-[#7A6E5E]">
-            <a href="#examples" class="hover:text-[#C9A84C] transition-colors duration-200">R&eacute;sultats r&eacute;els</a>
-            <a href="#how" class="hover:text-[#C9A84C] transition-colors duration-200">Processus</a>
-            <a href="#pricing" class="hover:text-[#C9A84C] transition-colors duration-200">Tarification</a>
-            <a href="#ia" class="hover:text-[#C9A84C] transition-colors duration-200">Technologie</a>
-            <a href="#testimonials" class="hover:text-[#C9A84C] transition-colors duration-200">Témoignages</a>
+        <div class="hidden lg:flex items-center gap-4 xl:gap-8 text-sm text-[#7A6E5E]">
+            <a href="#examples" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">R&eacute;sultats r&eacute;els</a>
+            <a href="#why" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Pourquoi nous ?</a>
+            <a href="#how" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Processus</a>
+            <a href="#pricing" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Tarification</a>
+            <a href="#ia" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Technologie</a>
+            <a href="#testimonials" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Témoignages</a>
         </div>
 
         {{-- CTA Auth --}}
@@ -59,6 +62,8 @@
         </div>
     </nav>
 </header>
+
+<main class="flex-grow">
 
 {{-- ========== HERO ========== --}}
 <section class="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -173,8 +178,9 @@
             ['year' => '1943', 'label' => 'Portrait militaire',  'issues' => 'Dommages eau, pliures, contraste perdu', 'slug' => 'militaire'],
         ] as $ex)
         <div class="card-glass overflow-hidden">
-            {{-- Slider interactif — événements Alpine.js natifs sur le conteneur --}}
-            <div class="relative h-64 overflow-hidden select-none cursor-col-resize"
+            {{-- Slider interactif — Bulletproof 1:1 aspect ratio avec style inline --}}
+            <div class="relative w-full overflow-hidden select-none cursor-col-resize"
+                 style="padding-bottom: 100%;"
                  x-data="{ pct: 50, dragging: false }"
                  @mousedown.prevent="dragging = true"
                  @mouseup.window="dragging = false"
@@ -230,6 +236,102 @@
 
 </section>
 
+{{-- ========== POURQUOI NOUS ========== --}}
+<section id="why" class="py-32 mt-32 md:mt-40 relative overflow-hidden">
+    {{-- Background decoration --}}
+    <div class="absolute inset-0 bg-[#C9A84C]/5 skew-y-3 origin-top-left -z-10"></div>
+    
+    <div class="max-w-6xl mx-auto px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+            {{-- Texte --}}
+            <div class="lg:pr-12">
+                <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Pourquoi OmnyRestore ?</p>
+                <h2 class="text-4xl font-bold text-[#F5F0E8] mb-6">L'artisanat numérique au service de votre histoire</h2>
+                <div class="w-16 h-px bg-[#C9A84C]/60 mb-6"></div>
+                <p class="text-[#7A6E5E] leading-relaxed mb-6">
+                    Nous ne nous contentons pas d'appliquer un filtre générique. Notre processus combine une intelligence artificielle de pointe et une supervision minutieuse pour s'assurer que chaque détail, chaque texture et chaque visage soient respectés.
+                </p>
+                <ul class="space-y-4 mb-8">
+                    <li class="flex items-start gap-3">
+                        <div class="w-5 h-5 rounded-full bg-[#C9A84C]/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <svg class="w-3 h-3 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <p class="text-sm text-[#F5F0E8]"><strong>Zéro risque financier</strong> — Vous ne payez que si le résultat filigrané vous impressionne.</p>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="w-5 h-5 rounded-full bg-[#C9A84C]/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <svg class="w-3 h-3 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <p class="text-sm text-[#F5F0E8]"><strong>Confidentialité stricte</strong> — Vos photos sont privées, traitées en France et supprimées après 6 mois.</p>
+                    </li>
+                    <li class="flex items-start gap-3">
+                        <div class="w-5 h-5 rounded-full bg-[#C9A84C]/10 flex items-center justify-center shrink-0 mt-0.5">
+                            <svg class="w-3 h-3 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <p class="text-sm text-[#F5F0E8]"><strong>Qualité Premium HD</strong> — Remasterisation complète, prête pour des impressions grand format.</p>
+                    </li>
+                </ul>
+            </div>
+
+            {{-- Compteurs --}}
+            <div class="flex flex-col gap-6 p-8">
+                {{-- Compteur 1 --}}
+                <div class="card-glass p-8 text-center flex flex-col justify-center"
+                     x-data="{ count: 0, target: {{ $photosCount }} }"
+                     x-init="
+                        let observer = new IntersectionObserver((entries) => {
+                            if(entries[0].isIntersecting) {
+                                let start = 0;
+                                let duration = 2000;
+                                let step = target / (duration / 16);
+                                let interval = setInterval(() => {
+                                    start += step;
+                                    if(start >= target) { count = target; clearInterval(interval); }
+                                    else { count = Math.floor(start); }
+                                }, 16);
+                                observer.disconnect();
+                            }
+                        });
+                        observer.observe($el);
+                     ">
+                    <div class="text-4xl md:text-5xl font-bold text-[#C9A84C] mb-2"><span x-text="count">0</span>+</div>
+                    <div class="text-xs md:text-sm text-[#F5F0E8] font-medium uppercase tracking-widest">Photos Sauvées</div>
+                </div>
+
+                {{-- Compteur 2 --}}
+                <div class="card-glass p-8 text-center flex flex-col justify-center"
+                     x-data="{ count: 0, target: {{ $clientsCount }} }"
+                     x-init="
+                        let observer = new IntersectionObserver((entries) => {
+                            if(entries[0].isIntersecting) {
+                                let start = 0;
+                                let duration = 2000;
+                                let step = target / (duration / 16);
+                                let interval = setInterval(() => {
+                                    start += step;
+                                    if(start >= target) { count = target; clearInterval(interval); }
+                                    else { count = Math.floor(start); }
+                                }, 16);
+                                observer.disconnect();
+                            }
+                        });
+                        observer.observe($el);
+                     ">
+                    <div class="text-4xl md:text-5xl font-bold text-[#C9A84C] mb-2"><span x-text="count">0</span>+</div>
+                    <div class="text-xs md:text-sm text-[#F5F0E8] font-medium uppercase tracking-widest">Familles Ravies</div>
+                </div>
+
+                {{-- Feature box --}}
+                <div class="card-glass p-8 text-center flex flex-col justify-center">
+                    <div class="text-4xl md:text-5xl font-bold text-[#C9A84C] mb-2">100%</div>
+                    <div class="text-sm text-[#F5F0E8] font-medium uppercase tracking-widest">Satisfait ou remboursé</div>
+                    <p class="text-xs text-[#7A6E5E] mt-3">Vous ne payez que si le résultat filigrané est à la hauteur de vos attentes.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 {{-- ========== HOW IT WORKS ========== --}}
 <section id="how" class="py-32 border-y border-[#C9A84C]/10 bg-[#1A1510]/40">
     <div class="max-w-6xl mx-auto px-6">
@@ -281,24 +383,19 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
         @foreach([
-            ['label' => 'Restauration Standard', 'price' => '1', 'ttc' => '1,00&nbsp;&euro;&nbsp;TTC', 'desc' => 'Jaunissement, poussière, légères décolorations', 'features' => ['Analyse IA automatique', 'Aperçu filigranné inclus', 'Livraison ZIP + Facture', 'Délai 24-48h']],
-            ['label' => 'Restauration Avancée',  'price' => '2', 'ttc' => '2,00&nbsp;&euro;&nbsp;TTC', 'desc' => 'Rayures profondes, décoloration forte, pliures, grain', 'features' => ['Tout ce qui précède', 'Reconstruction avancée', 'Correction de contraste', 'Délai 48-72h'], 'featured' => true],
-            ['label' => 'Restauration Complète', 'price' => '3', 'ttc' => '3,00&nbsp;&euro;&nbsp;TTC', 'desc' => 'Déchirures, dommages eau, zones partiellement manquantes', 'features' => ['Tout ce qui précède', 'Reconstruction complexe', 'Zones reconstruites par IA', 'Délai 72-96h']],
+            ['label' => 'Restauration Standard', 'price' => '1', 'ht' => '0,83&nbsp;&euro;&nbsp;HT', 'desc' => 'Jaunissement, poussière, légères décolorations', 'features' => ['Analyse IA automatique', 'Aperçu filigranné inclus', 'Livraison ZIP + Facture', 'Délai 24-48h']],
+            ['label' => 'Restauration Avancée',  'price' => '2', 'ht' => '1,67&nbsp;&euro;&nbsp;HT', 'desc' => 'Rayures profondes, décoloration forte, pliures, grain', 'features' => ['Tout ce qui précède', 'Reconstruction avancée', 'Correction de contraste', 'Délai 48-72h']],
+            ['label' => 'Restauration Complète', 'price' => '3', 'ht' => '2,50&nbsp;&euro;&nbsp;HT', 'desc' => 'Déchirures, dommages eau, zones partiellement manquantes', 'features' => ['Tout ce qui précède', 'Reconstruction complexe', 'Zones reconstruites par IA', 'Délai 72-96h']],
         ] as $plan)
-        <div class="card-glass p-8 text-center {{ ($plan['featured'] ?? false) ? 'border-[#C9A84C]/50 relative' : '' }}">
-            @if($plan['featured'] ?? false)
-            <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#C9A84C] text-[#0D0B08] text-xs font-bold px-4 py-1 tracking-widest uppercase">
-                Populaire
-            </div>
-            @endif
+        <div class="card-glass p-8 text-center flex flex-col">
             <h3 class="text-[#F5F0E8] font-semibold mb-1">{{ $plan['label'] }}</h3>
             <p class="text-[#7A6E5E] text-xs mb-6">{{ $plan['desc'] }}</p>
             <div class="mb-1">
                 <span class="text-4xl font-bold text-[#C9A84C]">{{ $plan['price'] }}&euro;</span>
-                <span class="text-sm text-[#7A6E5E]"> / photo HT</span>
+                <span class="text-sm text-[#7A6E5E]"> / photo TTC</span>
             </div>
-            <p class="text-xs text-[#7A6E5E]/70 mb-8">{!! $plan['ttc'] !!}</p>
-            <ul class="space-y-3 text-sm text-[#7A6E5E] text-left mb-8">
+            <p class="text-xs text-[#7A6E5E]/70 mb-8">{!! $plan['ht'] !!} hors taxes</p>
+            <ul class="space-y-3 text-sm text-[#7A6E5E] text-left flex-1">
                 @foreach($plan['features'] as $f)
                 <li class="flex items-center gap-3">
                     <svg class="w-4 h-4 text-[#C9A84C] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -306,13 +403,6 @@
                 </li>
                 @endforeach
             </ul>
-            @auth
-            <a href="{{ route('client.orders.create') }}" class="{{ ($plan['featured'] ?? false) ? 'btn-gold w-full justify-center' : 'btn-outline w-full justify-center' }}">
-            @else
-            <a href="{{ route('register') }}" class="{{ ($plan['featured'] ?? false) ? 'btn-gold w-full justify-center' : 'btn-outline w-full justify-center' }}">
-            @endauth
-                @auth Nouvelle commande @else Commencer @endauth
-            </a>
         </div>
         @endforeach
     </div>
@@ -365,51 +455,119 @@
 </section>
 
 {{-- ========== TESTIMONIALS ========== --}}
-@php $testimonials = \App\Models\Testimonial::published()->orderByDesc('created_at')->limit(6)->get(); @endphp
-<section id="testimonials" class="py-32 max-w-6xl mx-auto px-6">
+@php $testimonials = \App\Models\Testimonial::published()->orderByDesc('created_at')->get(); @endphp
+<section id="testimonials" class="py-32 max-w-6xl mx-auto px-6" x-data="{ 
+    activeTab: 'all',
+    items: [
+        @foreach($testimonials as $t)
+        { id: {{ $t->id }}, rating: {{ $t->rating }}, content: {{ json_encode($t->content) }}, initials: '{{ $t->author_initials }}', name: '{{ $t->author_name }}' },
+        @endforeach
+    ],
+    get filteredItems() {
+        if (this.activeTab === 'all') return this.items;
+        if (this.activeTab === 'favorable') return this.items.filter(i => i.rating >= 4);
+        if (this.activeTab === 'moderate') return this.items.filter(i => i.rating === 3);
+        if (this.activeTab === 'unfavorable') return this.items.filter(i => i.rating <= 2);
+        return [];
+    }
+}">
     <div class="text-center mb-16">
         <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Témoignages</p>
         <h2 class="text-4xl font-bold text-[#F5F0E8] mb-4">Ce que nos clients disent</h2>
         <div class="divider-gold my-6"></div>
+        <p class="text-[#7A6E5E] text-xs italic opacity-80 mt-2">Note : Chaque client est libre de partager son expérience en toute transparence après sa commande.</p>
     </div>
 
-    @if($testimonials->isEmpty())
-    {{-- Empty state --}}
-    <div class="text-center py-12">
-        <div class="w-16 h-16 border border-[#C9A84C]/20 rounded-full flex items-center justify-center mx-auto mb-5">
-            <svg class="w-7 h-7 text-[#7A6E5E]/50" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-            </svg>
-        </div>
-        <p class="text-[#7A6E5E] text-sm">Aucun avis pour le moment.</p>
-        <p class="text-[#7A6E5E]/50 text-xs mt-1">Soyez le premier à partager votre expérience après votre restauration.</p>
+    {{-- Filtres --}}
+    <div class="flex flex-wrap justify-center gap-3 mb-12">
+        <button @click="activeTab = 'all'" 
+                :class="activeTab === 'all' ? 'bg-[#C9A84C]/20 border-[#C9A84C]/50 text-[#C9A84C]' : 'border-[#3A3028] text-[#7A6E5E]'"
+                class="px-5 py-2 text-[10px] uppercase tracking-widest border rounded-sm transition-all">
+            Tous les témoignages ({{ count($testimonials) }})
+        </button>
+        <button @click="activeTab = 'favorable'" 
+                :class="activeTab === 'favorable' ? 'bg-[#C9A84C]/20 border-[#C9A84C]/50 text-[#C9A84C]' : 'border-[#3A3028] text-[#7A6E5E]'"
+                class="px-5 py-2 text-[10px] uppercase tracking-widest border rounded-sm transition-all">
+            Favorables (4-5★)
+        </button>
+        <button @click="activeTab = 'moderate'" 
+                :class="activeTab === 'moderate' ? 'bg-[#C9A84C]/20 border-[#C9A84C]/50 text-[#C9A84C]' : 'border-[#3A3028] text-[#7A6E5E]'"
+                class="px-5 py-2 text-[10px] uppercase tracking-widest border rounded-sm transition-all">
+            Modérés (3★)
+        </button>
+        <button @click="activeTab = 'unfavorable'" 
+                :class="activeTab === 'unfavorable' ? 'bg-[#C9A84C]/20 border-[#C9A84C]/50 text-[#C9A84C]' : 'border-[#3A3028] text-[#7A6E5E]'"
+                class="px-5 py-2 text-[10px] uppercase tracking-widest border rounded-sm transition-all">
+            Défavorables (1-2★)
+        </button>
     </div>
-    @else
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        @foreach($testimonials as $t)
-        <div class="card-glass p-6 flex flex-col gap-4">
-            {{-- Header : avatar + nom + étoiles --}}
-            <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-full bg-[#C9A84C]/15 border border-[#C9A84C]/40 flex items-center justify-center shrink-0">
-                    <span class="text-[#C9A84C] text-sm font-bold tracking-wide">{{ $t->author_initials }}</span>
-                </div>
-                <div>
-                    <p class="text-[#F5F0E8] text-sm font-semibold">{{ $t->author_name }}</p>
-                    <div class="flex gap-0.5 mt-1">
-                        @for($s = 1; $s <= 5; $s++)
-                        <svg class="w-3 h-3 {{ $s <= $t->rating ? 'text-[#C9A84C]' : 'text-[#7A6E5E]/25' }}" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                        </svg>
-                        @endfor
+
+    {{-- Grille --}}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6" x-show="filteredItems.length > 0">
+        <template x-for="t in filteredItems" :key="t.id">
+            <div class="card-glass p-6 flex flex-col gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-full bg-[#C9A84C]/15 border border-[#C9A84C]/40 flex items-center justify-center shrink-0">
+                        <span class="text-[#C9A84C] text-sm font-bold tracking-wide" x-text="t.initials"></span>
+                    </div>
+                    <div>
+                        <p class="text-[#F5F0E8] text-sm font-semibold" x-text="t.name"></p>
+                        <div class="flex gap-0.5 mt-1">
+                            <template x-for="s in 5">
+                                <svg class="w-3 h-3" :class="s <= t.rating ? 'text-[#C9A84C]' : 'text-[#7A6E5E]/25'" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                            </template>
+                        </div>
                     </div>
                 </div>
+                <p class="text-[#7A6E5E] text-sm leading-relaxed italic flex-1" x-text="'&ldquo;' + t.content + '&rdquo;'"></p>
             </div>
-            {{-- Avis --}}
-            <p class="text-[#7A6E5E] text-sm leading-relaxed italic flex-1">&ldquo;{{ $t->content }}&rdquo;</p>
-        </div>
-        @endforeach
+        </template>
     </div>
-    @endif
+
+    {{-- Empty State Premium --}}
+    <div x-show="filteredItems.length === 0" 
+         class="relative overflow-hidden rounded-sm border border-[#C9A84C]/10 bg-[#1A1510]/40 flex flex-col items-center justify-center py-32 px-6"
+         style="min-height: 450px;">
+        
+        {{-- Background Glow --}}
+        <div class="absolute inset-0 pointer-events-none">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#C9A84C]/5 rounded-full blur-[80px]"></div>
+        </div>
+
+        <div class="relative z-10 flex flex-col items-center max-w-xl mx-auto text-center">
+            {{-- Icon with Glow --}}
+            <div class="w-20 h-20 rounded-full bg-[#C9A84C]/5 border border-[#C9A84C]/20 flex items-center justify-center mb-8 shadow-[0_0_40px_rgba(201,168,76,0.1)]">
+                <svg class="w-8 h-8 text-[#C9A84C]" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+            </div>
+            
+            <div x-show="activeTab === 'all'" class="space-y-4">
+                <h3 class="text-3xl font-bold text-[#F5F0E8] font-serif">Une histoire à écrire</h3>
+                <p class="text-[#7A6E5E] leading-relaxed">Aucun témoignage n'a encore été publié. Soyez le premier à partager l'émotion de votre photo restaurée !</p>
+            </div>
+            <div x-show="activeTab === 'favorable'" class="space-y-4">
+                <h3 class="text-3xl font-bold text-[#F5F0E8] font-serif">L'excellence en attente</h3>
+                <p class="text-[#7A6E5E] leading-relaxed">Pas encore d'avis 5 étoiles répertorié dans cette catégorie. Nous mettons tout en œuvre pour que votre commande soit la prochaine !</p>
+            </div>
+            <div x-show="activeTab === 'moderate'" class="space-y-4">
+                <h3 class="text-3xl font-bold text-[#F5F0E8] font-serif">Juste milieu</h3>
+                <p class="text-[#7A6E5E] leading-relaxed">Aucun avis modéré pour l'instant. Nos clients semblent soit totalement conquis, soit extrêmement attentifs aux moindres détails.</p>
+            </div>
+            <div x-show="activeTab === 'unfavorable'" class="space-y-4">
+                <h3 class="text-3xl font-bold text-[#F5F0E8] font-serif">Zéro déception</h3>
+                <p class="text-[#7A6E5E] leading-relaxed">Incroyable mais vrai : aucun avis négatif à ce jour. Notre intelligence artificielle et notre soin du détail font l'unanimité.</p>
+            </div>
+
+            <div class="mt-10">
+                <a href="#how" class="text-[#C9A84C] text-[10px] tracking-[0.3em] uppercase font-bold border-b border-[#C9A84C]/30 pb-1 hover:border-[#C9A84C] transition-all">
+                    Découvrir notre processus
+                </a>
+            </div>
+        </div>
+    </div>
 </section>
 
 {{-- ========== TRANSITION EMOTION ========== --}}
@@ -460,6 +618,8 @@
         @endauth
     </div>
 </section>
+
+</main>
 
 {{-- ========== FOOTER ========== --}}
 <footer class="mt-16">

@@ -6,6 +6,22 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.20.0] — 2026-05-14 — Admin Compliance & UX Polishing
+
+### ✨ Nouveautés & Améliorations
+
+- **Dashboard Admin & Navigation** :
+  - Création de la page **Conformité & Légal** (`/admin/compliance`) regroupant les rappels RGPD, NIS2, Loi Godfrain et ISO 27001 avec un code couleur spécifique (Or, Bleu, Rouge, Violet).
+  - Nettoyage de la barre de navigation : déplacement du bouton d'urgence "🚨 CRISE" dans le menu déroulant de profil admin.
+  - Ajout d'une affordance visuelle (chevron rotatif AlpineJS) sur l'avatar utilisateur (commun Admin & Client) pour indiquer la présence du menu déroulant.
+- **Support & UX Client** :
+  - Amélioration de l'interface de réduction (sidebar droite) dans la vue de ticket admin : les boutons de génération/sélection de coupon passent en colonne sur les petits écrans pour éviter les chevauchements (`flex-col lg:flex-row`).
+  - Refonte sémantique des statuts de tickets admin : "Ouvert" devient "À prendre en charge" et "En attente" devient "Attente client", évitant toute confusion opérationnelle.
+  - Blocage du passage automatique des tickets en statut "Attente client" lors de la simple ouverture par l'admin ; ce statut n'est désormais appliqué que lorsqu'une réponse est effectivement envoyée au client.
+  - **Transparence RGPD** : Le texte d'export de données (portabilité JSON) a été clarifié pour informer explicitement les clients qu'il s'agit de texte brut et non de médias téléchargeables (qui se trouvent dans les commandes).
+
+---
+
 ## [0.19.3] — 2026-05-13 — Documentation Refactoring & Security Audit
 
 ### 📚 Documentation & Conformité
@@ -656,7 +672,8 @@ Le droit de valider / rejeter les photos restaurées est désormais **exclusivem
 ---
 
 <!-- Liens -->
-[Unreleased]: https://github.com/zyrass/OmnyRestore/compare/v0.19.3...HEAD
+[Unreleased]: https://github.com/zyrass/OmnyRestore/compare/v0.20.0...HEAD
+[0.20.0]: https://github.com/zyrass/OmnyRestore/compare/v0.19.3...v0.20.0
 [0.19.3]: https://github.com/zyrass/OmnyRestore/compare/v0.19.2...v0.19.3
 [0.19.2]: https://github.com/zyrass/OmnyRestore/compare/v0.19.1...v0.19.2
 [0.19.1]: https://github.com/zyrass/OmnyRestore/compare/v0.19.0...v0.19.1

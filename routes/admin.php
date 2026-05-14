@@ -17,6 +17,11 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Volt::route('/dashboard', 'pages.admin.dashboard')
         ->name('dashboard');
 
+    // ─── Compliance / Légal ───────────────────────────────────────────────
+    // GET /admin/compliance — Rappels légaux (RGPD, NIS2) pour l'admin
+    Volt::route('/compliance', 'pages.admin.compliance')
+        ->name('compliance');
+
     // ─── Order Management ─────────────────────────────────────────────────
     // GET /admin/orders — Liste toutes les commandes (filtrables)
     Volt::route('/orders', 'pages.admin.orders.index')

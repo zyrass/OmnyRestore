@@ -49,9 +49,9 @@ class OrderObserver
 
         try {
             match ($newStatus) {
-                // L'admin vient de finir la restauration → notifier le client
-                'DONE' => Mail::to($userEmail, $userName)
-                              ->queue(new OrderReadyForPayment($order)),
+                // L'admin vient de finir la restauration → Le mail sera déclenché MANUELLEMENT
+                // via le bouton dans le panel admin (resendClientNotification).
+                'DONE' => null,
 
                 // Stripe a confirmé le paiement → email "paiement reçu, ZIP en préparation"
                 // ⚠️ Le GenerateOrderZipJob est dispatched par PaymentSuccessController
@@ -59,10 +59,9 @@ class OrderObserver
                 'PAID' => Mail::to($userEmail, $userName)
                               ->queue(new OrderPaidConfirmation($order)),
 
-                // Le ZIP est généré et prêt → email avec liens téléchargement + facture
-                // C'est LE mail que le client attendait vraiment !
-                'DELIVERED' => Mail::to($userEmail, $userName)
-                                   ->queue(new OrderDeliveryReady($order)),
+                // Le statut DELIVERED est atteint manuellement via l'admin qui envoie l'email
+                // de livraison (ZIP + facture). Le mail est déclenché dans sendDeliveryEmail().
+                'DELIVERED' => null,
 
                 // Pas d'email pour les autres transitions
                 default => null,

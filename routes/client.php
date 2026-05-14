@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Storage;
  * The middleware only ensures authentication and email verification.
  */
 
-Route::middleware(['auth', 'verified', 'client', 'throttle:60,1'])->prefix('client')->name('client.')->group(function () {
+Route::middleware(['auth', 'verified', 'client', 'throttle:360,1'])->prefix('client')->name('client.')->group(function () {
 
     // ─── Orders ───────────────────────────────────────────────────────────
     // Volt::route() active le cycle de vie complet du composant Livewire/Volt.
@@ -50,7 +50,7 @@ Route::middleware(['auth', 'verified', 'client', 'throttle:60,1'])->prefix('clie
     // Prévient les doubles-clics, les scripts automatisés, et les abus de session.
     Route::post('/orders/{order}/checkout',
         \App\Http\Controllers\Client\OrderCheckoutController::class . '@checkout'
-    )->name('orders.checkout')->middleware('throttle:10,1');
+    )->name('orders.checkout')->middleware('throttle:30,1');
 
     // GET /client/orders/{order}/download → S3 presigned URL (ou Laravel signed URL local)
     Route::get('/orders/{order}/download', [OrderDownloadController::class, 'download'])

@@ -33,9 +33,7 @@ new #[Layout('layouts.guest')] class extends Component
 
         event(new Registered($user = User::create($validated)));
 
-        Auth::login($user);
-
-        $this->redirect(route('client.orders.index', absolute: false), navigate: true);
+        $this->redirect(route('registration.success', absolute: false), navigate: true);
     }
 }; ?>
 

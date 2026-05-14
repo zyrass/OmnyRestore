@@ -59,5 +59,12 @@ class AppServiceProvider extends ServiceProvider
         // NB: Le listener GenerateWatermarkOnRetouchedUpload est enregistré
         // AUTOMATIQUEMENT par l'auto-découverte Laravel 11 (app/Listeners/).
         // Ne PAS l'enregistrer manuellement ici → évite le double dispatch.
+
+        // ── Personnalisation de l'email de vérification (RGPD / Marque) ──────
+        \Illuminate\Auth\Notifications\VerifyEmail::toMailUsing(function (object $notifiable, string $url) {
+            return (new \Illuminate\Notifications\Messages\MailMessage)
+                ->subject('Vérifiez votre adresse email — OmnyRestore')
+                ->view('emails.auth.verify-email', ['url' => $url, 'user' => $notifiable]);
+        });
     }
 }

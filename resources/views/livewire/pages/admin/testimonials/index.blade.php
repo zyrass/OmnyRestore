@@ -30,6 +30,7 @@ class extends Component
             'is_published' => true,
             'rejected_at'  => null,
         ]);
+        $this->dispatch('refresh-navbar-counts');
         session()->flash('success', '✅ Témoignage publié sur la vitrine.');
     }
 
@@ -41,6 +42,7 @@ class extends Component
             'is_published' => false,
             'rejected_at'  => now(),
         ]);
+        $this->dispatch('refresh-navbar-counts');
         session()->flash('success', '🗑 Témoignage rejeté.');
     }
 
@@ -48,6 +50,7 @@ class extends Component
     public function destroy(int $id): void
     {
         Testimonial::findOrFail($id)->delete();
+        $this->dispatch('refresh-navbar-counts');
         session()->flash('success', 'Témoignage supprimé définitivement.');
     }
 
@@ -58,6 +61,7 @@ class extends Component
             'is_published' => false,
             'rejected_at'  => null,
         ]);
+        $this->dispatch('testimonial-moderated');
         session()->flash('success', 'Témoignage dépublié (en attente).');
     }
 
@@ -113,12 +117,7 @@ class extends Component
 
     {{-- Liste --}}
     @if ($items->isEmpty())
-    <div class="card-glass p-12 text-center">
-        <div class="w-12 h-12 border border-[#C9A84C]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-5 h-5 text-[#7A6E5E]/50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-            </svg>
-        </div>
+    <div class="card-glass p-12 text-center flex flex-col items-center justify-center" style="min-height: 600px;">
         <p class="text-[#7A6E5E] text-sm">Aucun témoignage dans cette catégorie.</p>
     </div>
     @else

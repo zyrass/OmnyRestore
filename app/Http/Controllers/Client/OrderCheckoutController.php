@@ -53,20 +53,7 @@ class OrderCheckoutController extends Controller
         $discountC   = $order->discount_cents ?? 0;
         $finalHtC    = $order->total_price_cents !== null ? $order->total_price_cents : max(0, $baseHtC - $discountC);
         
-        // TTC exact : sommer les PRICES_TTC des photos originales
-        $_pttc       = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
-        $_originals  = $order->getMedia('originals');
-        $baseTtcC    = $_originals->sum(function ($m) use ($_pttc, $order) {
-            $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
-            return $_pttc[$lv] ?? $_pttc['light'];
-        });
-
-        // Fallback si pas de media originals
-        if ($baseTtcC === 0) {
-            $baseTtcC = (int) round($baseHtC * 1.2);
-        }
-
-        $ttcCents = max(0, $baseTtcC - $discountC);
+        $ttcCents = $order->getAmountTtcCents();
 
         // ── Cas coupon 100% : commande offerte, pas de Stripe ────────────
         if ($ttcCents === 0) {

@@ -96,8 +96,8 @@ class extends Component
         $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
     }
 
-    /** Upload des photos restaurées + transition IN_PROGRESS → DONE */
-    public function uploadAndMarkDone(AuditService $audit): void
+    /** Upload des photos restaurées (reste en IN_PROGRESS pour validation admin) */
+    public function uploadRestoredPhotos(AuditService $audit): void
     {
         $this->validate([
             'restoredPhotos'   => ['required', 'array', 'min:1'],
@@ -170,13 +170,8 @@ class extends Component
             }
         }
 
-        // Transition de statut → déclenche OrderObserver → email client
-        $previous = $this->order->status;
-        $this->order->markAsDone();
-        $audit->orderStatusChanged($this->order, $previous, 'DONE');
-
         $this->restoredPhotos = [];
-        session()->flash('success', "{$uploaded} photo(s) restaurée(s) uploadée(s). Client notifié par email.");
+        session()->flash('success', "{$uploaded} photo(s) restaurée(s) uploadée(s). La commande est prête pour notification.");
         $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
     }
 
@@ -318,13 +313,28 @@ class extends Component
     }
 
     /**
-     * Renvoie l'email de déverrouillage au client (lien signé renouvelé).
-     * Disponible uniquement pour les commandes DONE.
-     * Raté limité : 1 envoi par 5 minutes (clé session admin).
+     * Finalise la commande (si IN_PROGRESS → DONE) et envoie l'email de validation.
+     * Disponible pour les commandes IN_PROGRESS (si photos présentes) ou DONE.
+     * Rate limité : 1 envoi par 5 minutes.
      */
-    public function resendClientNotification(): void
+    public function notifyClient(AuditService $audit): void
     {
-        abort_if($this->order->status !== 'DONE', 403, 'Notification disponible uniquement au statut DONE.');
+        // On peut notifier si DONE ou si IN_PROGRESS avec des photos
+        if (!in_array($this->order->status, ['IN_PROGRESS', 'DONE'])) {
+            abort(403, 'Notification non disponible pour ce statut.');
+        }
+
+        // Si on est encore en IN_PROGRESS, on valide d'abord la commande
+        if ($this->order->status === 'IN_PROGRESS') {
+             if ($this->order->getMedia('retouched')->isEmpty()) {
+                 session()->flash('error', "Uploadez des photos restaurées avant de notifier le client.");
+                 return;
+             }
+             
+             $previous = $this->order->status;
+             $this->order->markAsDone();
+             $audit->orderStatusChanged($this->order, $previous, 'DONE');
+        }
 
         $sessionKey = "admin_resend_{$this->order->id}";
         if (session()->has($sessionKey) && now()->diffInSeconds(session($sessionKey)) < 300) {
@@ -342,7 +352,8 @@ class extends Component
             ->queue(new \App\Mail\OrderReadyForPayment($this->order));
 
         session()->put($sessionKey, now());
-        session()->flash('success', "📧 Email de notification envoyé à {$this->order->user->email}.");
+        session()->flash('success', "📧 Email de notification envoyé à {$this->order->user->email}. Statut : Aperçu prêt.");
+        $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs', 'testimonial']);
     }
     /**
      * Envoie l'email de livraison (ZIP + facture PDF) au client.
@@ -441,7 +452,8 @@ class extends Component
 }; ?>
 
 <div x-data="{ finalHt: {{ (float)($finalPrice ?? 0) }}, showPaymentToast: false }"
-     @payment-received.window="showPaymentToast = true">
+     @payment-received.window="showPaymentToast = true"
+     @if($order->status === 'DONE') wire:poll.1s="pollPaymentStatus" @endif>
 
     {{-- Toast Paiement reçu (déclenché par pollPaymentStatus) --}}
     <template x-teleport="body">
@@ -529,11 +541,12 @@ class extends Component
                                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                             </a>
                             {{-- Propriétés IA si disponibles --}}
-                            @php $aiLevel = $media->getCustomProperty('ai_level'); @endphp
+                            @php $aiLevel = $media->getCustomProperty('ai_level', $order->damage_level ?? 'light'); @endphp
                             @if ($aiLevel)
                             <div class="absolute top-1 left-1">
-                                <span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold {{ $aiLevel === 'heavy' ? 'bg-orange-500 text-black' : 'bg-emerald-500 text-black' }}">
-                                    {{ $aiLevel === 'heavy' ? '⚠' : '✓' }} IA
+                                <span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold 
+                                    {{ $aiLevel === 'heavy' ? 'bg-orange-500 text-black' : ($aiLevel === 'medium' ? 'bg-[#C9A84C] text-black' : 'bg-emerald-500 text-black') }}">
+                                    {{ $aiLevel === 'heavy' ? '⚠' : ($aiLevel === 'medium' ? '✧' : '✓') }} IA
                                 </span>
                             </div>
                             @endif
@@ -698,11 +711,11 @@ class extends Component
             </div>
             @endif
 
-            {{-- === ACTION : UPLOAD + MARQUER DONE === --}}
+            {{-- === ACTION : UPLOAD (Statut IN_PROGRESS) === --}}
             @if ($order->status === 'IN_PROGRESS')
-            <form wire:submit="uploadAndMarkDone" class="card-glass p-6 border-blue-500/20">
+            <form wire:submit="uploadRestoredPhotos" class="card-glass p-6 border-blue-500/20">
                 <h2 class="text-[#F5F0E8] font-semibold mb-1">Uploader les photos restaurées</h2>
-                <p class="text-[#7A6E5E] text-sm mb-5">Une fois uploadées, le client recevra un email avec le lien de paiement.</p>
+                <p class="text-[#7A6E5E] text-sm mb-5">Une fois uploadées, vous pourrez envoyer l'email de validation au client.</p>
 
                 {{-- Zone upload --}}
                 <label for="restored-input"
@@ -761,10 +774,10 @@ class extends Component
 
                 <button type="submit" wire:loading.attr="disabled"
                         class="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm rounded-sm transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-                    <span wire:loading.remove wire:target="uploadAndMarkDone">
-                        ✓ Uploader et notifier le client
+                    <span wire:loading.remove wire:target="uploadRestoredPhotos">
+                        ✓ Uploader les photos
                     </span>
-                    <span wire:loading wire:target="uploadAndMarkDone" class="flex items-center gap-2">
+                    <span wire:loading wire:target="uploadRestoredPhotos" class="flex items-center gap-2">
                         <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                         Upload en cours…
                     </span>
@@ -983,26 +996,34 @@ class extends Component
                             {{ $lvlLabel }}
                         </dd>
                     </div>
-                    {{-- Calcul des prix harmonisé (Somme des TTC individuels) --}}
+                    {{-- Calcul des prix harmonisé (Somme des TTC individuels des photos ACTIVES) --}}
                     @php
                         $baseHtC     = $order->base_price_cents ?? 0;
                         $discountC   = $order->discount_cents ?? 0;
                         $finalHtC    = $order->total_price_cents ?? max(0, $baseHtC - $discountC);
                         
-                        // Calcul TTC exact (somme des TTC par photo)
+                        // Calcul TTC exact (somme des TTC par photo ACTIVE)
                         $_pttc       = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
-                        $_originals  = $order->getMedia('originals');
-                        $baseTtcC    = $_originals->sum(function ($m) use ($_pttc, $order) {
+                        
+                        // Priorité aux photos retouchées (actives uniquement)
+                        $_activeMedia = $order->getMedia('retouched');
+                        if ($_activeMedia->isNotEmpty()) {
+                            $_activeMedia = $_activeMedia->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
+                        } else {
+                            $_activeMedia = $order->getMedia('originals');
+                        }
+
+                        $baseTtcC = $_activeMedia->sum(function ($m) use ($_pttc, $order) {
                             $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
                             return $_pttc[$lv] ?? $_pttc['light'];
                         });
                         
-                        // Fallback si pas de media originals
+                        // Fallback si pas de media
                         if ($baseTtcC === 0) {
-                            $baseTtcC = (int) round($baseHtC * 1.2);
+                            $baseTtcC = (int) round($finalHtC * 1.2);
                         }
 
-                        $tvaC  = $baseTtcC - $baseHtC;
+                        $tvaC  = $baseTtcC - $finalHtC;
                         $ttcC  = max(0, $baseTtcC - $discountC);
                     @endphp
 
@@ -1091,24 +1112,28 @@ class extends Component
             </div>
             @endif
 
-            {{-- 📧 Notification manuelle client (DONE uniquement) --}}
-            @if ($order->status === 'DONE')
+            {{-- 📧 Notification client (Déclenchable si photos présentes) --}}
+            @if (in_array($order->status, ['IN_PROGRESS', 'DONE']) && $order->getMedia('retouched')->isNotEmpty())
             <div class="card-glass p-5 border-[#C9A84C]/20">
                 <h3 class="text-[#C9A84C] text-xs tracking-widest uppercase border-b border-[#C9A84C]/20 pb-2 mb-4 font-semibold">Notifier le client</h3>
                 <p class="text-[#7A6E5E] text-xs mb-3 leading-relaxed">
-                    Renvoie l'email avec le lien sécurisé vers les photos restaurées.<br>
-                    <span class="text-[#C9A84C]/70">Limité à 1 envoi toutes les 5 minutes.</span>
+                    @if ($order->status === 'IN_PROGRESS')
+                        Les photos sont uploadées. Cliquez pour <strong>finaliser</strong> la commande et envoyer l'email de validation au client.
+                    @else
+                        L'email contient le lien sécurisé vers les photos restaurées pour validation et paiement.<br>
+                        <span class="text-[#C9A84C]/70">Limité à 1 envoi toutes les 5 minutes.</span>
+                    @endif
                 </p>
-                <button wire:click="resendClientNotification"
+                <button wire:click="notifyClient"
                         wire:loading.attr="disabled"
                         class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C9A84C]/15 hover:bg-[#C9A84C]/25 border border-[#C9A84C]/30 hover:border-[#C9A84C]/50 text-[#C9A84C] text-sm rounded-sm transition-all">
-                    <span wire:loading.remove wire:target="resendClientNotification" class="flex items-center gap-2">
+                    <span wire:loading.remove wire:target="notifyClient" class="flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                        Renvoyer la notification si elle a été perdue
+                        {{ $order->status === 'IN_PROGRESS' ? "Finaliser et envoyer l'email" : "Renvoyer l'email de validation" }}
                     </span>
-                    <span wire:loading wire:target="resendClientNotification" class="flex items-center gap-2">
+                    <span wire:loading wire:target="notifyClient" class="flex items-center gap-2">
                         <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 12h4z"/></svg>
-                        Envoi…
+                        Traitement…
                     </span>
                 </button>
                 @if ($order->preview_unlocked_at)

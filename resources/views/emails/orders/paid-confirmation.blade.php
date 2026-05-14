@@ -33,10 +33,12 @@
 <body>
 <div class="container">
     <div class="header">
-        <div class="logo">OmnyRestore</div>
+        <div class="logo">
+            <img src="{{ $message->embed(public_path('images/logo.png')) }}" alt="OmnyRestore" style="height: 60px; width: auto;">
+        </div>
         <div class="check">✅</div>
         <h1>Paiement confirmé !<br>Vos photos vous attendent</h1>
-        <p>Téléchargement disponible immédiatement</p>
+        <p>Dernière vérification avant envoi</p>
     </div>
 
     <div class="body">
@@ -47,9 +49,9 @@
         </p>
 
         <p class="text">
-            Votre archive ZIP est en cours de préparation.
-            Vous recevrez un <strong>second email</strong> d'ici quelques minutes
-            contenant vos liens de téléchargement (archive ZIP + facture PDF).
+            Notre équipe procède actuellement à une dernière vérification de votre dossier.
+            Vous recevrez un <strong>second email</strong> contenant votre facture et le lien 
+            sécurisé pour télécharger vos photos en haute définition.
         </p>
 
         <div class="order-box">
@@ -59,32 +61,12 @@
             </div>
             <div class="order-box-row">
                 <span class="order-box-label">Photos restaurées</span>
-                <span class="order-box-value">{{ $order->photo_count }}</span>
+                <span class="order-box-value">{{ $order->getActivePhotosCount() }}</span>
             </div>
             <div class="order-box-row">
                 <span class="order-box-label">Montant réglé TTC</span>
                 <span class="order-box-price">
-                    @php
-                        $baseHtC     = $order->base_price_cents ?? 0;
-                        $discountC   = $order->discount_cents ?? 0;
-                        $finalHtC    = $order->total_price_cents !== null ? $order->total_price_cents : max(0, $baseHtC - $discountC);
-                        
-                        // TTC exact : sommer les PRICES_TTC des photos originales
-                        $_pttc       = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
-                        $_originals  = $order->getMedia('originals');
-                        $baseTtcC    = $_originals->sum(function ($m) use ($_pttc, $order) {
-                            $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
-                            return $_pttc[$lv] ?? $_pttc['light'];
-                        });
-
-                        // Fallback si pas de media originals
-                        if ($baseTtcC === 0) {
-                            $baseTtcC = (int) round($baseHtC * 1.2);
-                        }
-
-                        $ttcCents = max(0, $baseTtcC - $discountC);
-                    @endphp
-                    {{ number_format($ttcCents / 100, 2, ',', ' ') }} €
+                    {{ number_format($order->getAmountTtcCents() / 100, 2, ',', ' ') }} €
                 </span>
             </div>
             <div class="order-box-row">
@@ -101,8 +83,8 @@
 
         <div class="note">
             <strong>Que se passe-t-il maintenant ?</strong>
-            Votre archive est en cours de génération. Vous recevrez un email dès qu'elle sera prête
-            avec vos liens de téléchargement (ZIP + facture PDF).
+            L'équipe OmnyRestore valide définitivement vos fichiers. Vous recevrez très prochainement 
+            votre email de livraison finale avec vos liens de téléchargement (ZIP + facture PDF).
         </div>
 
         <p class="text">
@@ -113,7 +95,7 @@
 
     <div class="footer">
         <p>
-            OmnyRestore — Restauration photographique artisanale<br>
+            OmnyRestore — Restauration photographique<br>
             <a href="{{ route('legal.mentions') }}">Mentions légales</a> ·
             <a href="{{ route('legal.privacy') }}">Confidentialité</a> ·
             <a href="{{ route('legal.cgv') }}">CGV</a>

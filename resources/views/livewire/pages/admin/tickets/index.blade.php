@@ -51,10 +51,10 @@ class extends Component
     {{-- Filtres statut --}}
     <div class="flex flex-wrap gap-2 mb-6">
         @foreach([
-            ['value' => '',        'label' => 'Tous',       'count' => $counts['all'],     'color' => ''],
-            ['value' => 'open',    'label' => 'Ouverts',    'count' => $counts['open'],    'color' => 'yellow'],
-            ['value' => 'pending', 'label' => 'En attente', 'count' => $counts['pending'], 'color' => 'blue'],
-            ['value' => 'closed',  'label' => 'Fermés',     'count' => $counts['closed'],  'color' => 'gray'],
+            ['value' => '',        'label' => 'Tous',                  'count' => $counts['all'],     'color' => ''],
+            ['value' => 'open',    'label' => 'À prendre en charge',   'count' => $counts['open'],    'color' => 'yellow'],
+            ['value' => 'pending', 'label' => 'Attente client',        'count' => $counts['pending'], 'color' => 'blue'],
+            ['value' => 'closed',  'label' => 'Fermés',                'count' => $counts['closed'],  'color' => 'gray'],
         ] as $f)
         <button wire:click="$set('status', '{{ $f['value'] }}')"
                 class="px-3 py-1.5 text-xs rounded-sm border transition-all
@@ -92,7 +92,7 @@ class extends Component
                 @foreach ($tickets as $ticket)
                 @php
                     $statusColors  = ['open' => 'bg-yellow-900/40 text-yellow-400 border-yellow-500/30', 'pending' => 'bg-blue-900/40 text-blue-400 border-blue-500/30', 'closed' => 'bg-[#1A1510] text-[#7A6E5E] border-[#7A6E5E]/20'];
-                    $statusLabels  = ['open' => 'Ouvert', 'pending' => 'En attente', 'closed' => 'Fermé'];
+                    $statusLabels  = ['open' => 'Attente prise en charge', 'pending' => 'En attente client', 'closed' => 'Fermé'];
                     $priorityColors = ['low' => 'text-[#7A6E5E]', 'normal' => 'text-[#C9A84C]', 'high' => 'text-amber-400', 'urgent' => 'text-red-400'];
                     $priorityLabels = ['low' => 'Faible', 'normal' => 'Normale', 'high' => 'Élevée', 'urgent' => '🔥 Urgent'];
                 @endphp

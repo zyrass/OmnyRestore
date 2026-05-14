@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Client;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\AuditLog;
+use App\Models\User;
 use Illuminate\Support\Facades\Response;
 
 class ExportUserDataController extends Controller
@@ -72,9 +73,9 @@ class ExportUserDataController extends Controller
         // Audit Log pour tracer l'export des données
         AuditLog::create([
             'user_id' => $user->id,
-            'action' => 'export_personal_data',
-            'entity_type' => 'User',
-            'entity_id' => $user->id,
+            'action' => 'GDPR_EXPORT',
+            'subject_type' => User::class,
+            'subject_id' => $user->id,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'payload' => ['type' => 'json_export']

@@ -9,8 +9,8 @@ return [
     | OmnyRestore — Messages d'authentification en français
     */
 
-    'failed'   => 'Ces identifiants ne correspondent à aucun compte.',
-    'password' => 'Le mot de passe saisi est incorrect.',
+    'failed'   => 'Adresse email ou mot de passe incorrect.',
+    'password' => 'Adresse email ou mot de passe incorrect.',
     'throttle' => 'Trop de tentatives de connexion. Veuillez réessayer dans :seconds secondes.',
 
 ];

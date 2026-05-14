@@ -57,9 +57,11 @@
     @endphp
 
     <div class="header">
-        <div class="logo">OmnyRestore</div>
-        <h1>Vos photos restaurées<br>sont prêtes ✨</h1>
-        <p>{{ $isFree ? 'Offert grâce à votre coupon — téléchargement disponible' : 'Aperçu disponible — paiement requis pour télécharger' }}</p>
+        <div class="logo">
+            <img src="{{ $message->embed(public_path('images/logo.png')) }}" alt="OmnyRestore" style="height: 60px; width: auto;">
+        </div>
+        <h1>Vos photos restaurées<br>sont prêtes</h1>
+        <p>{{ $isFree ? 'Votre coupon a été appliqué — téléchargement disponible' : 'Aperçu disponible — paiement requis pour télécharger' }}</p>
     </div>
 
     <div class="body">
@@ -93,21 +95,30 @@
                 <span class="order-box-value">{{ $order->photo_count }}</span>
             </div>
             <div class="order-box-row">
-                <span class="order-box-label">Niveau de restauration</span>
+                <span class="order-box-label">Détails restauration</span>
                 <span class="order-box-value">
                     @php
-                        echo match($order->damage_level) {
-                            'heavy'  => 'Complète',
-                            'medium' => 'Avancée',
-                            default  => 'Standard',
-                        };
+                        $breakdown = $order->getDamageBreakdown();
+                        if (count($breakdown) > 1) {
+                            $labels = [];
+                            if (isset($breakdown['heavy']))  $labels[] = $breakdown['heavy'] . ' Compl.';
+                            if (isset($breakdown['medium'])) $labels[] = $breakdown['medium'] . ' Avanc.';
+                            if (isset($breakdown['light']))  $labels[] = $breakdown['light'] . ' Std';
+                            echo 'Mixte (' . implode(', ', $labels) . ')';
+                        } else {
+                            echo match($order->damage_level) {
+                                'heavy'  => 'Complète',
+                                'medium' => 'Avancée',
+                                default  => 'Standard',
+                            };
+                        }
                     @endphp
                 </span>
             </div>
             <div class="order-box-row">
-                <span class="order-box-label">{{ $isFree ? 'Montant' : 'Montant TTC' }}</span>
-                <span class="{{ $isFree ? 'order-box-free' : 'order-box-price' }}">
-                    {{ $isFree ? 'Offert ✓' : number_format($ttcCents / 100, 2, ',', ' ') . ' €' }}
+                <span class="order-box-label">Montant TTC</span>
+                <span class="order-box-price">
+                    {{ number_format($ttcCents / 100, 2, ',', ' ') . ' €' }}
                 </span>
             </div>
         </div>
@@ -123,7 +134,7 @@
             <strong>Ce lien est votre clé d'accès :</strong> il déverrouille l'aperçu filigrané de vos
             photos dans votre espace client. Il est valable <strong>7 jours</strong> et ne fonctionne
             qu'une seule fois. Si vous en avez besoin d'un nouveau, connectez-vous et cliquez sur
-            « Renvoyer l'email » depuis votre page commande.
+            « Je n'ai pas reçu l'email » depuis votre page commande.
         </div>
         @else
         <div class="note-free">
@@ -141,7 +152,7 @@
 
     <div class="footer">
         <p>
-            OmnyRestore — Restauration photographique artisanale<br>
+            OmnyRestore — Restauration photographique<br>
             <a href="{{ route('legal.mentions') }}">Mentions légales</a> ·
             <a href="{{ route('legal.privacy') }}">Confidentialité</a> ·
             <a href="{{ route('legal.cgv') }}">CGV</a>

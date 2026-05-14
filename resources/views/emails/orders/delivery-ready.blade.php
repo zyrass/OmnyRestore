@@ -37,34 +37,15 @@
 <body>
 <div class="container">
     @php
-        $baseHtC     = $order->base_price_cents ?? 0;
-        $discountC   = $order->discount_cents ?? 0;
-        $finalHtC    = $order->total_price_cents !== null ? $order->total_price_cents : max(0, $baseHtC - $discountC);
-        
-        // TTC exact : sommer les PRICES_TTC des photos originales
-        $_pttc       = \App\Services\PhotoDamageAnalyzer::PRICES_TTC;
-        $_originals  = $order->getMedia('originals');
-        $baseTtcC    = $_originals->sum(function ($m) use ($_pttc, $order) {
-            $lv = $m->getCustomProperty('ai_level', $order->damage_level ?? 'light');
-            return $_pttc[$lv] ?? $_pttc['light'];
-        });
-
-        // Fallback si pas de media originals
-        if ($baseTtcC === 0) {
-            $baseTtcC = (int) round($baseHtC * 1.2);
-        }
-
-        $ttcCents = max(0, $baseTtcC - $discountC);
-        $isFree   = $ttcCents === 0;
-
-        $photoCount = $order->getMedia('retouched')
-            ->filter(fn($m) => !$m->getCustomProperty('is_rejected', false))
-            ->count();
-        $photoCount = $photoCount ?: ($order->photo_count ?? 0);
+        $ttcCents   = $order->getAmountTtcCents();
+        $isFree     = $ttcCents === 0;
+        $photoCount = $order->getActivePhotosCount();
     @endphp
 
     <div class="header">
-        <div class="logo">OmnyRestore</div>
+        <div class="logo">
+            <img src="{{ $message->embed(public_path('images/logo.png')) }}" alt="OmnyRestore" style="height: 60px; width: auto;">
+        </div>
         <h1>Vos photos sont prêtes<br>à télécharger ✨</h1>
         <div class="badge">Livraison disponible</div>
     </div>
@@ -88,13 +69,34 @@
                 <span class="order-box-value">{{ $photoCount }}</span>
             </div>
             <div class="order-box-row">
+                <span class="order-box-label">Détails restauration</span>
+                <span class="order-box-value">
+                    @php
+                        $breakdown = $order->getDamageBreakdown();
+                        if (count($breakdown) > 1) {
+                            $labels = [];
+                            if (isset($breakdown['heavy']))  $labels[] = $breakdown['heavy'] . ' Compl.';
+                            if (isset($breakdown['medium'])) $labels[] = $breakdown['medium'] . ' Avanc.';
+                            if (isset($breakdown['light']))  $labels[] = $breakdown['light'] . ' Std';
+                            echo 'Mixte (' . implode(', ', $labels) . ')';
+                        } else {
+                            echo match($order->damage_level) {
+                                'heavy'  => 'Complète',
+                                'medium' => 'Avancée',
+                                default  => 'Standard',
+                            };
+                        }
+                    @endphp
+                </span>
+            </div>
+            <div class="order-box-row">
                 <span class="order-box-label">Date de livraison</span>
                 <span class="order-box-value">{{ $order->delivered_at?->format('d/m/Y à H:i') ?? now()->format('d/m/Y à H:i') }}</span>
             </div>
             <div class="order-box-row">
-                <span class="order-box-label">{{ $isFree ? 'Montant' : 'Montant réglé TTC' }}</span>
+                <span class="order-box-label">Montant réglé TTC</span>
                 <span class="order-box-price">
-                    {{ $isFree ? 'Offert ✓' : number_format($ttcCents / 100, 2, ',', ' ') . ' €' }}
+                    {{ number_format($ttcCents / 100, 2, ',', ' ') . ' €' }}
                 </span>
             </div>
         </div>
@@ -146,7 +148,7 @@
 
     <div class="footer">
         <p>
-            OmnyRestore — Restauration photographique artisanale<br>
+            OmnyRestore — Restauration photographique<br>
             <a href="{{ route('legal.mentions') }}">Mentions légales</a> ·
             <a href="{{ route('legal.privacy') }}">Confidentialité</a> ·
             <a href="{{ route('legal.cgv') }}">CGV</a>

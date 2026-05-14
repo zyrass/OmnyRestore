@@ -36,7 +36,9 @@
 <body>
 <div class="container">
     <div class="header">
-        <div class="logo">OmnyRestore</div>
+        <div class="logo">
+            <img src="{{ $message->embed(public_path('images/logo.png')) }}" alt="OmnyRestore" style="height: 60px; width: auto;">
+        </div>
         <div class="header-icon">⚠️</div>
         <h1>Votre paiement n'a pas<br>pu être traité</h1>
         <p>Commande {{ $order->reference }}</p>
@@ -112,7 +114,7 @@
 
     <div class="footer">
         <p>
-            OmnyRestore — Restauration photographique artisanale<br>
+            OmnyRestore — Restauration photographique<br>
             <a href="{{ route('legal.mentions') }}">Mentions légales</a> ·
             <a href="{{ route('legal.privacy') }}">Confidentialité</a> ·
             <a href="{{ route('legal.cgv') }}">CGV</a>
