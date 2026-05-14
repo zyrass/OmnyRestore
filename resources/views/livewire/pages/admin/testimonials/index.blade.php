@@ -177,8 +177,9 @@ class extends Component
                 </button>
                 <button wire:click="ignore({{ $t->id }})"
                         class="px-4 py-2 text-xs border border-[#C9A84C]/30 text-[#C9A84C]/70
-                               hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/50 hover:text-[#C9A84C] rounded-sm transition-all">
-                    📥 Ignorer
+                               hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/50 hover:text-[#C9A84C] rounded-sm transition-all flex items-center gap-2">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                    Ignorer
                 </button>
                 <button @click="const wire = $wire; omnyConfirm({
                             title: 'Rejeter cet avis',
