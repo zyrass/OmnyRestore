@@ -56,14 +56,14 @@ title('Lexique de Modération IA — OmnyRestore');
                     <div class="space-y-4">
                         <div class="p-3 bg-black/20 rounded border border-[#C9A84C]/5">
                             <span class="text-[#C9A84C] font-mono text-xs font-bold">sexual</span>
-                            <p class="text-[11px] text-[#7A6E5E] mt-1">Pornographie, actes explicites, nudité non artistique.</p>
+                            <p class="text-sm text-[#7A6E5E] mt-1">Pornographie, actes explicites, nudité non artistique.</p>
                         </div>
                         <div class="p-3 bg-red-950/10 rounded border border-red-900/20">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="text-red-400 font-mono text-xs font-bold">sexual/minors (CSAM)</span>
-                                <span class="text-[9px] bg-red-600/20 text-red-400 px-2 py-0.5 rounded-full font-bold border border-red-500/30">CRITIQUE</span>
+                                <span class="text-[11px] bg-red-600/20 text-red-400 px-2 py-0.5 rounded-full font-bold border border-red-500/30 uppercase tracking-tight">Critique</span>
                             </div>
-                            <p class="text-[11px] text-red-200/50 italic leading-relaxed">Pédocriminalité. Signalement PHAROS obligatoire sans délai.</p>
+                            <p class="text-sm text-red-200/60 italic leading-relaxed">Pédocriminalité. Signalement PHAROS obligatoire sans délai.</p>
                         </div>
                     </div>
                 </div>
@@ -78,11 +78,11 @@ title('Lexique de Modération IA — OmnyRestore');
                     <div class="space-y-4">
                         <div class="p-3 bg-black/20 rounded border border-[#C9A84C]/5">
                             <span class="text-[#C9A84C] font-mono text-xs font-bold italic">hate / hate/threatening</span>
-                            <p class="text-[11px] text-[#7A6E5E] mt-1">Discours haineux ciblant une identité ou menaces de violence physique.</p>
+                            <p class="text-sm text-[#7A6E5E] mt-1">Discours haineux ciblant une identité ou menaces de violence physique.</p>
                         </div>
                         <div class="p-3 bg-black/20 rounded border border-[#C9A84C]/5">
                             <span class="text-[#C9A84C] font-mono text-xs font-bold italic">harassment / harassment/threatening</span>
-                            <p class="text-[11px] text-[#7A6E5E] mt-1">Contenu abusif ou insultant destiné à l'intimidation d'un individu.</p>
+                            <p class="text-sm text-[#7A6E5E] mt-1">Contenu abusif ou insultant destiné à l'intimidation d'un individu.</p>
                         </div>
                     </div>
                 </div>
@@ -97,7 +97,7 @@ title('Lexique de Modération IA — OmnyRestore');
                     <div class="space-y-4">
                         <div class="p-3 bg-black/20 rounded border border-[#C9A84C]/5">
                             <span class="text-[#C9A84C] font-mono text-xs font-bold italic">violence / graphic</span>
-                            <p class="text-[11px] text-[#7A6E5E] mt-1">Promotion de la violence, torture ou images gores et choquantes de blessures réelles.</p>
+                            <p class="text-sm text-[#7A6E5E] mt-1">Promotion de la violence, torture ou images gores et choquantes de blessures réelles.</p>
                         </div>
                     </div>
                 </div>
@@ -112,7 +112,7 @@ title('Lexique de Modération IA — OmnyRestore');
                     <div class="space-y-4">
                         <div class="p-3 bg-black/20 rounded border border-[#C9A84C]/5">
                             <span class="text-[#C9A84C] font-mono text-xs font-bold italic">illicit / violent</span>
-                            <p class="text-[11px] text-[#7A6E5E] mt-1">Vente de drogues, trafic d'armes ou instructions pour créer des explosifs.</p>
+                            <p class="text-sm text-[#7A6E5E] mt-1">Vente de drogues, trafic d'armes ou instructions pour créer des explosifs.</p>
                         </div>
                     </div>
                 </div>
@@ -127,11 +127,11 @@ title('Lexique de Modération IA — OmnyRestore');
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="p-3 bg-black/20 rounded border border-[#C9A84C]/5">
                             <span class="text-[#C9A84C] font-mono text-xs font-bold italic">self-harm / intent</span>
-                            <p class="text-[11px] text-[#7A6E5E] mt-1">Expression d'intentions de s'automutiler ou de se suicider.</p>
+                            <p class="text-sm text-[#7A6E5E] mt-1">Expression d'intentions de s'automutiler ou de se suicider.</p>
                         </div>
                         <div class="p-3 bg-black/20 rounded border border-[#C9A84C]/5">
                             <span class="text-[#C9A84C] font-mono text-xs font-bold italic">self-harm / instructions</span>
-                            <p class="text-[11px] text-[#7A6E5E] mt-1">Méthodes détaillées sur comment s'automutiler ou mettre fin à ses jours.</p>
+                            <p class="text-sm text-[#7A6E5E] mt-1">Méthodes détaillées sur comment s'automutiler ou mettre fin à ses jours.</p>
                         </div>
                     </div>
                 </div>
@@ -150,36 +150,36 @@ title('Lexique de Modération IA — OmnyRestore');
                     <div class="absolute left-[15px] top-2 bottom-2 w-0.5 bg-[#C9A84C]/10"></div>
                     
                     <div class="flex gap-4 relative">
-                        <div class="w-8 h-8 rounded-full bg-[#1A1510] border border-[#C9A84C]/30 flex items-center justify-center shrink-0 z-10 text-[10px] font-bold text-[#C9A84C]">1</div>
+                        <div class="w-8 h-8 rounded-full bg-[#1A1510] border border-[#C9A84C]/30 flex items-center justify-center shrink-0 z-10 text-xs font-bold text-[#C9A84C]">1</div>
                         <div>
-                            <h4 class="text-[#F5F0E8] text-xs font-bold mb-1">Analyse Humaine</h4>
-                            <p class="text-[10px] text-[#7A6E5E]">L'admin vérifie les images (floutées) pour confirmer ou infirmer le flag IA.</p>
+                            <h4 class="text-[#F5F0E8] text-base font-bold mb-1">Analyse Humaine</h4>
+                            <p class="text-sm text-[#7A6E5E]">L'admin vérifie les images (floutées) pour confirmer ou infirmer le flag IA.</p>
                         </div>
                     </div>
 
                     <div class="flex gap-4 relative">
-                        <div class="w-8 h-8 rounded-full bg-[#1A1510] border border-[#C9A84C]/30 flex items-center justify-center shrink-0 z-10 text-[10px] font-bold text-[#C9A84C]">2</div>
+                        <div class="w-8 h-8 rounded-full bg-[#1A1510] border border-[#C9A84C]/30 flex items-center justify-center shrink-0 z-10 text-xs font-bold text-[#C9A84C]">2</div>
                         <div>
-                            <h4 class="text-[#F5F0E8] text-xs font-bold mb-1">Traitement</h4>
-                            <p class="text-[10px] text-[#7A6E5E]">Restauration du statut (Faux positif) ou activation de la procédure de destruction.</p>
+                            <h4 class="text-[#F5F0E8] text-base font-bold mb-1">Traitement</h4>
+                            <p class="text-sm text-[#7A6E5E]">Restauration du statut (Faux positif) ou activation de la procédure de destruction.</p>
                         </div>
                     </div>
 
                     <div class="flex gap-4 relative">
-                        <div class="w-8 h-8 rounded-full bg-[#C9A84C] border border-[#D4B86A] flex items-center justify-center shrink-0 z-10 text-[10px] font-bold text-black shadow-[0_0_15px_rgba(201,168,76,0.2)]">3</div>
+                        <div class="w-8 h-8 rounded-full bg-[#C9A84C] border border-[#D4B86A] flex items-center justify-center shrink-0 z-10 text-xs font-bold text-black shadow-[0_0_15px_rgba(201,168,76,0.2)]">3</div>
                         <div>
-                            <h4 class="text-[#C9A84C] text-xs font-bold mb-1">Signalement</h4>
-                            <p class="text-[10px] text-[#7A6E5E]">Génération automatique du rapport PHAROS et transmission aux autorités.</p>
+                            <h4 class="text-[#C9A84C] text-base font-bold mb-1">Signalement</h4>
+                            <p class="text-sm text-[#7A6E5E]">Génération automatique du rapport PHAROS et transmission aux autorités.</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="mt-10 pt-6 border-t border-[#C9A84C]/10">
-                    <div class="flex items-center gap-3 text-red-400 text-[10px] font-bold tracking-widest uppercase">
+                    <div class="flex items-center gap-3 text-red-400 text-sm font-bold tracking-widest uppercase">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Urgence Immédiate
                     </div>
-                    <p class="text-[10px] text-[#7A6E5E] mt-3 italic leading-relaxed">
+                    <p class="text-sm text-[#7A6E5E] mt-3 italic leading-relaxed">
                         Toute détection de <strong>CSAM</strong> entraîne la fermeture immédiate du compte et la conservation de l'IP pour enquête.
                     </p>
                 </div>
@@ -187,11 +187,11 @@ title('Lexique de Modération IA — OmnyRestore');
 
             {{-- Légal --}}
             <div class="mt-8 p-8 rounded-sm bg-black/40 border border-[#C9A84C]/10">
-                <h4 class="text-[#F5F0E8] text-[11px] font-bold uppercase tracking-widest mb-4">Base Légale (LCEN)</h4>
-                <p class="text-[11px] text-[#7A6E5E] leading-relaxed mb-6">
+                <h4 class="text-[#F5F0E8] text-sm font-bold uppercase tracking-widest mb-4">Base Légale (LCEN)</h4>
+                <p class="text-sm text-[#7A6E5E] leading-relaxed mb-6">
                     Conformément à l'article 6 de la Loi n° 2004-575 (LCEN), OmnyRestore est tenu de concourir à la lutte contre la diffusion des infractions visées aux troisième et quatrième alinéas de l'article 24 de la loi du 29 juillet 1881.
                 </p>
-                <div class="text-[9px] text-[#C9A84C] uppercase tracking-widest py-2 px-3 border border-[#C9A84C]/20 rounded inline-block bg-[#C9A84C]/5">
+                <div class="text-xs text-[#C9A84C] uppercase tracking-widest py-2 px-3 border border-[#C9A84C]/20 rounded inline-block bg-[#C9A84C]/5">
                     Capture IP Active : {{ request()->ip() }}
                 </div>
             </div>

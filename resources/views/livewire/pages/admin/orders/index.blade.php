@@ -145,13 +145,13 @@ class extends Component
                 @php
                     $isUserDeleted = !$order->user || $order->user->trashed();
                     $badges = [
-                        'PENDING'     => 'bg-yellow-900/40 text-yellow-400 border-yellow-500/30',
-                        'FLAGGED'     => 'bg-red-900 text-white border-red-400 animate-pulse',
-                        'IN_PROGRESS' => 'bg-blue-900/40 text-blue-400 border-blue-500/30',
+                        'PENDING'     => 'bg-[#C9A84C]/5 text-[#C9A84C]/80 border-[#C9A84C]/20',
+                        'FLAGGED'     => 'bg-red-950/40 text-red-400 border-red-500/30',
+                        'IN_PROGRESS' => 'bg-blue-900/40 text-blue-300 border-blue-500/30',
                         'DONE'        => 'bg-[#C9A84C]/15 text-[#C9A84C] border-[#C9A84C]/30',
-                        'PAID'        => 'bg-emerald-900/40 text-emerald-400 border-emerald-500/30',
-                        'DELIVERED'   => 'bg-emerald-900/60 text-emerald-300 border-emerald-400/40',
-                        'CANCELLED'   => 'bg-red-900/30 text-red-400 border-red-500/30',
+                        'PAID'        => 'bg-emerald-900/40 text-emerald-300 border-emerald-500/30',
+                        'DELIVERED'   => 'bg-emerald-900/60 text-emerald-200 border-emerald-400/40',
+                        'CANCELLED'   => 'bg-red-900/30 text-red-300 border-red-500/30',
                     ];
                     $labels = ['PENDING' => 'En attente', 'FLAGGED' => '🚨 SIGNALÉ', 'IN_PROGRESS' => 'En cours', 'DONE' => 'Prêt', 'PAID' => 'Payé ✓', 'DELIVERED' => 'Livré', 'CANCELLED' => 'Annulé'];
                 @endphp
@@ -161,11 +161,11 @@ class extends Component
                     <td class="px-5 py-3.5"><span class="font-mono text-[#C9A84C] text-xs {{ $isUserDeleted ? 'opacity-50' : '' }}">{{ $order->reference }}</span></td>
                     <td class="px-5 py-3.5">
                         <p class="{{ $isUserDeleted ? 'text-[#7A6E5E]' : 'text-[#F5F0E8]' }} text-xs font-medium">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</p>
-                        <p class="text-[#7A6E5E] text-[10px]">{{ $order->user?->email ?? '—' }}</p>
+                        <p class="text-[#9A8F7E] text-xs">{{ $order->user?->email ?? '—' }}</p>
                     </td>
                     <td class="px-5 py-3.5 text-[#7A6E5E]">{{ $order->photo_count }}</td>
                     <td class="px-5 py-3.5">
-                        <span class="inline-flex px-2 py-0.5 text-[10px] font-medium border rounded-full {{ $badges[$order->status] ?? 'bg-gray-900/40 text-gray-400 border-gray-500/30' }}">
+                        <span class="inline-flex px-2 py-0.5 text-[11px] font-bold border rounded-full {{ $badges[$order->status] ?? 'bg-gray-900/40 text-gray-400 border-gray-500/30' }}">
                             {{ $labels[$order->status] ?? $order->status }}
                         </span>
                     </td>

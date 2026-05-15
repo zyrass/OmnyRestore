@@ -177,12 +177,12 @@ class extends Component
                 @if ($filter === 'pending')
                 <button wire:click="publish({{ $t->id }})"
                         class="px-4 py-2 text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400
-                               hover:bg-emerald-500/20 hover:border-emerald-400 rounded-sm transition-all">
+                               hover:bg-emerald-500/20 hover:border-emerald-400 rounded-sm transition-all sm:w-48">
                     ✓ Publier
                 </button>
                 <button wire:click="ignore({{ $t->id }})"
                         class="px-4 py-2 text-xs border border-[#C9A84C]/30 text-[#C9A84C]/70
-                               hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/50 hover:text-[#C9A84C] rounded-sm transition-all flex items-center gap-2">
+                               hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/50 hover:text-[#C9A84C] rounded-sm transition-all flex items-center justify-center gap-2 sm:w-48">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
                     Ignorer
                 </button>
@@ -193,21 +193,21 @@ class extends Component
                             danger: true
                         }).then(() => wire.reject({{ $t->id }}))"
                         class="px-4 py-2 text-xs border border-red-500/30 text-red-400/70
-                               hover:bg-red-500/10 hover:border-red-400 hover:text-red-400 rounded-sm transition-all">
+                               hover:bg-red-500/10 hover:border-red-400 hover:text-red-400 rounded-sm transition-all sm:w-48">
                     ✕ Rejeter
                 </button>
 
                 @elseif ($filter === 'published')
                 <button wire:click="unpublish({{ $t->id }})"
                         class="px-4 py-2 text-xs border border-[#3A3028] text-[#7A6E5E]
-                               hover:border-[#C9A84C]/30 hover:text-[#C9A84C]/70 rounded-sm transition-all">
+                               hover:border-[#C9A84C]/30 hover:text-[#C9A84C]/70 rounded-sm transition-all sm:w-48">
                     Dépublier
                 </button>
 
                 @elseif ($filter === 'rejected' || $filter === 'ignored')
                 <button wire:click="publish({{ $t->id }})"
                         class="px-4 py-2 text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-400
-                               hover:bg-emerald-500/20 rounded-sm transition-all">
+                               hover:bg-emerald-500/20 rounded-sm transition-all sm:w-48">
                     ✓ Publier quand même
                 </button>
                 @if ($filter === 'ignored')
@@ -218,7 +218,7 @@ class extends Component
                             danger: true
                         }).then(() => wire.reject({{ $t->id }}))"
                         class="px-4 py-2 text-xs border border-red-500/30 text-red-400/70
-                               hover:bg-red-500/10 hover:text-red-400 rounded-sm transition-all">
+                               hover:bg-red-500/10 hover:text-red-400 rounded-sm transition-all sm:w-48">
                     ✕ Rejeter
                 </button>
                 @endif
@@ -229,7 +229,7 @@ class extends Component
                             danger: true
                         }).then(() => wire.destroy({{ $t->id }}))"
                         class="px-4 py-2 text-xs border border-red-500/30 text-red-400/70
-                               hover:bg-red-500/10 hover:text-red-400 rounded-sm transition-all">
+                               hover:bg-red-500/10 hover:text-red-400 rounded-sm transition-all sm:w-48">
                     🗑 Supprimer
                 </button>
                 @endif

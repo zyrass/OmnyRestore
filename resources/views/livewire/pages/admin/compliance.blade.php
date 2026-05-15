@@ -29,21 +29,21 @@ class extends Component
             :class="tab === 'legal' ? 'bg-[#C9A84C] text-[#0D0B08]' : 'text-[#7A6E5E] hover:text-[#F5F0E8] bg-[#0F0C08] border border-[#C9A84C]/20'"
             class="px-8 py-4 rounded-sm text-sm font-black transition-all duration-300 uppercase tracking-[0.2em] flex items-center gap-2"
         >
-            ⚖️ <span class="hidden sm:inline">Conformité</span> Légale
+            <span class="hidden sm:inline">Conformité</span> Légale
         </button>
         <button 
             @click="tab = 'security'" 
             :class="tab === 'security' ? 'bg-[#3B82F6] text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'text-[#7A6E5E] hover:text-[#F5F0E8] bg-[#0F0C08] border border-[#3B82F6]/20'"
             class="px-8 py-4 rounded-sm text-sm font-black transition-all duration-300 uppercase tracking-[0.2em] flex items-center gap-2"
         >
-            🛡️ Sécurité <span class="hidden sm:inline">& Normes</span>
+            Sécurité <span class="hidden sm:inline">& Normes</span>
         </button>
         <button 
             @click="tab = 'strategy'" 
             :class="tab === 'strategy' ? 'bg-[#10B981] text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'text-[#7A6E5E] hover:text-[#F5F0E8] bg-[#0F0C08] border border-[#10B981]/20'"
             class="px-8 py-4 rounded-sm text-sm font-black transition-all duration-300 uppercase tracking-[0.2em] flex items-center gap-2"
         >
-            🚀 Stratégie SI
+            Stratégie SI
         </button>
     </div>
 

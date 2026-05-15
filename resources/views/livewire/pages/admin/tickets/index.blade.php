@@ -109,8 +109,8 @@ class extends Component
                         </div>
                     </td>
                     <td class="px-5 py-3.5">
-                        <p class="text-[#F5F0E8] text-xs">{{ $ticket->user->name }}</p>
-                        <p class="text-[#7A6E5E] text-[10px]">{{ $ticket->user->email }}</p>
+                        <p class="text-[#F5F0E8] text-xs font-medium">{{ $ticket->user->name }}</p>
+                        <p class="text-[#7A6E5E] text-xs">{{ $ticket->user->email }}</p>
                     </td>
                     <td class="px-5 py-3.5">
                         <p class="text-[#F5F0E8] text-xs truncate max-w-[200px]">{{ $ticket->subject }}</p>
@@ -128,7 +128,7 @@ class extends Component
                         </span>
                     </td>
                     <td class="px-5 py-3.5">
-                        <span class="inline-flex px-2 py-0.5 text-[10px] font-medium border rounded-full {{ $statusColors[$ticket->status] ?? '' }}">
+                        <span class="inline-flex px-2 py-0.5 text-[11px] font-medium border rounded-full {{ $statusColors[$ticket->status] ?? '' }}">
                             {{ $statusLabels[$ticket->status] ?? $ticket->status }}
                         </span>
                     </td>
