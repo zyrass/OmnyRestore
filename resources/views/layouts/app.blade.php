@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 {{-- OmnyRestore App Layout --}}
-<html lang="fr" style="font-size: 17px;">
+<html lang="fr" style="font-size: 19px;">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -18,6 +18,25 @@
         body { display: flex !important; flex-direction: column !important; min-height: 100vh !important; }
         main { flex: 1 0 auto !important; min-height: 70vh !important; }
         footer { flex-shrink: 0 !important; }
+
+        /* API View Transitions — Fondus fluides entre les pages (Aller/Retour) */
+        @view-transition { navigation: auto; }
+        
+        ::view-transition-old(root) {
+            animation: 0.3s cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
+        }
+        ::view-transition-new(root) {
+            animation: 0.4s cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-out {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
     </style>
 </head>
 <body class="bg-[#0D0B08] text-[#F5F0E8] flex flex-col min-h-full" x-data x-on:omny:confirm.window="$store.confirmModal.open($event.detail)">
@@ -26,7 +45,7 @@
 <livewire:layout.navbar />
 
 {{-- ========== MAIN ========== --}}
-<main class="w-full max-w-[1400px] mx-auto app-layout py-10 flex-grow">
+<main class="w-full max-w-[1440px] mx-auto app-layout py-12 flex-grow">
     {{-- Flash messages globaux (non affichés sur les pages Livewire qui gèrent leur propre feedback) --}}
     @unless (request()->routeIs('admin.orders.show') || request()->routeIs('client.orders.show'))
     @if (session('success'))
@@ -53,7 +72,7 @@
     <div class="h-px bg-gradient-to-r from-transparent via-[#C9A84C]/30 to-transparent"></div>
 
     <div class="bg-[#0A0804] pt-12 pb-6">
-        <div class="max-w-[1400px] mx-auto app-layout">
+        <div class="max-w-[1440px] mx-auto app-layout">
 
             {{-- ── Grille principale ── --}}
             <div class="grid grid-cols-1 md:grid-cols-4 gap-10 pb-10 border-b border-[#C9A84C]/8">
@@ -333,6 +352,23 @@ if (typeof Alpine !== 'undefined') {
 }
 // Protection wire:navigate
 document.addEventListener('livewire:navigated', initConfirmModalStore);
+
+/**
+ * Support natif des View Transitions pour Livewire 3
+ * Permet d'avoir les animations de fondu même sur les mises à jour asynchrones.
+ */
+document.addEventListener('livewire:init', () => {
+    Livewire.hook('commit', ({ component, commit, respond, succeed, fail }) => {
+        respond(() => {
+            if (!document.startViewTransition) return;
+            
+            // On enveloppe la mise à jour du DOM dans une transition de vue
+            document.startViewTransition(() => {
+                // Cette fonction sera appelée quand le DOM est prêt à être mis à jour
+            });
+        });
+    });
+});
 
 /**
  * Helper global : omnyConfirm({title, message, confirmLabel, danger}) → Promise<void>

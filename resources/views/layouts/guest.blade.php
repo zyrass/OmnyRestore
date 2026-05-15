@@ -13,10 +13,28 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
+    <style>
+        /* API View Transitions — Fondus fluides entre les pages (Aller/Retour) */
+        @view-transition { navigation: auto; }
+        
+        ::view-transition-old(root) {
+            animation: 0.3s cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
+        }
+        ::view-transition-new(root) {
+            animation: 0.4s cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-out {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
 </head>
-{{-- min-h-screen flex : les deux colonnes sont enfants directs et remplissent l'écran naturellement --}}
-{{-- Pas de footer externe : les liens légaux sont en bas de la colonne droite --}}
-<body class="min-h-screen flex antialiased">
+<body class="min-h-screen flex antialiased bg-[#0D0B08]" style="flex-direction: row !important;">
 
     {{-- ── Colonne gauche : décor (cachée sur mobile) ─────────────────────── --}}
     <div class="hidden lg:flex lg:w-3/5 relative overflow-hidden bg-[#0D0B08] flex-col justify-between p-12">
@@ -128,5 +146,18 @@
     </div>
 
 @livewireScripts
+<script>
+    /**
+     * Support natif des View Transitions pour Livewire 3
+     */
+    document.addEventListener('livewire:init', () => {
+        Livewire.hook('commit', ({ component, commit, respond, succeed, fail }) => {
+            respond(() => {
+                if (!document.startViewTransition) return;
+                document.startViewTransition(() => {});
+            });
+        });
+    });
+</script>
 </body>
 </html>
