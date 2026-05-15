@@ -309,18 +309,37 @@ class extends Component
 @push('scripts')
 <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ 
-        startOnLoad: true, 
-        theme: 'dark',
-        themeVariables: {
-            primaryColor: '#06b6d4',
-            primaryTextColor: '#fff',
-            primaryBorderColor: '#0891b2',
-            lineColor: '#C9A84C',
-            secondaryColor: '#10b981',
-            tertiaryColor: '#0f172a',
-            mainBkg: '#0F0C08',
-            nodeBorder: '#C9A84C'
+    
+    function initMermaid() {
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'dark',
+            themeVariables: {
+                primaryColor: '#06b6d4',
+                primaryTextColor: '#fff',
+                primaryBorderColor: '#0891b2',
+                lineColor: '#C9A84C',
+                secondaryColor: '#10b981',
+                tertiaryColor: '#0f172a',
+                mainBkg: '#0F0C08',
+                nodeBorder: '#C9A84C'
+            }
+        });
+        mermaid.run();
+    }
+
+    // Initialisation au chargement
+    initMermaid();
+
+    // Ré-initialisation après navigation Livewire
+    document.addEventListener('livewire:navigated', () => {
+        initMermaid();
+    });
+
+    // Observer les changements d'onglets pour relancer Mermaid si nécessaire
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('button')) {
+            setTimeout(() => initMermaid(), 100);
         }
     });
 </script>
