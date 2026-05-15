@@ -61,7 +61,7 @@
                 {{-- Colonne 1 : Marque --}}
                 <div class="md:col-span-1 space-y-4">
                     <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 group">
-                        <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-10 h-10 object-contain group-hover:scale-110 transition-transform">
+                        <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-16 h-16 object-contain group-hover:scale-110 transition-transform">
                         <span class="text-[#F5F0E8] font-semibold tracking-[0.12em] text-sm uppercase">OmnyRestore</span>
                     </a>
                     <p class="text-[#7A6E5E] text-xs leading-relaxed">

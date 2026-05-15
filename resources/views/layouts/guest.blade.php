@@ -34,7 +34,7 @@
 
         {{-- Logo --}}
         <a href="{{ route('home') }}" wire:navigate class="relative z-10 flex items-center gap-3">
-            <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-12 h-12 object-contain">
+            <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-16 h-16 object-contain">
             <span class="text-[#F5F0E8] font-semibold tracking-[0.15em] text-sm uppercase">OmnyRestore</span>
         </a>
 
@@ -90,7 +90,7 @@
 
         <div class="lg:hidden mb-8 relative z-10">
             <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 justify-center">
-                <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-10 h-10 object-contain">
+                <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-16 h-16 object-contain">
                 <span class="text-[#F5F0E8] font-semibold tracking-[0.15em] text-sm uppercase">OmnyRestore</span>
             </a>
         </div>
@@ -107,7 +107,7 @@
             <div class="h-px bg-gradient-to-r from-transparent via-[#C9A84C]/20 to-transparent mb-5"></div>
             <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
                 <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-2 group">
-                    <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-5 h-5 object-contain group-hover:scale-110 transition-transform">
+                    <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-16 h-16 object-contain group-hover:scale-110 transition-transform">
                     <span class="text-[#F5F0E8] font-semibold tracking-[0.12em] text-xs uppercase">OmnyRestore</span>
                 </a>
                 <div class="flex flex-wrap justify-center gap-4 text-[#7A6E5E] text-xs">

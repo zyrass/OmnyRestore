@@ -14,11 +14,9 @@
 
 {{-- Navigation --}}
 <header class="border-b border-[#C9A84C]/10 py-5 bg-[#0D0B08]/95 backdrop-blur-md">
-    <nav class="max-w-4xl mx-auto px-6 flex items-center justify-between">
+    <nav class="max-w-[1400px] mx-auto app-layout flex items-center justify-between">
         <a href="{{ route('home') }}" class="flex items-center gap-3">
-            <div class="w-7 h-7 border border-[#C9A84C] flex items-center justify-center">
-                <span class="text-[#C9A84C] text-[9px] font-bold tracking-widest">OR</span>
-            </div>
+            <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-16 h-16 object-contain">
             <span class="font-semibold tracking-[0.15em] text-xs uppercase text-[#F5F0E8]">OmnyRestore</span>
         </a>
         <a href="{{ route('home') }}" class="text-[#7A6E5E] text-sm hover:text-[#C9A84C] transition-colors flex items-center gap-2">
@@ -29,7 +27,7 @@
 </header>
 
 {{-- Content --}}
-<main class="flex-1 max-w-4xl mx-auto px-6 py-16 w-full">
+<main class="flex-1 max-w-[1400px] mx-auto app-layout py-16 w-full">
 
     {{-- Page header --}}
     <div class="mb-12">
@@ -54,16 +52,14 @@
     <div class="h-px bg-gradient-to-r from-transparent via-[#C9A84C]/30 to-transparent"></div>
 
     <div class="bg-[#0A0804] pt-10 pb-6">
-        <div class="max-w-4xl mx-auto px-6">
+        <div class="max-w-[1400px] mx-auto app-layout">
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 pb-8 border-b border-[#C9A84C]/8">
 
                 {{-- Marque --}}
                 <div class="space-y-3">
                     <a href="{{ route('home') }}" class="flex items-center gap-3 group">
-                        <div class="w-7 h-7 border border-[#C9A84C] flex items-center justify-center group-hover:bg-[#C9A84C]/10 transition-colors">
-                            <span class="text-[#C9A84C] text-[9px] font-bold tracking-widest">OR</span>
-                        </div>
+                        <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-16 h-16 object-contain group-hover:scale-110 transition-transform">
                         <span class="text-[#F5F0E8] font-semibold tracking-[0.12em] text-xs uppercase">OmnyRestore</span>
                     </a>
                     <p class="text-[#7A6E5E] text-[11px] leading-relaxed">

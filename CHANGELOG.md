@@ -6,6 +6,29 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.22.0] — 2026-05-14 — Gouvernance Administrative & Stratégique SI
+
+### ✨ Nouveautés & Améliorations
+
+- **Refonte du Panel Conformité** (`/admin/compliance`) :
+  - Transition vers une interface tabulée ultra-premium pilotée par Alpine.js.
+  - Séparation en trois piliers stratégiques : **Conformité Légale** (RGPD, Loi Godfrain), **Sécurité & Normes** (NIS2, ISO 27001) et **Stratégie SI** (SDSI, PSSI).
+  - Enrichissement textuel massif (densité pédagogique x2) détaillant les obligations réglementaires et les mesures techniques.
+  - Design "Glass-Card" avec thématiques de couleurs spécifiques (Gold, Blue, Emerald) pour une navigation intuitive.
+- **Cadre de Gouvernance SI** :
+  - **Schéma Directeur SI (SDSI)** : Formalisation des pré-requis (BIA, EBIOS-RM) et de la planification stratégique sur 24-36 mois.
+  - **Politique de Sécurité (PSSI)** : Intégration des règles opérationnelles dérivées de l'ISO 27001 (RBAC, Moindre privilège).
+  - **Cinématique de Gouvernance** : Intégration d'un diagramme de séquence interactif via **Mermaid.js** illustrant le flux décisionnel entre la Direction Métier et les opérations de sécurité.
+- **Standards ISO 27001** :
+  - Implémentation pédagogique du triptyque **DIC** (Disponibilité, Intégrité, Confidentialité) et du cycle **PDCA** (Plan-Do-Check-Act).
+  - Clarification des conditions d'usage normatif et des contrôles de l'Annexe A.
+- **UX & Visibilité** :
+  - Optimisation des tailles de police pour les écrans haute résolution (passage de `text-xs` à `text-sm/xl` pour les titres et labels).
+  - Homogénéisation et augmentation de la taille des logos officiels (passage à `w-16`) sur l'ensemble de la plateforme (Navbar & Footers).
+  - Amélioration des contrastes et de la hiérarchie visuelle globale.
+
+---
+
 ## [0.21.0] — 2026-05-14 — Pilotage Financier & Simulateur Objectifs
 
 ### ✨ Nouveautés & Améliorations

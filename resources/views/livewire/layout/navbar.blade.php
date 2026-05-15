@@ -49,7 +49,7 @@ new class extends Component
     <div class="max-w-[1400px] mx-auto app-layout h-16 flex items-center justify-between">
 
         <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3">
-            <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-8 h-8 object-contain">
+            <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-16 h-16 object-contain">
             <span class="font-semibold tracking-[0.15em] text-xs uppercase text-[#F5F0E8]">OmnyRestore</span>
         </a>
 
