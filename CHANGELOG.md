@@ -5,6 +5,23 @@ Tous les changements notables d'**OmnyRestore** sont documentés ici.
 Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventions [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+ 
+ ## [0.23.0] — 2026-05-15 — Finalisation Ergonomique & Durcissement des Assets Admin
+ 
+ ### ✨ Nouveautés & Améliorations
+ 
+ - **Durcissement des Assets Critiques** :
+   - **Logo CNIL** : Transition vers une intégration en **SVG Inline** dans les templates Blade, garantissant un rendu 100% fiable sans dépendances externes.
+   - **Logo ANSSI** : Mise à jour vers la version circulaire officielle, désormais hébergée localement (`/images/anssi.png`) pour éviter les blocages de hotlinking.
+   - **Logo OVHcloud** : Hébergement local du favicon (`/images/ovh.ico`) pour une résilience totale du tableau de bord.
+ - **Accessibilité & Lisibilité** :
+   - **Lexique de Modération** : Refonte de la hiérarchie typographique dans la barre latérale (titres en `text-base`, descriptions en `text-sm`) et agrandissement des textes de mentions légales.
+   - **Suivi des Commandes** : Optimisation des contrastes pour les adresses e-mail clients et renforcement visuel des badges de statut (passage en `font-bold` avec palettes de couleurs ravivées).
+ - **Standardisation UI/UX** :
+   - **Boutons d'Action** : Homogénéisation des largeurs (passage à `sm:w-60`) et augmentation de la taille de police (`text-sm`) pour une meilleure affordance dans les modules de modération et de commandes.
+   - **Cellule de Crise** : Amélioration visuelle des conteneurs de recommandation de communication (bordures colorées accentuées Emerald/Red) pour une lecture rapide en situation d'urgence.
+ 
+ ---
 
 ## [0.22.0] — 2026-05-14 — Gouvernance Administrative & Stratégique SI
 
