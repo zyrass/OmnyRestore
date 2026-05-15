@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" style="font-size: 19px;">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,6 +12,26 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        /* API View Transitions — Fondus fluides entre les pages (Aller/Retour) */
+        @view-transition { navigation: auto; }
+        
+        ::view-transition-old(root) {
+            animation: 0.3s cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
+        }
+        ::view-transition-new(root) {
+            animation: 0.4s cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
+        }
+
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fade-out {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
 </head>
 <body class="noise">
 
@@ -22,43 +42,49 @@
     class="fixed top-0 left-0 right-0 z-50 transition-all duration-500 py-6"
     :class="scrolled ? 'bg-[#0D0B08]/95 backdrop-blur-md border-b border-[#C9A84C]/10 !py-4' : ''"
 >
-    <nav class="max-w-6xl mx-auto px-6 flex items-center justify-between">
-        {{-- Logo --}}
-        <a href="/" class="flex items-center gap-3">
-            <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-16 h-16 object-contain">
-            <span class="font-semibold tracking-[0.15em] text-sm uppercase text-[#F5F0E8]">OmnyRestore</span>
-        </a>
-
-        {{-- Nav links — ordre calé sur l'ordre réel des sections dans la page --}}
-        <div class="hidden lg:flex items-center gap-4 xl:gap-8 text-sm text-[#7A6E5E]">
-            <a href="#examples" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">R&eacute;sultats r&eacute;els</a>
-            <a href="#why" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Pourquoi nous ?</a>
-            <a href="#how" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Processus</a>
-            <a href="#pricing" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Tarification</a>
-            <a href="#ia" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Technologie</a>
-            <a href="#testimonials" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Témoignages</a>
+    <nav class="w-full max-w-[1440px] mx-auto px-6 flex items-center gap-12">
+        {{-- 1. Logo (Gauche - Largeur fixe) --}}
+        <div class="flex-none">
+            <a href="/" class="flex items-center gap-3 shrink-0">
+                <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-16 h-16 object-contain">
+                <span class="font-semibold tracking-[0.15em] text-xs uppercase text-[#F5F0E8] whitespace-nowrap">OmnyRestore</span>
+            </a>
         </div>
 
-        {{-- CTA Auth --}}
-        <div class="flex items-center gap-4">
-            @auth
-                @if (Auth::user()->role === 'admin')
-                <a href="{{ route('admin.dashboard') }}" class="btn-gold text-sm py-2.5 px-6">
-                    ⚙ Panel Admin
-                </a>
+        {{-- 2. Liens (Centre - Prend tout l'espace restant) --}}
+        <div class="hidden lg:flex flex-1 justify-center">
+            <div class="flex items-center gap-6 xl:gap-10 text-[13px] text-[#7A6E5E]">
+                <a href="#examples" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">R&eacute;sultats r&eacute;els</a>
+                <a href="#why" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Pourquoi nous ?</a>
+                <a href="#how" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Processus</a>
+                <a href="#pricing" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Tarification</a>
+                <a href="#ia" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Technologie</a>
+                <a href="#testimonials" class="hover:text-[#C9A84C] transition-colors duration-200 whitespace-nowrap">Témoignages</a>
+            </div>
+        </div>
+
+        {{-- 3. Auth (Droite - Largeur fixe) --}}
+        <div class="flex-none">
+            <div class="flex items-center gap-4">
+                @auth
+                    @if (Auth::user()->role === 'admin')
+                    <a href="{{ route('admin.dashboard') }}" class="btn-gold text-xs py-2.5 px-6 shrink-0">
+                        ⚙ Panel Admin
+                    </a>
+                    @else
+                    <a href="{{ route('client.orders.index') }}" class="btn-gold text-xs py-2.5 px-6 shrink-0">
+                        Mon espace
+                    </a>
+                    @endif
                 @else
-                <a href="{{ route('client.orders.index') }}" class="btn-gold text-sm py-2.5 px-6">
-                    Mon espace
-                </a>
-                @endif
-            @else
-                <a href="{{ route('login') }}" class="text-[#7A6E5E] hover:text-[#C9A84C] text-sm transition-colors">
-                    Connexion
-                </a>
-                <a href="{{ route('register') }}" class="btn-gold text-sm py-2.5 px-6">
-                    Commencer
-                </a>
-            @endauth
+                    <a href="{{ route('login') }}" class="px-5 py-2 text-[11px] uppercase tracking-widest text-[#F5F0E8]/60 border border-[#C9A84C]/20 hover:border-[#C9A84C]/50 hover:text-[#C9A84C] transition-all rounded-sm">
+                        Connexion
+                    </a>
+                    <a href="{{ route('register') }}" class="btn-gold text-xs py-2.5 px-6 shrink-0 uppercase tracking-widest">
+                        S'inscrire
+                    </a>
+                @endauth
+            </div>
         </div>
     </nav>
 </header>
@@ -76,7 +102,7 @@
     {{-- Grid lines decoration --}}
     <div class="absolute inset-0 opacity-[0.03]" style="background-image: linear-gradient(#C9A84C 1px, transparent 1px), linear-gradient(90deg, #C9A84C 1px, transparent 1px); background-size: 80px 80px;"></div>
 
-    <div class="relative z-10 text-center max-w-5xl mx-auto px-6 pt-32">
+    <div class="relative z-10 text-center max-w-[1440px] mx-auto px-6 pt-32">
         {{-- Eyebrow --}}
         <div class="inline-flex items-center gap-3 mb-8">
             <div class="w-8 h-px bg-[#C9A84C]/60"></div>
@@ -157,7 +183,7 @@
 </section>
 
 {{-- ========== BEFORE / AFTER ========== --}}
-<section id="examples" class="py-32 max-w-6xl mx-auto px-6">
+<section id="examples" class="py-32 max-w-[1440px] mx-auto px-6">
     <div class="text-center mb-16">
         <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Résultats réels</p>
         <h2 class="text-4xl font-bold text-[#F5F0E8] mb-4">Avant / Après</h2>
@@ -241,7 +267,7 @@
     {{-- Background decoration --}}
     <div class="absolute inset-0 bg-[#C9A84C]/5 skew-y-3 origin-top-left -z-10"></div>
     
-    <div class="max-w-6xl mx-auto px-6">
+    <div class="max-w-[1440px] mx-auto px-6">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
             {{-- Texte --}}
             <div class="lg:pr-12">
@@ -334,7 +360,7 @@
 
 {{-- ========== HOW IT WORKS ========== --}}
 <section id="how" class="py-32 border-y border-[#C9A84C]/10 bg-[#1A1510]/40">
-    <div class="max-w-6xl mx-auto px-6">
+    <div class="max-w-[1440px] mx-auto px-6">
         <div class="text-center mb-20">
             <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Processus</p>
             <h2 class="text-4xl font-bold text-[#F5F0E8] mb-4">Comment ça marche</h2>
@@ -373,7 +399,7 @@
 </section>
 
 {{-- ========== PRICING ========== --}}
-<section id="pricing" class="py-32 max-w-6xl mx-auto px-6">
+<section id="pricing" class="py-32 max-w-[1440px] mx-auto px-6">
     <div class="text-center mb-16">
         <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Tarification</p>
         <h2 class="text-4xl font-bold text-[#F5F0E8] mb-4">Prix par photo</h2>
@@ -411,7 +437,7 @@
 
 {{-- ========== SECTION IA ========== --}}
 <section id="ia" class="py-32 border-y border-[#C9A84C]/10 bg-[#1A1510]/40">
-    <div class="max-w-6xl mx-auto px-6">
+    <div class="max-w-[1440px] mx-auto px-6">
         <div class="text-center mb-16">
             <p class="text-[#C9A84C] text-xs tracking-[0.3em] uppercase mb-4">Technologie</p>
             <h2 class="text-4xl font-bold text-[#F5F0E8] mb-4">Ce que l'IA peut faire pour vous</h2>
@@ -456,7 +482,7 @@
 
 {{-- ========== TESTIMONIALS ========== --}}
 @php $testimonials = \App\Models\Testimonial::published()->orderByDesc('created_at')->get(); @endphp
-<section id="testimonials" class="py-32 max-w-6xl mx-auto px-6" x-data="{ 
+<section id="testimonials" class="py-32 max-w-[1440px] mx-auto px-6" x-data="{ 
     activeTab: 'all',
     items: [
         @foreach($testimonials as $t)
@@ -572,16 +598,16 @@
 
 {{-- ========== TRANSITION EMOTION ========== --}}
 <section class="py-24 overflow-hidden bg-gradient-to-b from-transparent to-[#0D0B08]">
-    <div class="max-w-6xl mx-auto px-6">
-        <div class="relative rounded-sm overflow-hidden aspect-[21/9] md:aspect-[32/9] group border border-[#C9A84C]/10 cursor-default shadow-2xl">
+    <div class="w-full px-0">
+        <div class="relative overflow-hidden aspect-[16/9] md:aspect-[32/11] group border-y border-[#C9A84C]/10 cursor-default shadow-2xl">
             <img src="/images/transition-heritage.png" 
                  alt="Transmission et émotion" 
-                 class="w-full h-full object-cover opacity-30 transform scale-100 group-hover:scale-105 transition-all duration-1000 ease-out">
+                 class="w-full h-full object-cover opacity-45 transform scale-100 group-hover:scale-105 transition-all duration-1000 ease-out">
             
-            {{-- Overlay sombre global pour le contraste AAA --}}
-            <div class="absolute inset-0 bg-black/60 pointer-events-none"></div>
+            {{-- Overlay sombre global équilibré --}}
+            <div class="absolute inset-0 bg-black/55 pointer-events-none"></div>
             
-            {{-- Dégradés de finition --}}
+            {{-- Dégradés de finition renforcés --}}
             <div class="absolute inset-0 bg-gradient-to-r from-[#0D0B08] via-transparent to-[#0D0B08] pointer-events-none opacity-80"></div>
             <div class="absolute inset-0 bg-gradient-to-t from-[#0D0B08] via-transparent to-[#0D0B08] pointer-events-none opacity-80"></div>
             
@@ -627,7 +653,7 @@
     <div class="h-px bg-gradient-to-r from-transparent via-[#C9A84C]/30 to-transparent"></div>
 
     <div class="bg-[#0A0804] pt-12 pb-6">
-        <div class="max-w-6xl mx-auto px-6">
+        <div class="max-w-[1440px] mx-auto px-6">
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-10 pb-10 border-b border-[#C9A84C]/8">
 
@@ -739,5 +765,18 @@
 
 {{-- Alpine.js est fourni par @livewireScripts (Livewire 3) --}}
 @livewireScripts
+<script>
+    /**
+     * Support natif des View Transitions pour Livewire 3
+     */
+    document.addEventListener('livewire:init', () => {
+        Livewire.hook('commit', ({ component, commit, respond, succeed, fail }) => {
+            respond(() => {
+                if (!document.startViewTransition) return;
+                document.startViewTransition(() => {});
+            });
+        });
+    });
+</script>
 </body>
 </html>

@@ -1,39 +1,30 @@
 <?php
 
 use App\Livewire\Actions\Logout;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Component;
-use App\Models\SupportTicket;
-use App\Models\Testimonial;
-use Livewire\Attributes\On;
 
 new class extends Component
 {
     public int $unreadTickets = 0;
-    public int $pendingAvis = 0;
     public int $unreadClientTickets = 0;
+    public int $pendingAvis = 0;
 
-    public function mount(): void
+    public function mount()
     {
         $this->refreshCounts();
     }
 
-    #[On('testimonial-moderated')]
-    #[On('refresh-navbar-counts')]
-    #[On('echo:testimonials,TestimonialModerated')]
-    public function refreshCounts(): void
+    public function refreshCounts()
     {
-        if (auth()->check()) {
-            if (auth()->user()->role === 'admin') {
-                $this->unreadTickets = SupportTicket::whereHas('messages', fn($q) =>
-                    $q->where('is_admin', false)->where('is_read', false)
-                )->count();
-
-                $this->pendingAvis = Testimonial::pending()->count();
+        if (Auth::check()) {
+            if (Auth::user()->role === 'admin') {
+                $this->unreadTickets = \App\Models\SupportTicket::where('status', 'open')->count();
+                $this->pendingAvis = \App\Models\Testimonial::pending()->count();
             } else {
-                $this->unreadClientTickets = SupportTicket::where('user_id', auth()->id())
-                    ->whereHas('messages', fn($q) =>
-                        $q->where('is_admin', true)->where('is_read', false)
-                    )->count();
+                $this->unreadClientTickets = \App\Models\SupportTicket::where('user_id', Auth::id())
+                    ->where('status', 'open')
+                    ->count();
             }
         }
     }
@@ -46,80 +37,87 @@ new class extends Component
 }; ?>
 
 <header wire:poll.30s="refreshCounts" class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
-    <div class="max-w-[1400px] mx-auto app-layout h-16 flex items-center justify-between">
+    <div class="w-full max-w-[1440px] mx-auto app-layout h-20 flex items-center gap-8 px-6">
 
-        <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3">
-            <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-16 h-16 object-contain">
-            <span class="font-semibold tracking-[0.15em] text-xs uppercase text-[#F5F0E8]">OmnyRestore</span>
-        </a>
-
-        <nav class="hidden md:flex items-center gap-1">
-            @if (Auth::user()->role === 'admin')
-            {{-- ── Nav Admin ── --}}
-            <a href="{{ route('admin.orders.index') }}" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.orders.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                Commandes
-            </a>
-            <a href="{{ route('admin.clients') }}" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.clients') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                Clients
-            </a>
-            <a href="{{ route('admin.revenue') }}" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('admin.revenue') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                CA
-            </a>
-            <a href="{{ route('admin.tickets.index') }}" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors relative {{ request()->routeIs('admin.tickets.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                Tickets
-                @if ($unreadTickets > 0)
-                <span class="absolute -top-1 -right-1 w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
-                    {{ $unreadTickets > 9 ? '9+' : $unreadTickets }}
-                </span>
+        {{-- 1. Logo (Gauche - Largeur fixe) --}}
+        <div class="flex-none">
+            <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 shrink-0">
+                <img src="{{ asset('images/logo.png') }}" alt="OmnyRestore" class="w-16 h-16 object-contain">
+                @if (Auth::user()->role !== 'admin')
+                <span class="font-semibold tracking-[0.15em] text-xs uppercase text-[#F5F0E8] whitespace-nowrap">OmnyRestore</span>
                 @endif
             </a>
-            <a href="{{ route('admin.testimonials.index') }}" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors relative {{ request()->routeIs('admin.testimonials.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                Avis
-                @if ($pendingAvis > 0)
-                <span class="absolute -top-1 -right-1 w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
-                    {{ $pendingAvis > 9 ? '9+' : $pendingAvis }}
-                </span>
-                @endif
-            </a>
-            <a href="/admin/coupons" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->is('admin/coupons*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                Réductions
-            </a>
-            <div class="w-px h-4 bg-[#C9A84C]/15 mx-1"></div>
+        </div>
 
-            <a href="{{ route('admin.dashboard') }}" wire:navigate
-               class="px-3 py-1.5 text-xs font-semibold rounded-sm border transition-all
-                      {{ request()->routeIs('admin.dashboard') ? 'border-red-700/60 bg-red-900/20 text-red-400' : 'border-red-800/30 bg-red-900/10 text-red-500 hover:border-red-700/50 hover:text-red-400' }}">
-                ⚙ Panel Admin
-            </a>
-            @else
-            {{-- ── Nav Client ── --}}
-            <a href="{{ route('client.orders.index') }}" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('client.orders.index') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                Mes commandes
-            </a>
-            <a href="{{ route('client.orders.create') }}" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors {{ request()->routeIs('client.orders.create') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                + Nouvelle commande
-            </a>
-            <a href="{{ route('client.tickets.index') }}" wire:navigate
-               class="px-4 py-2 text-sm rounded-sm transition-colors relative {{ request()->routeIs('client.tickets.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-                Support
-                @if ($unreadClientTickets > 0)
-                <span class="absolute -top-1 -right-1 w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
-                    {{ $unreadClientTickets > 9 ? '9+' : $unreadClientTickets }}
-                </span>
+        {{-- 2. Navigation (Centre - Prend tout l'espace restant) --}}
+        <div class="hidden md:flex flex-1 justify-center">
+            <nav class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+                @if (Auth::user()->role === 'admin')
+                <a href="{{ route('admin.dashboard') }}" wire:navigate
+                   class="px-4 py-2 text-sm rounded-sm transition-all whitespace-nowrap font-medium border border-[#C9A84C]/20 
+                          {{ request()->routeIs('admin.dashboard') ? 'text-[#C9A84C] bg-[#C9A84C]/10 border-[#C9A84C]/40' : 'text-[#C9A84C]/80 hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 hover:border-[#C9A84C]/40' }}">
+                    Panel Admin
+                </a>
+                <a href="{{ route('admin.orders.index') }}" wire:navigate
+                   class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.orders.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                    Commandes
+                </a>
+                <a href="{{ route('admin.clients') }}" wire:navigate
+                   class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.clients') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                    Clients
+                </a>
+                <a href="{{ route('admin.revenue') }}" wire:navigate
+                   class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.revenue') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                    CA
+                </a>
+                <a href="{{ route('admin.tickets.index') }}" wire:navigate
+                   class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap relative {{ request()->routeIs('admin.tickets.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                    Tickets
+                    @if ($unreadTickets > 0)
+                    <span class="absolute -top-1 -right-1 w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
+                        {{ $unreadTickets > 9 ? '9+' : $unreadTickets }}
+                    </span>
+                    @endif
+                </a>
+                <a href="{{ route('admin.testimonials.index') }}" wire:navigate
+                   class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap relative {{ request()->routeIs('admin.testimonials.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                    Avis
+                    @if ($pendingAvis > 0)
+                    <span class="absolute -top-1 -right-1 w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
+                        {{ $pendingAvis > 9 ? '9+' : $pendingAvis }}
+                    </span>
+                    @endif
+                </a>
+                <a href="/admin/coupons" wire:navigate
+                   class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->is('admin/coupons*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                    Réductions
+                </a>
+                @else
+                {{-- ── Nav Client ── --}}
+                <a href="{{ route('client.orders.index') }}" wire:navigate
+                   class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('client.orders.index') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                    Mes commandes
+                </a>
+                <a href="{{ route('client.orders.create') }}" wire:navigate
+                   class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('client.orders.create') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                    + Nouvelle commande
+                </a>
+                <a href="{{ route('client.tickets.index') }}" wire:navigate
+                   class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap relative {{ request()->routeIs('client.tickets.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                    Support
+                    @if ($unreadClientTickets > 0)
+                    <span class="absolute -top-1 -right-1 w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
+                        {{ $unreadClientTickets > 9 ? '9+' : $unreadClientTickets }}
+                    </span>
+                    @endif
+                </a>
                 @endif
-            </a>
-            @endif
-        </nav>
+            </nav>
+        </div>
 
-        <div class="flex items-center gap-4" x-data="{ open: false }">
+        {{-- 3. Profil (Droite - Largeur fixe) --}}
+        <div class="flex-none flex justify-end">
+            <div class="flex items-center gap-4" x-data="{ open: false }">
             <div class="hidden md:flex items-center gap-2">
                 <span class="text-[#7A6E5E] text-sm">{{ Auth::user()->name }}</span>
                 @if (Auth::user()->role === 'admin')
@@ -146,39 +144,28 @@ new class extends Component
                     @if (Auth::user()->role === 'admin')
 
                     <a href="{{ route('admin.moderation.lexicon') }}" wire:navigate
-                       class="flex items-center justify-between px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-red-400 hover:bg-red-900/10 transition-colors border-b border-white/5">
-                        <span class="flex items-center gap-3">
-                            <span class="w-4 h-4 flex items-center justify-center">🛡️</span>
-                            Lexique Modération
-                        </span>
+                       class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-red-400 hover:bg-red-900/10 transition-colors border-b border-white/5">
+                        Lexique Modération
                     </a>
                     <a href="{{ route('admin.incident.response') }}" wire:navigate
-                       class="flex items-center justify-between px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-red-400 hover:bg-red-900/10 transition-colors">
-                        <span class="flex items-center gap-3">
-                            <span class="w-4 h-4 flex items-center justify-center">🚨</span>
-                            Gestion de Crise
-                        </span>
+                       class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-red-400 hover:bg-red-900/10 transition-colors border-b border-white/5">
+                        Gestion de Crise
                     </a>
                     <a href="{{ route('admin.compliance') }}" wire:navigate
-                       class="flex items-center justify-between px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 transition-colors">
-                        <span class="flex items-center gap-3">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                            Conformité (Légal)
-                        </span>
+                       class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 transition-colors">
+                        Conformité (Légal)
                     </a>
 
 
                     @else
                     <a href="{{ route('client.profile') }}" wire:navigate
-                       class="flex items-center gap-3 px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#F5F0E8] hover:bg-[#C9A84C]/5 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                       class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#F5F0E8] hover:bg-[#C9A84C]/5 transition-colors">
                         Mon profil
                     </a>
                     @endif
-                    <div class="border-t border-[#C9A84C]/10 my-1"></div>
+                    <div class="h-px bg-white/5 my-1 mx-2"></div>
                     <button wire:click="logout"
-                            class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-red-400 hover:bg-red-400/5 transition-colors">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                            class="w-full flex items-center px-4 py-2.5 text-sm text-red-500/70 hover:text-red-400 hover:bg-red-500/5 transition-all">
                         Se déconnecter
                     </button>
                 </div>
