@@ -9,12 +9,15 @@ use App\Models\User;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
+use Livewire\WithPagination;
 
 new
 #[Layout('layouts.app')]
 #[Title('Clients — Admin')]
 class extends Component
 {
+    use WithPagination;
+
     public string $search = '';
 
     public function with(): array
@@ -33,9 +36,11 @@ class extends Component
                     )
                 )
                 ->latest()
-                ->get(),
+                ->paginate(20),
         ];
     }
+
+    public function updatedSearch(): void { $this->resetPage(); }
 }; ?>
 
 <div>
@@ -127,7 +132,14 @@ class extends Component
             </tbody>
         </table>
         <div class="px-5 py-3 border-t border-[#C9A84C]/10 text-[#7A6E5E] text-xs">
-            {{ $clients->count() }} client{{ $clients->count() > 1 ? 's' : '' }} {{ $search ? 'trouvé' . ($clients->count() > 1 ? 's' : '') : 'au total' }}
+            @if ($clients->hasPages())
+                <div class="mt-2">
+                    {{ $clients->links() }}
+                </div>
+            @endif
+            <div class="mt-2">
+                {{ $clients->total() }} client{{ $clients->total() > 1 ? 's' : '' }} {{ $search ? 'trouvé' . ($clients->total() > 1 ? 's' : '') : 'au total' }}
+            </div>
         </div>
         @endif
     </div>

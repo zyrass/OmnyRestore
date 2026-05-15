@@ -14,12 +14,15 @@ use App\Models\Testimonial;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Volt\Component;
+use Livewire\WithPagination;
 
 new
 #[Layout('layouts.app')]
 #[Title('Modération — Témoignages')]
 class extends Component
 {
+    use WithPagination;
+
     public string $filter = 'pending'; // pending | published | rejected | ignored
 
     /** Publie un témoignage en attente → visible sur la vitrine */
@@ -89,10 +92,12 @@ class extends Component
         };
 
         return [
-            'items'        => $query->with(['order', 'user'])->latest()->get(),
+            'items'        => $query->with(['order', 'user'])->latest()->paginate(20),
             'pendingCount' => Testimonial::pending()->count(),
         ];
     }
+
+    public function updatedFilter(): void { $this->resetPage(); }
 }; ?>
 
 <div>
@@ -232,5 +237,10 @@ class extends Component
         </div>
         @endforeach
     </div>
+    @if ($items->hasPages())
+        <div class="mt-8 px-5 py-4 card-glass">
+            {{ $items->links() }}
+        </div>
+    @endif
     @endif
 </div>

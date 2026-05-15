@@ -34,7 +34,7 @@ class extends Component
             ->withCount(['messages as unread_count' => fn($q) => $q->where('is_admin', false)->where('is_read', false)])
             ->when($this->status, fn($q) => $q->where('status', $this->status))
             ->latest('updated_at')
-            ->paginate(25);
+            ->paginate(20);
 
         return compact('tickets', 'counts');
     }
