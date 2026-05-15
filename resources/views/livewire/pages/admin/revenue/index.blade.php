@@ -168,6 +168,7 @@ class extends Component
         $targetNetDirigeant = $simulatorSettings['dirigeant'] ?? 2500;
         $targetNetCollab = $simulatorSettings['collab'] ?? 1800;
         $fixedCosts = $simulatorSettings['fixed'] ?? 150;
+        $securityReserve = $simulatorSettings['reserve'] ?? 1000;
         
         $collabInvoice = $targetNetCollab / (1 - 0.212); 
         $averageOrderPrice = $simulatorSettings['averageOrderPrice'] ?? ($stats['count'] > 0 ? ($stats['ttc_cents'] / 100 / $stats['count']) : 19);
@@ -180,7 +181,7 @@ class extends Component
         
         $targetCaTtc = 0;
         if ($effectiveMarginRate > 0) {
-            $targetCaTtc = ($targetNetDirigeant + $collabInvoice + $fixedCosts) / $effectiveMarginRate;
+            $targetCaTtc = ($targetNetDirigeant + $collabInvoice + $fixedCosts + $securityReserve) / $effectiveMarginRate;
         }
 
         $progressPercentage = $targetCaTtc > 0 ? min(100, round((($stats['ttc_cents'] / 100) / $targetCaTtc) * 100, 1)) : 0;
@@ -194,6 +195,7 @@ class extends Component
             'years'       => $years,
             'moisFr'      => $moisFr,
             'targetCaTtc' => $targetCaTtc,
+            'securityReserve' => $securityReserve,
             'progressPercentage' => $progressPercentage,
             'currentLabel'=> $this->view === 'year' ? "Année {$this->year}" : ($moisFr[(int)$this->month] . ' ' . $this->year)
         ];
@@ -336,15 +338,30 @@ class extends Component
                 </div>
             </div>
 
-            {{-- Résultat Net --}}
-            <div class="card-glass p-8 bg-emerald-500/5 border border-emerald-500/20 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div class="text-center md:text-left">
-                    <h3 class="text-emerald-400 font-bold text-lg mb-1">Résultat Net Estimé</h3>
-                    <p class="text-[#7A6E5E] text-sm">Ce qu'il reste après déduction de l'IA et de l'URSSAF.</p>
+            {{-- Résultat Net avec Plafond de Sécurité --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {{-- Plafond (Rappel) --}}
+                <div class="card-glass p-8 bg-red-500/5 border border-red-500/20 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-red-400 font-bold text-sm mb-1 uppercase tracking-widest">Plafond de Sécurité</h3>
+                        <p class="text-[#7A6E5E] text-xs">Trésorerie bloquée en banque</p>
+                    </div>
+                    <p class="text-red-400 text-2xl font-black whitespace-nowrap">{{ number_format($securityReserve, 0, ',', ' ') }} €</p>
                 </div>
-                <div class="text-center md:text-right">
-                    <p class="text-emerald-400 text-4xl font-black">{{ number_format($stats['net'] / 100, 2, ',', ' ') }} €</p>
-                    <p class="text-[#7A6E5E] text-[10px] mt-1 uppercase tracking-widest">Disponible après taxes</p>
+
+                {{-- Disponible Réel --}}
+                <div class="card-glass p-8 bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-between shadow-lg shadow-emerald-900/20">
+                    <div>
+                        <h3 class="text-emerald-400 font-bold text-lg mb-1">Disponible Réel</h3>
+                        <p class="text-[#7A6E5E] text-xs">Ce que vous pouvez réellement utiliser</p>
+                    </div>
+                    <div class="text-right">
+                        @php $disponibleReel = ($stats['net'] / 100) - $securityReserve; @endphp
+                        <p class="text-emerald-400 text-3xl font-black whitespace-nowrap {{ $disponibleReel < 0 ? 'text-red-500' : '' }}">
+                            {{ number_format($disponibleReel, 2, ',', ' ') }} €
+                        </p>
+                        <p class="text-[#7A6E5E] text-[10px] mt-1 uppercase tracking-widest">Après déduction du plafond</p>
+                    </div>
                 </div>
             </div>
 

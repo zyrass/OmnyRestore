@@ -19,6 +19,7 @@ class extends Component
     public $averageOrderPrice = 19;
     public $iaRatio = 8.0; // en %
     public $fixedCosts = 150; // Serveurs, BFR, frais fixes mensuels en €
+    public $securityReserve = 1000; // Plafond de sécurité impératif à laisser en banque
 
     public function mount()
     {
@@ -26,6 +27,7 @@ class extends Component
         $this->targetNetDirigeant = $settings['dirigeant'] ?? 2500;
         $this->targetNetCollab = $settings['collab'] ?? 1800;
         $this->fixedCosts = $settings['fixed'] ?? 150;
+        $this->securityReserve = $settings['reserve'] ?? 1000;
         
         // Calcul du panier moyen réel sur les 30 derniers jours
         $recentOrders = Order::where('payment_status', 'paid')
@@ -51,6 +53,7 @@ class extends Component
             'dirigeant' => (float) ($this->targetNetDirigeant ?: 0),
             'collab' => (float) ($this->targetNetCollab ?: 0),
             'fixed' => (float) ($this->fixedCosts ?: 0),
+            'reserve' => (float) ($this->securityReserve ?: 0),
             'averageOrderPrice' => (float) ($this->averageOrderPrice ?: 0),
             'iaRatio' => (float) ($this->iaRatio ?: 0),
         ]);
@@ -63,6 +66,7 @@ class extends Component
         $averageOrderPrice = (float) ($this->averageOrderPrice ?: 0);
         $iaRatio = (float) ($this->iaRatio ?: 0);
         $fixedCosts = (float) ($this->fixedCosts ?: 0);
+        $securityReserve = (float) ($this->securityReserve ?: 0);
 
         // Le collab (BNC à 21.2%) doit facturer:
         $collabInvoice = $targetNetCollab / (1 - 0.212); 
@@ -78,8 +82,8 @@ class extends Component
         
         $targetCaTtc = 0;
         if ($effectiveMarginRate > 0) {
-            // CA_TTC * MargeEffective = DirigeantNet + CollabInvoice + FixedCosts
-            $targetCaTtc = ($targetNetDirigeant + $collabInvoice + $fixedCosts) / $effectiveMarginRate;
+            // CA_TTC * MargeEffective = DirigeantNet + CollabInvoice + FixedCosts + SecurityReserve
+            $targetCaTtc = ($targetNetDirigeant + $collabInvoice + $fixedCosts + $securityReserve) / $effectiveMarginRate;
         }
         
         $targetOrders = $averageOrderPrice > 0 ? ceil($targetCaTtc / $averageOrderPrice) : 0;
@@ -95,6 +99,7 @@ class extends Component
             'safeTargetNetCollab' => $targetNetCollab,
             'safeIaRatio' => $iaRatio,
             'safeFixedCosts' => $fixedCosts,
+            'safeSecurityReserve' => $securityReserve,
         ];
     }
 }; ?>
@@ -159,7 +164,13 @@ class extends Component
                     <div>
                         <label class="block text-xs uppercase tracking-wider text-[#7A6E5E] mb-1">Frais fixes & BFR (€)</label>
                         <input type="number" step="10" wire:model.live="fixedCosts" class="w-full bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm text-[#F5F0E8] p-2.5 focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] transition-all">
-                        <p class="text-[#7A6E5E] text-[10px] mt-1.5 leading-relaxed">Sert à payer les serveurs, le nom de domaine, ou à garder un matelas de sécurité en banque.</p>
+                        <p class="text-[#7A6E5E] text-[10px] mt-1.5 leading-relaxed">Sert à payer les serveurs, le nom de domaine et frais mensuels.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-red-400/80 mb-1 font-bold">Plafond de Sécurité (€)</label>
+                        <input type="number" step="50" wire:model.live="securityReserve" class="w-full bg-[#120F0A] border border-red-500/30 rounded-sm text-red-400 p-2.5 focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all font-bold">
+                        <p class="text-[#7A6E5E] text-[10px] mt-1.5 leading-relaxed italic">Trésorerie intouchable à laisser impérativement sur le compte (Matelas de sécurité).</p>
                     </div>
 
                     <div class="p-3 bg-[#1A160F] border border-[#C9A84C]/10 rounded-sm">
@@ -174,15 +185,15 @@ class extends Component
         {{-- Colonne Résultats --}}
         <div class="lg:col-span-2 space-y-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div class="card-glass p-8 bg-[#120F0A] border border-[#C9A84C]/30 text-center flex flex-col justify-center">
+                <div class="card-glass p-8 bg-[#120F0A] border border-[#C9A84C]/30 text-center flex flex-col justify-center overflow-hidden">
                     <p class="text-[#7A6E5E] text-xs uppercase tracking-widest mb-2">Chiffre d'Affaires Cible (TTC)</p>
-                    <p class="text-[#C9A84C] text-5xl font-black mb-2">{{ number_format($targetCaTtc, 2, ',', ' ') }} €</p>
+                    <p class="text-[#C9A84C] text-4xl font-black mb-2 whitespace-nowrap">{{ number_format($targetCaTtc, 2, ',', ' ') }} €</p>
                     <p class="text-[#7A6E5E] text-sm">à générer sur la plateforme</p>
                 </div>
                 
-                <div class="card-glass p-8 bg-[#120F0A] border border-[#C9A84C]/10 text-center flex flex-col justify-center">
+                <div class="card-glass p-8 bg-[#120F0A] border border-[#C9A84C]/10 text-center flex flex-col justify-center overflow-hidden">
                     <p class="text-[#7A6E5E] text-xs uppercase tracking-widest mb-2">Volume de Commandes</p>
-                    <p class="text-[#F5F0E8] text-5xl font-black mb-2">{{ $targetOrders }} <span class="text-xl font-normal text-[#7A6E5E]">cmd</span></p>
+                    <p class="text-[#F5F0E8] text-4xl font-black mb-2 whitespace-nowrap">{{ $targetOrders }} <span class="text-xl font-normal text-[#7A6E5E]">cmd</span></p>
                     <p class="text-[#7A6E5E] text-sm">soit environ {{ ceil($targetOrders / 30) }} cmd/jour</p>
                 </div>
             </div>
@@ -226,6 +237,13 @@ class extends Component
                         <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
                         <span class="text-[#7A6E5E] text-sm">Frais Fixes & BFR</span>
                         <span class="text-red-400 font-medium">- {{ number_format($safeFixedCosts, 2, ',', ' ') }} €</span>
+                    </div>
+
+                    {{-- Ligne Plafond de Sécurité --}}
+                    <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative">
+                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-600"></div>
+                        <span class="text-red-400/80 text-sm font-bold">Plafond de Sécurité (Réservé)</span>
+                        <span class="text-red-500 font-bold">- {{ number_format($safeSecurityReserve, 2, ',', ' ') }} €</span>
                     </div>
                     
                     {{-- Ligne Facture Collab --}}
