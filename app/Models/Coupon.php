@@ -57,17 +57,23 @@ class Coupon extends Model
                     $sq->where('is_seasonal', true)
                        ->whereNotNull('starts_at')
                        ->whereNotNull('expires_at')
-                       ->where(function ($ssq) use ($todayMd) {
+                        ->where(function ($ssq) use ($todayMd) {
+                           $driver = \DB::getDriverName();
+                           $format = $driver === 'pgsql' ? "TO_CHAR(%s, 'MM-DD')" : "DATE_FORMAT(%s, '%%m-%%d')";
+                           
+                           $startFormat = sprintf($format, 'starts_at');
+                           $endFormat = sprintf($format, 'expires_at');
+
                            // Gestion de l'intervalle normal (ex: 02-12 au 02-15)
                            // et de l'intervalle chevauchant l'année (ex: 12-15 au 01-01)
-                           $ssq->where(function ($inner) use ($todayMd) {
-                               $inner->whereRaw("DATE_FORMAT(starts_at, '%m-%d') <= DATE_FORMAT(expires_at, '%m-%d')")
-                                     ->whereRaw("? BETWEEN DATE_FORMAT(starts_at, '%m-%d') AND DATE_FORMAT(expires_at, '%m-%d')", [$todayMd]);
-                           })->orWhere(function ($inner) use ($todayMd) {
-                               $inner->whereRaw("DATE_FORMAT(starts_at, '%m-%d') > DATE_FORMAT(expires_at, '%m-%d')")
-                                     ->where(function ($leaf) use ($todayMd) {
-                                         $leaf->whereRaw("? >= DATE_FORMAT(starts_at, '%m-%d')", [$todayMd])
-                                              ->orWhereRaw("? <= DATE_FORMAT(expires_at, '%m-%d')", [$todayMd]);
+                           $ssq->where(function ($inner) use ($todayMd, $startFormat, $endFormat) {
+                               $inner->whereRaw("$startFormat <= $endFormat")
+                                     ->whereRaw("? BETWEEN $startFormat AND $endFormat", [$todayMd]);
+                           })->orWhere(function ($inner) use ($todayMd, $startFormat, $endFormat) {
+                               $inner->whereRaw("$startFormat > $endFormat")
+                                     ->where(function ($leaf) use ($todayMd, $startFormat, $endFormat) {
+                                         $leaf->whereRaw("? >= $startFormat", [$todayMd])
+                                              ->orWhereRaw("? <= $endFormat", [$todayMd]);
                                      });
                            });
                        });
