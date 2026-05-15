@@ -1,6 +1,6 @@
 # [MASTER PLAN] Écosystème Collaboratif & Performance OmnyRestore v2.0
 
-Ce document définit la stratégie complète pour transformer OmnyRestore en une plateforme multi-opérateurs sécurisée, pilotée par la performance et assistée par l'intelligence artificielle.
+Ce document détaille la stratégie complète pour transformer OmnyRestore en une plateforme multi-opérateurs sécurisée, pilotée par la performance et assistée par l'intelligence artificielle.
 
 ---
 
@@ -12,8 +12,18 @@ Ce document définit la stratégie complète pour transformer OmnyRestore en une
 
 ---
 
-## 🏗️ Architecture des Pouvoirs (RBAC)
+## 🛠️ Phase 0 : Hardening de l'Automatisation IA (Priorité Critique)
+Avant d'intégrer des collaborateurs, nous devons stabiliser le moteur de traitement qui est actuellement défaillant.
 
+*   **Diagnostic Intégral** : Identifier pourquoi la reprise des images par l'IA ne fonctionne pas (problème de payload, timeout API OpenAI ou mauvaise gestion des médias Spatie).
+*   **Refonte du `PhotoDamageAnalyzer`** : 
+    *   Optimisation des prompts pour une classification 100% cohérente.
+    *   Implémentation d'un mécanisme de "Retry" intelligent en cas d'échec de l'IA.
+    *   Logging granulaire pour isoler les erreurs de traitement par photo.
+
+---
+
+## 🏗️ Phase 1 : Architecture RBAC & Gestion des Sièges (10 Max)
 L'administration doit avoir une visibilité totale sur qui peut faire quoi.
 
 ### Structure des Rôles
@@ -32,27 +42,17 @@ stateDiagram-v2
     Anonymisé --> [*]
 ```
 
-### Limite des 10 Sièges
-*   **Garde-fou "10 Sièges"** : Logique de validation bloquant l'ajout d'un nouvel utilisateur si le quota de 10 (hors clients) est atteint.
+### Implémentation Technique
+*   **Migration `users`** : Ajout d'une colonne `role` (enum) et `last_active_at`.
 *   **Interface RBAC** : Une nouvelle page `/admin/team/roles` affichant une matrice de permissions interactive.
+*   **Garde-fou "10 Sièges"** : 
+    *   Logique de validation bloquant l'ajout d'un nouvel utilisateur si le quota de 10 (hors clients) est atteint.
+    *   Widget visuel "Licence" indiquant l'occupation des sièges.
 
 ---
 
-## 🛠️ Phase 0 : Hardening de l'Automatisation IA (Priorité Critique)
-
-Avant d'intégrer des collaborateurs, nous devons stabiliser le moteur de traitement qui est actuellement défaillant.
-
-*   **Diagnostic Intégral** : Identifier pourquoi la reprise des images par l'IA ne fonctionne pas (problème de payload, timeout API OpenAI ou mauvaise gestion des médias Spatie).
-*   **Refonte du `PhotoDamageAnalyzer`** : 
-    *   Optimisation des prompts pour une classification 100% cohérente.
-    *   Implémentation d'un mécanisme de "Retry" intelligent en cas d'échec de l'IA.
-    *   Logging granulaire pour isoler les erreurs de traitement par photo.
-
----
-
-## 📈 Workflow Collaboratif & Tracking KPIs
-
-Chaque action doit être tracée pour permettre un reporting précis et éviter les conflits d'assignation.
+## 📈 Phase 2 : Workflow Collaboratif & Tracking KPIs
+Chaque action doit être tracée pour permettre un reporting précis.
 
 ### Diagramme de Séquence : Prise en charge d'une Commande
 ```mermaid
@@ -72,6 +72,10 @@ sequenceDiagram
     S->>S: Incrémente KPI (Completed) pour Opérateur O
 ```
 
+### Gestion des Affectations
+*   **Prise en charge** : Bouton "Prendre en charge" sur les commandes `PENDING`.
+*   **Assignation Auto** : Option pour distribuer les tickets de support équitablement entre les collaborateurs disponibles.
+
 ### Indicateurs de Performance (KPIs)
 *   **Volume** : Nombre de commandes traitées (passage en `DONE`).
 *   **Financier** : CA TTC généré par l'opérateur (basé sur les commandes assignées et payées).
@@ -80,9 +84,8 @@ sequenceDiagram
 
 ---
 
-## 📢 Module Marketing & Fidélisation
-
-Ce module permet de transformer les données de la base en leviers de croissance.
+## 📢 Phase 3 : Module Marketing & Fidélisation
+Une section dédiée pour booster le chiffre d'affaires et la réputation.
 
 ### Flowchart : Processus de Campagne Promo (Mass Mail)
 ```mermaid
@@ -98,47 +101,59 @@ graph TD
     G --> I[Suivi Conversion CA]
 ```
 
-### Centre de Coupons (Calendrier Promotionnel)
-Modèles de codes pour les temps forts de l'année :
-*   **Noël & Jour de l'An** (ex: `NOEL2026`)
-*   **Saint-Valentin** (ex: `VALENTIN24`)
-*   **Fête des Mères** (ex: `MAMAN15`)
-*   **Fête des Pères** (ex: `PAPA15`)
-*   **Black Friday** (ex: `BLACKOMNY`)
+### Fonctionnalités Clés
+*   **Centre de Coupons** : Interface pour créer des campagnes (ex: `FLASH20` pour -20% sur 24h).
+*   **Gestion des Avis** : Modération avancée avec analyse de sentiment IA.
+*   **Mass Mailer (GDPR Ready)** : Envoi de newsletters aux clients ayant consenti, avec filtres (ex: "Tous les clients ayant dépensé plus de 50€").
+*   **Calendrier Promotionnel (Modèles)** :
+    *   **Noël & Jour de l'An** (ex: `NOEL2026`)
+    *   **Saint-Valentin** (ex: `VALENTIN24`)
+    *   **Fête des Mères** (ex: `MAMAN15`)
+    *   **Fête des Pères** (ex: `PAPA15`)
+    *   **Black Friday** (ex: `BLACKOMNY`)
+*   **Analyses de Conversion** : Suivi de l'utilisation des coupons vs CA généré.
 
 ### Social Media Toolkit
-Modèles de messages prêts à l'emploi :
-*   **LinkedIn** : "Besoin de restaurer vos archives d'entreprise ? OmnyRestore garantit désormais une confidentialité totale et un traitement HD en 24h. 🛡️ #CyberSecurity #Archives"
-*   **Facebook** : "Ne laissez pas vos souvenirs s'effacer ! Nos experts (et nos IA) redonnent vie à vos photos de famille. 📸 Profitez de -10% avec le code SOUVENIR10 !"
+*   **Exemple (LinkedIn)** : "Besoin de restaurer vos archives d'entreprise ? OmnyRestore garantit désormais une confidentialité totale et un traitement HD en 24h. 🛡️ #CyberSecurity #Archives"
+*   **Exemple (Facebook)** : "Ne laissez pas vos souvenirs s'effacer ! Nos experts (et nos IA) redonnent vie à vos photos de famille. 📸 Profitez de -10% avec le code SOUVENIR10 !"
 
 ---
 
-## 🤖 Assistant de Communication IA "OmnyScribe"
-
+## 🤖 Phase 4 : Assistant de Communication IA "OmnyScribe"
 Garantir que chaque message envoyé par l'équipe est irréprochable.
 
-### Fonctionnalités détaillées :
-*   **Correction Instantanée** : Bouton intégré aux formulaires de réponse (orthographe/grammaire).
+### L'Assistant "OmnyScribe"
+*   **Correction Instantanée** : Bouton intégré aux formulaires de réponse.
 *   **Optimisation de Ton** :
-    *   *Standard* : Clair et concis.
-    *   *Empathique* : Pour les clients mécontents ou les litiges.
-    *   *Technique* : Pour les explications sur la restauration.
+    *   **Standard** : Clair et concis.
+    *   **Empathique** : Pour les clients mécontents ou les problèmes techniques.
+    *   **Directif** : Pour les demandes de pièces manquantes.
 *   **Sécurité** : Détection automatique des données sensibles (mots de passe, CB) avant l'envoi.
 
 ---
 
-## 📄 Reporting & Performance (PDF)
+## 📄 Phase 5 : Reporting Automatisé & Génération PDF
+Transformer les données en rapports professionnels exploitables.
 
-Transformer les données en rapports professionnels exploitables générés par DomPDF.
+### Rapports Collaborateurs (Individuels)
+*   **Fiche de Performance Mensuelle** : Un PDF généré automatiquement le 1er du mois pour chaque collaborateur résumant son activité (Graphiques, CA, retours clients).
 
-*   **Fiche de Performance Mensuelle** : Un PDF généré automatiquement le 1er du mois pour chaque collaborateur résumant son activité.
-*   **Audit d'Équipe (Admin)** : PDF récapitulant la rentabilité globale de la flotte des 10 collaborateurs.
+### Rapport Global (Admin)
+*   **Audit d'Équipe** : PDF récapitulant la rentabilité de la flotte et comparatifs de performance (anonymisables).
+
+---
+
+## 🛡️ Phase 6 : Sécurité & Audit Trail
+*   **Logs Granulaires** : Chaque modification de prix ou de statut est enregistrée avec l'ID de l'opérateur.
+*   **Middlewares de protection** :
+    *   `EnsureIsStaff` : Accès global au panel.
+    *   `EnsureIsAdmin` : Accès aux sections sensibles (CA, RBAC).
+*   **Anonymisation RGPD** : Lors de la suppression d'un collaborateur, ses actions historiques sont conservées mais son nom est remplacé par "Ex-Opérateur X".
 
 ---
 
 ## 🚀 Prochaines Étapes Suggérées (Roadmap)
-
-1.  **Phase de Diagnostic** : Résoudre le bug d'automatisation de l'IA (Phase 0).
-2.  **Migration DB** : Ajouter les rôles et les champs de tracking dans les tables `users` et `orders`.
-3.  **Maquette RBAC** : Créer l'interface de visualisation des droits.
-4.  **Prototype IA** : Intégrer le premier bouton de correction sur les tickets de support.
+1. **Phase de Diagnostic** : Résoudre le bug d'automatisation de l'IA (Phase 0).
+2. **Migration DB** : Ajouter les rôles et les champs de tracking dans les tables `users` et `orders`.
+3. **Maquette RBAC** : Créer l'interface de visualisation des droits pour validation.
+4. **Prototype IA** : Intégrer le premier bouton de correction sur les tickets de support.
