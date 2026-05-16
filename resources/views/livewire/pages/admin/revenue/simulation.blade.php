@@ -233,7 +233,7 @@ class extends Component
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs uppercase tracking-wider text-[#7A6E5E] mb-1">Salaire Net Dirigeant (€)</label>
-                        <input type="number" wire:model.live="targetNetDirigeant" class="w-full bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm text-[#F5F0E8] p-2.5 focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] transition-all">
+                        <input type="number" wire:model.blur="targetNetDirigeant" class="w-full bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm text-[#F5F0E8] p-2.5 focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] transition-all">
                     </div>
                     
                     <div>
@@ -244,7 +244,7 @@ class extends Component
                                 <button wire:click="$set('isCollabSalaried', true)" class="px-2 py-0.5 text-[8px] uppercase transition-all {{ $isCollabSalaried ? 'bg-[#C9A84C]/20 text-[#C9A84C] font-bold' : 'text-[#7A6E5E]' }}">CDI</button>
                             </div>
                         </div>
-                        <input type="number" wire:model.live="targetNetCollab" @if($isCollabSalaried) min="1398.69" step="0.01" @endif class="w-full bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm text-[#F5F0E8] p-2.5 focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] transition-all">
+                        <input type="number" wire:model.blur="targetNetCollab" @if($isCollabSalaried) min="1398.69" step="0.01" @endif class="w-full bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm text-[#F5F0E8] p-2.5 focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] transition-all">
                     </div>
                 </div>
             </div>
