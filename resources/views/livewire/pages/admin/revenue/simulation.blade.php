@@ -326,10 +326,10 @@ class extends Component
                         <div>
                             <div class="flex justify-between items-end mb-3">
                                 <span class="text-xs uppercase tracking-widest text-[#7A6E5E]">Consommation du Plafond</span>
-                                <span class="text-2xl font-black {{ $microUsagePercentage > 80 ? 'text-amber-500' : 'text-[#C9A84C]' }}">{{ number_format($microUsagePercentage, 1) }}%</span>
+                                <span class="text-2xl font-black {{ $microUsagePercentage > 80 ? 'text-red-500' : 'text-[#C9A84C]' }}">{{ number_format($microUsagePercentage, 1) }}%</span>
                             </div>
                             <div class="w-full h-4 bg-white/5 rounded-full border border-white/10 p-1 overflow-hidden">
-                                <div class="h-full rounded-full transition-all duration-500 {{ $microUsagePercentage > 80 ? 'bg-gradient-to-r from-red-600 to-red-400 shadow-[0_0_15px_rgba(220,38,38,0.4)]' : 'bg-gradient-to-r from-[#C9A84C] to-[#E5C167]' }}" style="width: {{ round($microUsagePercentage) }}%"></div>
+                                <div class="h-full rounded-full transition-all duration-500 {{ $microUsagePercentage > 80 ? 'bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.5)]' : 'bg-[#C9A84C]' }}" style="width: {{ round($microUsagePercentage) }}%"></div>
                             </div>
                         </div>
                         
