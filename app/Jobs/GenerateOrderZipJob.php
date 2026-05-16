@@ -95,10 +95,9 @@ class GenerateOrderZipJob implements ShouldQueue
         $addedCount = 0;
         foreach ($retouchedMedia as $media) {
             try {
-                // Récupérer le contenu depuis le disk Spatie (local ou S3)
-                $contents = file_get_contents($media->getPath());
-                if ($contents === false) {
-                    Log::warning("GenerateOrderZipJob: cannot read {$media->file_name}");
+                $path = $media->getPath();
+                if (! file_exists($path)) {
+                    Log::warning("GenerateOrderZipJob: file does not exist locally {$path}");
                     continue;
                 }
 
@@ -107,7 +106,8 @@ class GenerateOrderZipJob implements ShouldQueue
                 $sequence  = sprintf('%02d', $addedCount + 1);
                 $filename  = "{$order->reference}_{$sequence}_HD.{$extension}";
 
-                $zip->addFromString("photos/{$filename}", $contents);
+                // Utilisation de addFile au lieu de file_get_contents pour économiser la RAM (évite les OutOfMemory)
+                $zip->addFile($path, "photos/{$filename}");
                 $addedCount++;
 
             } catch (\Throwable $e) {

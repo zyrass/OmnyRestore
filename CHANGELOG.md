@@ -6,6 +6,26 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.26.0] — 2026-05-16 — Optimisation Mémoire & Expérience Premium Post-Paiement
+
+### ✨ Nouveautés & Améliorations
+
+- **Emails Transactionnels Premium** :
+  - **Confirmation de Paiement** (`paid.blade.php`) : Refonte totale du design pour correspondre à l'identité visuelle Dark/Gold de la marque. Ajout d'un badge "PAIEMENT VALIDÉ", d'une boîte de transaction stylisée façon facture, et d'un bloc d'information clair sur la préparation des fichiers.
+  - **Échec de Paiement** (`payment-failed.blade.php`) : Redesign complet avec un ton visuel adouci (dégradé rouge subtil). Remplacement de l'alerte agressive par un encadré pédagogique détaillant les causes fréquentes d'échec (3D Secure, plafond, etc.) et un bouton de relance.
+
+- **Expérience Utilisateur (Téléchargement)** :
+  - Implémentation d'un système de **Polling dynamique (10s)** sur la page de statut client.
+  - Si le statut passe à `DELIVERED` mais que le ZIP est encore en cours de création en arrière-plan, l'interface affiche un indicateur de chargement continu au lieu d'une page vide, éliminant toute friction post-paiement.
+
+### 🛠️ Maintenance & Robustesse
+
+- **Correction de Fuite Mémoire (Queue Worker)** :
+  - **Optimisation critique** de `GenerateOrderZipJob.php` : Remplacement de l'utilisation de `file_get_contents()` qui saturait la mémoire vive (RAM) en chargeant intégralement les images HD.
+  - Implémentation de `$zip->addFile()` permettant un streaming direct depuis le disque via la bibliothèque native `libzip`, éliminant définitivement les crashs du worker dus aux erreurs *Memory Exhaustion*.
+
+---
+
 ## [0.25.0] — 2026-05-16 — Optimisation Support & Résilience Workers
 
 ### ✨ Nouveautés & Améliorations

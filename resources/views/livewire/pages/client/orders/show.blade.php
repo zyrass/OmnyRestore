@@ -91,8 +91,8 @@ class extends Component
      */
     public function pollDelivery(): void
     {
-        // Inutile de poller si on attend pas le ZIP
-        if ($this->order->status !== 'PAID' || $this->order->zip_path) {
+        // Inutile de poller si on n'attend pas le ZIP (sauf si on est en DELIVERED sans ZIP suite à une action admin manuelle)
+        if (! in_array($this->order->status, ['PAID', 'DELIVERED']) || $this->order->zip_path) {
             return;
         }
 
@@ -807,7 +807,7 @@ class extends Component
 
             {{-- === ÉTAT : LIVRÉ — Archive ZIP prête === --}}
             @if ($order->status === 'DELIVERED')
-            <div class="space-y-6">
+            <div class="space-y-6" @if(!$order->zip_path) wire:poll.10s="pollDelivery" @endif>
                 {{-- Encadré principal : Téléchargement des photos --}}
                 <div class="card-glass p-8 text-center border-[#C9A84C]/30 shadow-[0_8px_40px_rgba(201,168,76,0.15)] relative overflow-hidden">
                     <div class="absolute top-0 right-0 p-4">
@@ -846,6 +846,15 @@ class extends Component
                     @endif
                     
                     <p class="text-[#4A3E2E] text-[11px]">Format .ZIP · Haute Définition · Prêt pour impression</p>
+                    @else
+                    <div class="mb-4 text-center">
+                        <div class="inline-block relative w-8 h-8 mb-3">
+                            <div class="absolute inset-0 border-2 border-emerald-500/20 rounded-full"></div>
+                            <div class="absolute inset-0 border-t-2 border-emerald-500 rounded-full animate-spin"></div>
+                        </div>
+                        <p class="text-emerald-400 text-sm font-medium">Finalisation de l'archive ZIP en cours...</p>
+                        <p class="text-[#7A6E5E] text-xs mt-1">Veuillez patienter quelques instants, le bouton va apparaître.</p>
+                    </div>
                     @endif
                 </div>
 
