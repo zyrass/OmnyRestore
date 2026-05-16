@@ -54,6 +54,11 @@ class extends Component
 
     public function updated()
     {
+        // Force le SMIC si CDI actif
+        if ($this->isCollabSalaried && $this->targetNetCollab < 1398.69) {
+            $this->targetNetCollab = 1398.69;
+        }
+
         // Se déclenche à chaque fois qu'un champ 'wire:model.live' est modifié
         \Illuminate\Support\Facades\Cache::forever('admin_simulator_settings', [
             'dirigeant' => (float) ($this->targetNetDirigeant ?: 0),
