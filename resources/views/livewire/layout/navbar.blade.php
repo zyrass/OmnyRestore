@@ -36,7 +36,7 @@ new class extends Component
     }
 }; ?>
  
-<header wire:poll.30s="refreshCounts" class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
+<header wire:poll.300s="refreshCounts" class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
     <style>
         /* Force hide scrollbar for this component specifically */
         .no-scrollbar::-webkit-scrollbar {
