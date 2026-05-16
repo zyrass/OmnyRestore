@@ -186,6 +186,8 @@ class extends Component
             'microUsagePercentage' => $microUsagePercentage,
             'ytdRevenue' => $ytdRevenue,
             'remainingMonths' => $remainingMonths,
+            'isSmicWarning' => $this->isCollabSalaried && $targetNetCollab > 0 && $targetNetCollab < $smicNet,
+            'smicNet' => $smicNet,
             'collabNet' => $effectiveNetCollab,
             'collabBrut' => $this->isCollabSalaried ? ($effectiveNetCollab / 0.78) : $effectiveNetCollab,
             'collabPatronales' => $this->isCollabSalaried ? ($collabTotalCost - ($effectiveNetCollab / 0.78)) : 0,
