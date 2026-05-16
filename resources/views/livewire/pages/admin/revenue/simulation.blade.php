@@ -398,61 +398,73 @@ class extends Component
                 Détail et Preuve par le Calcul (Objectif Mensuel)
             </h3>
             
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-16 gap-y-2">
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between py-3 border-b border-white/5">
-                        <span class="text-[#7A6E5E]">Chiffre d'affaires encaissé (TTC)</span>
-                        <span class="text-[#F5F0E8] font-bold">{{ number_format($targetCaTtc, 2, ',', ' ') }} €</span>
+            <div class="max-w-4xl mx-auto space-y-2">
+                {{-- Entrée : CA --}}
+                <div class="flex items-center justify-between py-4 border-b border-white/10">
+                    <div class="flex flex-col">
+                        <span class="text-xs uppercase tracking-widest text-[#7A6E5E] mb-1 font-bold">Encaissement Brut</span>
+                        <span class="text-[#F5F0E8] font-bold">Chiffre d'affaires mensuel cible (TTC)</span>
                     </div>
-                    
-                    @if(!$isSasu)
-                        <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative text-sm">
-                            <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
-                            <span class="text-[#7A6E5E]">URSSAF Plateforme (21,2% du CA)</span>
-                            <span class="text-red-400">- {{ number_format($targetCaTtc * 0.212, 2, ',', ' ') }} €</span>
-                        </div>
-                    @else
-                        <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative text-sm">
-                            <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
-                            <span class="text-[#7A6E5E]">Impôt sur les Sociétés (IS)</span>
-                            <span class="text-red-400">- {{ number_format($isProvision, 2, ',', ' ') }} €</span>
-                        </div>
-                    @endif
-                    
-                    <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative text-sm">
-                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
-                        <span class="text-[#7A6E5E]">Coûts d'IA & Stripe</span>
-                        <span class="text-red-400">- {{ number_format(($targetCaTtc * ($safeIaRatio / 100)) + $estimatedStripeFees, 2, ',', ' ') }} €</span>
-                    </div>
-
-                    <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative text-sm">
-                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
-                        <span class="text-[#7A6E5E]">Frais de Structure & Sécurité</span>
-                        <span class="text-red-400">- {{ number_format($safeFixedCosts + $safeSecurityReserve, 2, ',', ' ') }} €</span>
-                    </div>
+                    <span class="text-[#F5F0E8] font-black text-xl">+ {{ number_format($targetCaTtc, 2, ',', ' ') }} €</span>
                 </div>
 
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative text-sm">
-                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
-                        <span class="text-[#7A6E5E]">Coût Collaborateur ({{ $isCollabSalaried ? 'CDI' : 'Free' }})</span>
-                        <span class="text-red-400">- {{ number_format($collabTotalCost, 2, ',', ' ') }} €</span>
+                {{-- Bloc Déductions --}}
+                <div class="py-6 space-y-4">
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-[#7A6E5E] font-black mb-4">Charges & Prélèvements mensuels</p>
+                    
+                    @if(!$isSasu)
+                        <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
+                            <span class="text-[#7A6E5E] text-sm">URSSAF Plateforme (21,2% du CA)</span>
+                            <span class="text-red-400 font-mono">- {{ number_format($targetCaTtc * 0.212, 2, ',', ' ') }} €</span>
+                        </div>
+                    @else
+                        <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
+                            <span class="text-[#7A6E5E] text-sm">Impôt sur les Sociétés (Provision IS)</span>
+                            <span class="text-red-400 font-mono">- {{ number_format($isProvision, 2, ',', ' ') }} €</span>
+                        </div>
+                    @endif
+
+                    <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
+                        <span class="text-[#7A6E5E] text-sm">Coûts d'IA (API Photos)</span>
+                        <span class="text-red-400 font-mono">- {{ number_format($targetCaTtc * ($safeIaRatio / 100), 2, ',', ' ') }} €</span>
+                    </div>
+
+                    <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
+                        <span class="text-[#7A6E5E] text-sm">Frais Bancaires & Stripe</span>
+                        <span class="text-red-400 font-mono">- {{ number_format($estimatedStripeFees, 2, ',', ' ') }} €</span>
+                    </div>
+
+                    <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
+                        <span class="text-[#7A6E5E] text-sm">Frais de Structure & Matelas de Sécurité</span>
+                        <span class="text-red-400 font-mono">- {{ number_format($safeFixedCosts + $safeSecurityReserve, 2, ',', ' ') }} €</span>
+                    </div>
+
+                    <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
+                        <span class="text-[#7A6E5E] text-sm">Coût Total Collaborateur ({{ $isCollabSalaried ? 'CDI' : 'Freelance' }})</span>
+                        <span class="text-red-400 font-mono">- {{ number_format($collabTotalCost, 2, ',', ' ') }} €</span>
                     </div>
 
                     @if($isSasu)
-                        <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative text-sm">
-                            <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
-                            <span class="text-[#7A6E5E]">Charges Dirigeant SASU</span>
-                            <span class="text-red-400">- {{ number_format($dirigeantTotalCost - $safeTargetNetDirigeant, 2, ',', ' ') }} €</span>
+                        <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
+                            <span class="text-[#7A6E5E] text-sm">Charges Sociales Dirigeant (~82%)</span>
+                            <span class="text-red-400 font-mono">- {{ number_format($dirigeantTotalCost - $safeTargetNetDirigeant, 2, ',', ' ') }} €</span>
+                        </div>
+                        <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
+                            <span class="text-[#7A6E5E] text-sm">Comptabilité & Frais SASU</span>
+                            <span class="text-red-400 font-mono">- {{ number_format($additionalFixedCosts, 2, ',', ' ') }} €</span>
                         </div>
                     @endif
+                </div>
 
-                    <div class="flex items-center justify-between py-6 mt-4">
-                        <div class="flex flex-col">
-                            <span class="text-[#F5F0E8] font-bold text-lg">Salaire Net Dirigeant</span>
-                            <span class="text-[10px] text-[#7A6E5E] uppercase tracking-widest">Reste à vivre après prélèvements</span>
-                        </div>
-                        <span class="text-emerald-400 font-black text-3xl">{{ number_format($safeTargetNetDirigeant, 2, ',', ' ') }} €</span>
+                {{-- Résultat Final --}}
+                <div class="mt-6 p-6 bg-[#C9A84C] rounded-xl flex items-center justify-between shadow-[0_10px_40px_rgba(201,168,76,0.2)]">
+                    <div class="flex flex-col">
+                        <span class="text-[#120F0A] text-[10px] uppercase tracking-[0.2em] font-black">Revenu Net Final</span>
+                        <span class="text-[#120F0A] font-bold text-lg">Salaire disponible pour le Dirigeant</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[#120F0A] font-black text-4xl block leading-none">{{ number_format($safeTargetNetDirigeant, 2, ',', ' ') }} €</span>
+                        <span class="text-[#120F0A]/60 text-[9px] uppercase tracking-widest font-bold">Net après toutes charges</span>
                     </div>
                 </div>
             </div>
