@@ -35,6 +35,17 @@ new class extends Component
         $this->redirect('/', navigate: true);
     }
 }; ?>
+ 
+ <style>
+    /* Force hide scrollbar for this component specifically */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none !important;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none !important;
+        scrollbar-width: none !important;
+    }
+ </style>
 
 <header wire:poll.30s="refreshCounts" class="border-b border-[#C9A84C]/10 bg-[#0D0B08]/95 backdrop-blur-md sticky top-0 z-40">
     <div class="w-full max-w-[1440px] mx-auto app-layout h-20 flex items-center gap-8 px-6">
@@ -50,8 +61,8 @@ new class extends Component
         </div>
 
         {{-- 2. Navigation (Centre - Prend tout l'espace restant) --}}
-        <div class="hidden md:flex flex-1 justify-center">
-            <nav class="flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <div class="hidden md:flex flex-1 justify-center min-w-0">
+            <nav class="flex items-center gap-1 overflow-x-auto no-scrollbar py-2">
                 @if (Auth::user()->role === 'admin')
                 <a href="{{ route('admin.dashboard') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-all whitespace-nowrap font-medium border border-[#C9A84C]/20 
