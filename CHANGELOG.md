@@ -13,6 +13,8 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
  - **Stratégie d'Acquisition Mobile** : Planification de deux applications (Swift & React Native) pour la numérisation simplifiée avec retrait automatique des métadonnées EXIF.
  - **Simulateur de Croissance SASU** : Nouvel onglet permettant de projeter le passage en SASU (Charges sociales dirigeant ~82%, IS 15%, Frais comptables).
  - **Option Collaborateur Salarié** : Ajout d'un toggle Freelance vs CDI dans le simulateur financier pour anticiper l'explosion des quotas AE et sécuriser le lien contractuel.
+ - **Monitoring Plafond Micro (Real-Time)** : Jauge dynamique basée sur le CA Réel (Janvier à M-1) + Projection simulée, avec alerte critique à 80% du seuil des 77 700 €.
+ - **Interface "Preuve par le Calcul"** : Encart dédié offrant une transparence totale sur l'atterrissage annuel estimé au 31/12.
  - **Hardening Délivrabilité** : Intégration de la stratégie DMARC dans le plan pour protéger la réputation d'envoi des mass mailers.
 
  ## [0.23.0] — 2026-05-15 — Finalisation Ergonomique & Durcissement des Assets Admin

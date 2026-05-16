@@ -608,6 +608,8 @@ git commit -m "feat(tickets): interface admin tickets support" \
 - [x] `v0.24.0` — **Stratégie d'Acquisition & Croissance SASU** ← *actuel*
   - [x] Simulateur de croissance (Toggle SASU, Charges patronales, IS)
   - [x] Option "Collaborateur Salarié" (CDI) vs Freelance (AE)
+  - [x] Monitoring dynamique du plafond Micro (77 700€) — Réel (YTD) + Projeté
+  - [x] Interface "Preuve par le calcul" pour l'atterrissage annuel
   - [x] Planification Apps Mobiles "CamScanner" (Swift/RN) avec retrait EXIF
   - [x] Hardening délivrabilité (DMARC)
 - [ ] `v1.0.0` — **MVP — Déploiement production (OVH)**
