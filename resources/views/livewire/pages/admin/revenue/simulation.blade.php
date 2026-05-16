@@ -116,19 +116,29 @@ class extends Component
         $effectiveMarginRate = 0;
 
         if ($this->isSasu) {
-            // SASU : Le dirigeant est "assimilé salarié" (Mandataire = ~82% de charges, pas d'allègement Fillon)
+            // SASU : Le dirigeant est "assimilé salarié" (Mandataire = ~82% de charges)
             $dirigeantTotalCost = $targetNetDirigeant * 1.82;
             $additionalFixedCosts = 225;
             
+            // Calcul de la marge après coûts variables (IA, Stripe)
             $marginAfterVariable = 1 - $ratioIaDecimal - $stripePct - $stripeFixedRatio;
             
             if ($marginAfterVariable > 0) {
-                // CA * marginAfterVariable = (ChargesFixes + Salaires + Reserve) / (1 - IS)
-                $targetCaTtc = ($dirigeantTotalCost + $collabTotalCost + $fixedCosts + $additionalFixedCosts + $securityReserve) / ($marginAfterVariable * (1 - $isRate));
+                /**
+                 * LOGIQUE FISCALE SASU RÉELLE :
+                 * Les salaires (Dirigeant + Collab) et les Frais Fixes sont DÉDUCTIBLES.
+                 * L'IS (15%) ne s'applique que sur le BÉNÉFICE restant (Security Reserve).
+                 * Pour avoir X de réserve NETTE d'impôt, il faut X / 0.85 de bénéfice BRUT.
+                 */
+                $sumOfDeductibleCosts = $dirigeantTotalCost + $collabTotalCost + $fixedCosts + $additionalFixedCosts;
+                $neededProfitBeforeIs = $securityReserve / (1 - $isRate);
+                
+                $targetCaTtc = ($sumOfDeductibleCosts + $neededProfitBeforeIs) / $marginAfterVariable;
+                $isProvision = $neededProfitBeforeIs * $isRate;
             }
-            $effectiveMarginRate = $marginAfterVariable * (1 - $isRate);
+            $effectiveMarginRate = $marginAfterVariable;
         } else {
-            // MICRO-ENTREPRISE : URSSAF de 21.2% sur le CA TTC
+            // MICRO-ENTREPRISE : URSSAF de 21.2% sur le CA TTC (Non déductible)
             $effectiveMarginRate = 1 - 0.212 - $ratioIaDecimal - $stripePct - $stripeFixedRatio;
             if ($effectiveMarginRate > 0) {
                 $targetCaTtc = ($targetNetDirigeant + $collabTotalCost + $fixedCosts + $securityReserve) / $effectiveMarginRate;
@@ -171,7 +181,7 @@ class extends Component
             'safeSecurityReserve' => $securityReserve,
             'dirigeantTotalCost' => $dirigeantTotalCost,
             'additionalFixedCosts' => $additionalFixedCosts,
-            'isProvision' => $targetCaTtc * ($this->isSasu ? $effectiveMarginRate * $isRate : 0),
+            'isProvision' => $isProvision,
             'projectedAnnualRevenue' => $projectedAnnualRevenue,
             'microUsagePercentage' => $microUsagePercentage,
             'ytdRevenue' => $ytdRevenue,
@@ -179,6 +189,8 @@ class extends Component
             'isSmicWarning' => $this->isCollabSalaried && $targetNetCollab > 0 && $targetNetCollab < $smicNet,
             'smicNet' => $smicNet,
             'collabRate' => $collabRate,
+            'collabNet' => $effectiveNetCollab,
+            'collabCharges' => $collabTotalCost - $effectiveNetCollab,
             'lastRealMonthName' => now()->subMonth()->translatedFormat('M'),
         ];
     }
@@ -439,10 +451,18 @@ class extends Component
                         <span class="text-red-400 font-mono">- {{ number_format($safeFixedCosts + $safeSecurityReserve, 2, ',', ' ') }} €</span>
                     </div>
 
-                    <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
-                        <span class="text-[#7A6E5E] text-sm">Coût Total Collaborateur ({{ $isCollabSalaried ? 'CDI' : 'Freelance' }})</span>
-                        <span class="text-red-400 font-mono">- {{ number_format($collabTotalCost, 2, ',', ' ') }} €</span>
-                    </div>
+                    @if($collabTotalCost > 0)
+                        <div class="flex items-center justify-between pl-4 border-l-2 border-blue-500/30">
+                            <span class="text-[#7A6E5E] text-sm">Salaire Net Collaborateur ({{ $isCollabSalaried ? 'CDI' : 'Freelance' }})</span>
+                            <span class="text-blue-400 font-mono">- {{ number_format($collabNet, 2, ',', ' ') }} €</span>
+                        </div>
+                        @if($collabCharges > 0)
+                            <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
+                                <span class="text-[#7A6E5E] text-sm">Charges Sociales Collaborateur (Patronales + Salariales)</span>
+                                <span class="text-red-400 font-mono">- {{ number_format($collabCharges, 2, ',', ' ') }} €</span>
+                            </div>
+                        @endif
+                    @endif
 
                     @if($isSasu)
                         <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
