@@ -122,14 +122,15 @@ class extends Component
 
         // --- CALCUL DU CUMUL ANNUEL RÉEL + PROJETÉ ---
         $currentYear = now()->year;
-        $currentMonth = now()->month; // Ex: 5 pour Mai
+        $currentMonth = now()->month; 
         
-        // CA Réel encaissé (Janvier -> Aujourd'hui)
+        // CA Réel encaissé (De Janvier jusqu'à la FIN DU MOIS DERNIER uniquement)
         $ytdRevenue = \App\Models\Order::whereYear('paid_at', $currentYear)
+            ->whereMonth('paid_at', '<', $currentMonth)
             ->where('payment_status', 'paid')
             ->sum('total_price_cents') / 100;
 
-        // Mois restants à simuler (incluant le mois en cours)
+        // Mois à simuler : du mois en cours jusqu'à Décembre
         $remainingMonths = 12 - $currentMonth + 1; 
         
         // Plafond Micro-Entreprise (BNC Prestations)
