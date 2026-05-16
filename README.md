@@ -13,7 +13,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
 [![Tests](https://img.shields.io/badge/Tests-64%2F64%20%E2%9C%85-22c55e?style=for-the-badge&logo=php&logoColor=white)](tests/)
-[![Version](https://img.shields.io/badge/Version-0.22.0-6366f1?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-0.24.0-6366f1?style=for-the-badge)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
 </div>
@@ -179,7 +179,7 @@ stateDiagram-v2
 | `laravel/pail` | ^1.2 | Tail des logs Laravel en temps réel dans le terminal |
 | `laravel/sail` | ^1.41 | Environnement Docker local pour le développement |
 | `fakerphp/faker` | ^1.23 | Génération de données factices pour les factories/seeders |
-| `mockery/mockery` | ^1.6 | Mocking d'objets pour les tests unitaires |
+| `mockery/mockery` | ^1.6 | Mocking d'objects pour les tests unitaires |
 | `nunomaduro/collision` | ^8.6 | Affichage d'erreurs élégant dans le terminal |
 
 ### JavaScript — Dev Dependencies (`package.json`)
@@ -602,63 +602,14 @@ git commit -m "feat(tickets): interface admin tickets support" \
 
 ### Tags de version
 
-| Tag | Description |
-|-----|-------------|
-| `v0.1.0` | Scaffold La- [x] `v0.6.0` — **Watermark automatique (Intervention Image)**
-  - [x] `GenerateWatermarkJob` : Intervention Image v3, GD, resize 1200px, filigrane diagonal
-  - [x] Listener Spatie `MediaHasBeenAddedEvent` → dispatch auto sur upload admin
-  - [x] Font Inter Bold bundleée dans `storage/app/fonts/`
-- [x] `v0.7.0` — **Restauration automatique IA (GPT-4o Vision + DALL·E 3)**
-  - [x] `PhotoRestorationService` : appel GPT-4o pour analyse + DALL·E pour restauration
-  - [x] Enqueue depuis l'admin → résultat dans collection `retouched`
-- [x] `v0.8.0` — **Rejet photo + TVA + coupons + 3 niveaux tarif**
-  - [x] Client peut rejeter des photos restaurées (prix recalculé)
-  - [x] Breakdown TVA 20% sur toutes les pages
-  - [x] Coupons admin (% ou montant fixe)
-  - [x] Tarification 3 niveaux : 1€ / 2€ / 3€ par photo selon dommage IA
-- [x] `v0.8.1` — **Coupon client + améliorations paiement**
-  - [x] Formulaire coupon sur la page de création commande
-  - [x] ZIP exclut les photos rejetées, recalcul correct coupon sur rejet
-- [x] `v0.9.0` — **Validation photos côté client**
-  - [x] Client peut rejeter/restaurer avant paiement
-  - [x] Prix recalculé en temps réel selon sélection
-- [x] `v0.10.0` — **Workflow livraison + recalcul par photo**
-  - [x] `OrderDeliveryReady` mail + `delivery-ready.blade.php` (ZIP + Facture)
-  - [x] `recalcPriceFromActivePhotos()` : somme `price[ai_level]` par photo
-  - [x] `deletePhoto()` garde-fou : commande ne peut jamais être vide
-- [x] `v0.11.0` — **Landing page publique**
-  - [x] Before/After slider interactif Alpine.js
-  - [x] Section IA + section testimonials
-  - [x] Navigation animée avec scroll detection
-- [x] `v0.12.0` — **Email-gate aperçu + notification payment failed**
-  - [x] Lien signé (7j) pour déverrouiller aperçu DONE sans connexion
-  - [x] Email au client en cas de paiement échoué
-- [x] `v0.13.0` — **Mentions légales + confidentialité RGPD/LCEN**
-  - [x] Pages /mentions-legales et /confidentialite complètes
-- [x] `v0.14.0` — **RGPD libre-service + avis clients**
-  - [x] Suppression compte libre-service avec anonymisation immédiate
-  - [x] Moteur testimonials complet (soumission → modération admin → publication)
-- [x] `v0.15.0` — **RGPD complet + traduction FR**
-  - [x] Ensemble du parcours traduit en français
-  - [x] Conformité CNIL intégrale
-- [x] `v0.16.0` — **Hardening sécurité production**
-  - [x] 64/64 tests verts (146 assertions)
-  - [x] `CreateOrderRequest` + `StoreTestimonialRequest` (Form Requests)
-  - [x] Horizon IP whitelist Nginx documentée
-  - [x] Mass assignment protection (`status` hors `$fillable`)
-  - [x] Rate limiting Stripe webhook + checkout
-- [x] `v0.17.0` — **Identité Visuelle & Cellule de Crise (PRI)**
-  - [x] Logo officiel (Or/Blanc/Noir) intégré (Landing, Auth, PDF)
-  - [x] Module de réponse aux incidents avec chronomètre 72h CNIL
-  - [x] Export PDF officiel du Plan de Réponse aux Incidents (PRI)
-  - [x] Centre de communication de crise (modèles RGPD/ANSSI)
-- [x] `v0.18.0` — **RGPD Hardening & Anonymisation Totale**
-- [x] `v0.19.0` — **Delivery UX, Invoice PDF & Documentation**
-- [x] `v0.20.0` — **Admin Compliance & UX Polishing**
-- [x] `v0.21.0` — **Pilotage Financier & Simulateur Objectifs** ← *actuel*
-  - [x] Dashboard analytique du CA (HT/TTC/Net) avec graphiques d'évolution
-  - [x] Simulateur en temps réel (Dirigeant, Collab, URSSAF, IA, Stripe)
-  - [x] Export PDF du rapport financier détaillé avec annexe de simulation
+- [x] `v0.21.0` — **Pilotage Financier & Simulateur Objectifs**
+- [x] `v0.22.0` — **Hardening Administratif & Assets Locaux**
+- [x] `v0.23.0` — **Standardisation UI & Master Plan v2**
+- [x] `v0.24.0` — **Stratégie d'Acquisition & Croissance SASU** ← *actuel*
+  - [x] Simulateur de croissance (Toggle SASU, Charges patronales, IS)
+  - [x] Option "Collaborateur Salarié" (CDI) vs Freelance (AE)
+  - [x] Planification Apps Mobiles "CamScanner" (Swift/RN) avec retrait EXIF
+  - [x] Hardening délivrabilité (DMARC)
 - [ ] `v1.0.0` — **MVP — Déploiement production (OVH)**
 - [ ] `v2.0.0` — Multi-prestataires + messagerie avancée
 
