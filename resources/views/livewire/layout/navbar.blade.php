@@ -61,7 +61,7 @@ new class extends Component
 
         {{-- 2. Navigation (Centre - Prend tout l'espace restant) --}}
         <div class="hidden md:flex flex-1 justify-center min-w-0">
-            <nav class="flex items-center gap-1 overflow-x-auto no-scrollbar py-4">
+            <nav class="flex items-center gap-1 overflow-x-auto no-scrollbar py-6">
                 @if (Auth::user()->role === 'admin')
                 <a href="{{ route('admin.dashboard') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-all whitespace-nowrap font-medium border border-[#C9A84C]/20 
@@ -116,7 +116,7 @@ new class extends Component
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap relative {{ request()->routeIs('client.tickets.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     Support
                     @if ($unreadClientTickets > 0)
-                    <span class="absolute -top-1 -right-1 w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
+                    <span class="absolute top-0 -right-1 w-4 h-4 text-[9px] bg-[#C9A84C] text-black font-bold rounded-full flex items-center justify-center">
                         {{ $unreadClientTickets > 9 ? '9+' : $unreadClientTickets }}
                     </span>
                     @endif
