@@ -188,6 +188,7 @@ class extends Component
             'remainingMonths' => $remainingMonths,
             'isSmicWarning' => $this->isCollabSalaried && $targetNetCollab > 0 && $targetNetCollab < $smicNet,
             'smicNet' => $smicNet,
+            'collabRate' => $collabRate,
             'collabNet' => $effectiveNetCollab,
             'collabBrut' => $this->isCollabSalaried ? ($effectiveNetCollab / 0.78) : $effectiveNetCollab,
             'collabPatronales' => $this->isCollabSalaried ? ($collabTotalCost - ($effectiveNetCollab / 0.78)) : 0,
