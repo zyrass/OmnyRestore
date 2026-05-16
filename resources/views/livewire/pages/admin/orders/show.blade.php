@@ -402,7 +402,7 @@ class extends Component
         }
 
         \Illuminate\Support\Facades\Mail::to($this->order->user->email)
-            ->queue(new \App\Mail\OrderReadyForPayment($this->order));
+            ->send(new \App\Mail\OrderReadyForPayment($this->order));
 
         session()->put($sessionKey, now());
         session()->flash('success', "📧 Email de notification envoyé à {$this->order->user->email}. Statut : Aperçu prêt.");
@@ -437,7 +437,7 @@ class extends Component
         }
 
         \Illuminate\Support\Facades\Mail::to($this->order->user->email)
-            ->queue(new \App\Mail\OrderDeliveryReady($this->order));
+            ->send(new \App\Mail\OrderDeliveryReady($this->order));
 
         session()->put($sessionKey, now());
         session()->flash('success', "📧 Email de livraison renvoyé (lien de téléchargement + facture) à {$this->order->user->email}.");
@@ -646,132 +646,7 @@ class extends Component
             </div>
             @endif
 
-            {{-- === RESTAURATION IA AUTOMATIQUE (Phase 8) === --}}
-            {{-- Disponible uniquement EN COURS (après prise en charge) --}}
-            @if ($order->status === 'IN_PROGRESS')
-            <div class="card-glass overflow-hidden border border-purple-500/20">
-                <div class="px-5 py-4 border-b border-purple-500/15 flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
-                        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2h-2M9 9h.01M15 9h.01"/></svg>
-                    </div>
-                    <div>
-                        <h2 class="text-[#F5F0E8] font-semibold text-sm">Restauration IA automatique</h2>
-                        <p class="text-purple-400/70 text-xs">GPT-4o Vision + DALL-E 3 HD + Upscale 8K</p>
-                    </div>
-                    <span class="ml-auto px-2 py-0.5 bg-purple-500/10 text-purple-400 text-xs border border-purple-500/20 rounded-full">
-                        Phase 8
-                    </span>
-                </div>
-
-                <div class="p-5">
-                    {{-- Description du pipeline --}}
-                    <div class="grid grid-cols-3 gap-3 mb-5">
-                        <div class="text-center p-3 bg-[#1A1510] rounded-sm border border-purple-500/10">
-                            <div class="text-purple-400 text-lg mb-1">👁</div>
-                            <p class="text-[#F5F0E8] text-xs font-medium">Analyse</p>
-                            <p class="text-[#7A6E5E] text-[10px] mt-0.5">GPT-4o Vision</p>
-                        </div>
-                        <div class="text-center p-3 bg-[#1A1510] rounded-sm border border-purple-500/10">
-                            <div class="text-purple-400 text-lg mb-1">✨</div>
-                            <p class="text-[#F5F0E8] text-xs font-medium">Restauration</p>
-                            <p class="text-[#7A6E5E] text-[10px] mt-0.5">DALL-E 3 HD</p>
-                        </div>
-                        <div class="text-center p-3 bg-[#1A1510] rounded-sm border border-purple-500/10">
-                            <div class="text-purple-400 text-lg mb-1">🔍</div>
-                            <p class="text-[#F5F0E8] text-xs font-medium">Upscale</p>
-                            <p class="text-[#7A6E5E] text-[10px] mt-0.5">8K · 7680×4320</p>
-                        </div>
-                    </div>
-
-                    {{-- Détection de colorisation depuis la description --}}
-                    @php
-                        $descText        = strtolower(($order->description ?? '') . ' ' . ($order->instructions ?? ''));
-                        $wantsColor      = str_contains($descText, 'coloris') || str_contains($descText, 'en couleur') || str_contains($descText, 'ajouter les couleurs');
-                        $wantsBW         = str_contains($descText, 'noir et blanc') || str_contains($descText, 'n&b') || str_contains($descText, 'monochrome');
-                        $aiOriginalCount = $order->getMedia('originals')->count();
-                    @endphp
-                    @if ($wantsColor)
-                    <div class="flex items-center gap-2 mb-4 px-3 py-2 bg-amber-900/20 border border-amber-500/20 rounded-sm">
-                        <span class="text-amber-400">🎨</span>
-                        <p class="text-amber-400 text-xs">Colorisation détectée — le modèle coloriera les photos N&B en couleur réaliste.</p>
-                    </div>
-                    @elseif ($wantsBW)
-                    <div class="flex items-center gap-2 mb-4 px-3 py-2 bg-slate-800/40 border border-slate-500/20 rounded-sm">
-                        <span class="text-slate-400">⬛</span>
-                        <p class="text-slate-400 text-xs">Conversion N&B détectée — le modèle convertira les photos en noir et blanc argentique.</p>
-                    </div>
-                    @endif
-
-                    {{-- Info coût estimé --}}
-                    <div class="flex items-start gap-2 mb-5 px-3 py-2 bg-[#1A1510] border border-[#C9A84C]/10 rounded-sm">
-                        <svg class="w-4 h-4 text-[#7A6E5E] mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <div>
-                            <p class="text-[#7A6E5E] text-xs">
-                                Coût estimé : <span class="text-[#C9A84C] font-medium">~{{ number_format($aiOriginalCount * 0.06, 2) }}$</span>
-                                ({{ $aiOriginalCount }} photo{{ $aiOriginalCount > 1 ? 's' : '' }} × ~$0.06)
-                            </p>
-                            <p class="text-[#7A6E5E] text-[10px] mt-0.5">Les résultats apparaîtront automatiquement dans "Photos retouchées" une fois le traitement terminé.</p>
-                        </div>
-                    </div>
-
-                    {{-- Bouton de lancement → ouvre modal custom --}}
-                    <button type="button"
-                            wire:click="$set('aiConfirmOpen', true)"
-                            class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 hover:border-purple-500/50 text-purple-300 hover:text-purple-200 rounded-sm transition-all text-sm font-medium">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                        🤖 Lancer la restauration IA automatique
-                    </button>
-
-                    {{-- Modal de confirmation custom --}}
-                    @if ($aiConfirmOpen)
-                    <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
-                         style="background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);">
-                        <div class="w-full max-w-md bg-[#1C1812] border border-purple-500/30 rounded-sm shadow-2xl p-6"
-                             x-data x-trap="true">
-                            <div class="flex items-start gap-4 mb-5">
-                                <div class="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                                    <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                </div>
-                                <div>
-                                    <h3 class="text-[#F5F0E8] font-semibold mb-1">Confirmer la restauration IA</h3>
-                                    <p class="text-[#7A6E5E] text-sm">
-                                        Lancer la restauration automatique pour
-                                        <strong class="text-purple-300">{{ $aiOriginalCount }} photo{{ $aiOriginalCount > 1 ? 's' : '' }}</strong> ?<br>
-                                        Cette opération consomme ~<strong class="text-[#C9A84C]">{{ number_format($aiOriginalCount * 0.06, 2) }}$</strong> de crédits OpenAI.
-                                    </p>
-                                </div>
-                            </div>
-                            <div class="p-3 bg-purple-500/5 border border-purple-500/10 rounded-sm mb-5">
-                                <p class="text-[#7A6E5E] text-xs">
-                                    Pipeline : 👁️ GPT-4o Vision → ✨ DALL-E 3 HD → 🔍 Upscale 8K<br>
-                                    Les photos restaurées apparaissent automatiquement une fois le job terminé.
-                                </p>
-                            </div>
-                            <div class="flex gap-3 justify-end">
-                                <button type="button"
-                                        wire:click="$set('aiConfirmOpen', false)"
-                                        class="px-4 py-2 text-sm text-[#7A6E5E] hover:text-[#F5F0E8] border border-[#2A2520] hover:border-[#3A3028] rounded-sm transition-all">
-                                    Annuler
-                                </button>
-                                <button type="button"
-                                        wire:click="launchAiRestoration"
-                                        wire:loading.attr="disabled"
-                                        class="px-5 py-2 text-sm bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-300 hover:text-purple-100 rounded-sm transition-all flex items-center gap-2">
-                                    <span wire:loading.remove wire:target="launchAiRestoration">
-                                        🤖 Oui, lancer la restauration
-                                    </span>
-                                    <span wire:loading wire:target="launchAiRestoration" class="flex items-center gap-2">
-                                        <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                                        Lancement...
-                                    </span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    @endif
-                </div>
-            </div>
-            @endif
+            {{-- === SECTION IA DÉPLACÉE DANS LA SIDEBAR === --}}
 
             {{-- === ACTION : UPLOAD (Statut IN_PROGRESS) === --}}
             @if ($order->status === 'IN_PROGRESS')
@@ -903,6 +778,32 @@ class extends Component
             </div>
             @endif
 
+            {{-- === 📧 Notification client (Déplacé ici pour visibilité) === --}}
+            @if (in_array($order->status, ['IN_PROGRESS', 'DONE']) && $order->getMedia('retouched')->isNotEmpty())
+            <div class="card-glass p-5 border-emerald-500/20 bg-emerald-500/5 mb-6">
+                <h3 class="text-emerald-400 text-xs tracking-widest uppercase border-b border-emerald-500/20 pb-2 mb-4 font-semibold">Notifier le client</h3>
+                <p class="text-[#7A6E5E] text-[11px] mb-4 leading-relaxed">
+                    @if ($order->status === 'IN_PROGRESS')
+                        Photos uploadées. Cliquez pour <strong>finaliser</strong> et envoyer l'email de validation.
+                    @else
+                        Email avec lien sécurisé vers les photos restaurées.<br>
+                    @endif
+                </p>
+                <button wire:click="notifyClient"
+                        wire:loading.attr="disabled"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-300 text-sm rounded-sm transition-all">
+                    <span wire:loading.remove wire:target="notifyClient" class="flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        {{ $order->status === 'IN_PROGRESS' ? "Finaliser et envoyer" : "Renvoyer l'email" }}
+                    </span>
+                    <span wire:loading wire:target="notifyClient" class="flex items-center gap-2">
+                        <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 12h4z"/></svg>
+                        Traitement…
+                    </span>
+                </button>
+            </div>
+            @endif
+
             {{-- === STATUT PAIEMENT + LIVRAISON ZIP === --}}
             @if ($order->getMedia('retouched')->isNotEmpty())
             <div class="card-glass overflow-hidden {{ in_array($order->status, ['PAID', 'DELIVERED']) ? 'border border-emerald-500/20' : '' }}"
@@ -1014,6 +915,37 @@ class extends Component
 
         {{-- ── Sidebar admin ── --}}
         <div class="space-y-5">
+
+
+            {{-- === 🤖 Restauration IA (Compact) === --}}
+            @if ($order->status === 'IN_PROGRESS')
+            <div class="card-glass p-5 border-purple-500/20 bg-purple-500/5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-purple-400 text-xs tracking-widest uppercase font-semibold">Restauration IA</h3>
+                    <span class="px-2 py-0.5 bg-purple-500/10 text-purple-400 text-[10px] border border-purple-500/20 rounded-full">Phase 8</span>
+                </div>
+                
+                @php
+                    $aiCount = $order->getMedia('originals')->count();
+                @endphp
+                
+                <div class="space-y-3">
+                    <div class="p-2.5 bg-[#1A1510] rounded-sm border border-purple-500/10">
+                        <p class="text-[#7A6E5E] text-[10px] leading-relaxed">
+                            Pipeline : 👁️ GPT-4o → ✨ DALL-E 3 → 🔍 8K<br>
+                            Coût : <span class="text-[#C9A84C]">~{{ number_format($aiCount * 0.06, 2) }}$</span>
+                        </p>
+                    </div>
+
+                    <button type="button"
+                            wire:click="$set('aiConfirmOpen', true)"
+                            class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 rounded-sm transition-all text-xs font-medium">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        Lancer l'IA automatique
+                    </button>
+                </div>
+            </div>
+            @endif
 
             {{-- Détails --}}
             <div class="card-glass p-5">
@@ -1196,38 +1128,7 @@ class extends Component
             </div>
             @endif
 
-            {{-- 📧 Notification client (Déclenchable si photos présentes) --}}
-            @if (in_array($order->status, ['IN_PROGRESS', 'DONE']) && $order->getMedia('retouched')->isNotEmpty())
-            <div class="card-glass p-5 border-[#C9A84C]/20">
-                <h3 class="text-[#C9A84C] text-xs tracking-widest uppercase border-b border-[#C9A84C]/20 pb-2 mb-4 font-semibold">Notifier le client</h3>
-                <p class="text-[#7A6E5E] text-xs mb-3 leading-relaxed">
-                    @if ($order->status === 'IN_PROGRESS')
-                        Les photos sont uploadées. Cliquez pour <strong>finaliser</strong> la commande et envoyer l'email de validation au client.
-                    @else
-                        L'email contient le lien sécurisé vers les photos restaurées pour validation et paiement.<br>
-                        <span class="text-[#C9A84C]/70">Limité à 1 envoi toutes les 5 minutes.</span>
-                    @endif
-                </p>
-                <button wire:click="notifyClient"
-                        wire:loading.attr="disabled"
-                        class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#C9A84C]/15 hover:bg-[#C9A84C]/25 border border-[#C9A84C]/30 hover:border-[#C9A84C]/50 text-[#C9A84C] text-sm rounded-sm transition-all">
-                    <span wire:loading.remove wire:target="notifyClient" class="flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                        {{ $order->status === 'IN_PROGRESS' ? "Finaliser et envoyer l'email" : "Renvoyer l'email de validation" }}
-                    </span>
-                    <span wire:loading wire:target="notifyClient" class="flex items-center gap-2">
-                        <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 12h4z"/></svg>
-                        Traitement…
-                    </span>
-                </button>
-                @if ($order->preview_unlocked_at)
-                <p class="text-emerald-400/70 text-[11px] mt-2 text-center">
-                    ✓ Client a déjà accédé à l'aperçu
-                    <span class="text-[#7A6E5E]">({{ $order->preview_unlocked_at->format('d/m H:i') }})</span>
-                </p>
-                @endif
-            </div>
-            @endif
+            {{-- SECTION NOTIFIER CLIENT DÉPLACÉE PLUS HAUT --}}
 
             {{-- ⭐ Avis client --}}
             @if ($order->testimonial)
@@ -1292,4 +1193,98 @@ class extends Component
 
         </div>
     </div>
+    {{-- Modal de confirmation IA (Téléporté au body) --}}
+    @if ($aiConfirmOpen)
+    <template x-teleport="body">
+        <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+             x-data x-trap="true"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100">
+            
+            <div @click.away="$wire.set('aiConfirmOpen', false)"
+                 class="w-full max-w-lg bg-[#1A1612] border border-[#C9A84C]/30 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5),0_0_30px_rgba(201,168,76,0.1)] overflow-hidden backdrop-blur-xl ring-1 ring-white/10">
+                
+                <!-- Header Gold Gradient -->
+                <div class="relative p-8 text-center bg-gradient-to-b from-[#C9A84C]/10 to-transparent">
+                    <div class="inline-flex items-center justify-center w-16 h-16 mb-6 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/30 shadow-[0_0_20px_rgba(201,168,76,0.15)]">
+                        <svg class="w-8 h-8 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    
+                    <h3 class="text-2xl font-serif text-[#F5F0E8] mb-2">Restauration Haute Précision</h3>
+                    <p class="text-[#9E9085] text-sm tracking-wide">
+                        Traitement intelligent de <span class="text-[#C9A84C] font-semibold">{{ $order->getMedia('originals')->count() }} photo(s)</span>
+                    </p>
+                </div>
+
+                <!-- Content Body -->
+                <div class="px-8 pb-8">
+                    <div class="p-6 rounded-xl bg-black/40 border border-white/5 space-y-6">
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between text-[10px] uppercase tracking-[2px] text-[#7A6E5E]">
+                                <span>Flux de traitement</span>
+                                <span class="text-[#C9A84C]/60 italic">Algorithmes IA</span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between gap-3 text-xs">
+                                <div class="flex-1 flex flex-col items-center gap-2 p-3 rounded-lg bg-white/[0.08] border border-white/10 transition-all hover:bg-white/[0.12]">
+                                    <span class="text-lg">👁️</span>
+                                    <span class="text-[#F5F0E8] font-medium">Analyse</span>
+                                </div>
+                                <div class="text-[#C9A84C]/30">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                </div>
+                                <div class="flex-1 flex flex-col items-center gap-2 p-3 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 transition-all hover:bg-[#C9A84C]/15">
+                                    <span class="text-lg">✨</span>
+                                    <span class="text-[#C9A84C] font-semibold">Restore</span>
+                                </div>
+                                <div class="text-[#C9A84C]/30">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                </div>
+                                <div class="flex-1 flex flex-col items-center gap-2 p-3 rounded-lg bg-white/[0.08] border border-white/10 transition-all hover:bg-white/[0.12]">
+                                    <span class="text-lg">🔍</span>
+                                    <span class="text-[#F5F0E8] font-medium">Upscale</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-white/5 flex items-center justify-between">
+                            <span class="text-[#7A6E5E] text-xs">Coût estimé (API)</span>
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-lg font-bold text-[#F5F0E8]">{{ number_format($order->getMedia('originals')->count() * 0.06, 2) }}$</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="mt-8 flex items-center gap-4">
+                        <button type="button"
+                                wire:click="$set('aiConfirmOpen', false)"
+                                class="flex-1 px-6 py-4 rounded-xl text-sm font-medium text-[#7A6E5E] hover:text-[#F5F0E8] hover:bg-white/5 transition-all duration-300">
+                            Annuler
+                        </button>
+                        
+                        <button type="button"
+                                wire:click="launchAiRestoration"
+                                wire:loading.attr="disabled"
+                                class="flex-[2] px-6 py-4 rounded-xl bg-gradient-to-r from-[#C9A84C] to-[#E8C97A] text-[#0F0C08] text-sm font-bold uppercase tracking-[2px] shadow-[0_10px_20px_rgba(201,168,76,0.2)] hover:shadow-[0_15px_30px_rgba(201,168,76,0.35)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 flex items-center justify-center gap-3 group disabled:opacity-50 disabled:translate-y-0">
+                            <span wire:loading.remove wire:target="launchAiRestoration" class="flex items-center gap-3">
+                                <span>Lancer le pipeline</span>
+                                <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </span>
+                            <span wire:loading wire:target="launchAiRestoration" class="flex items-center gap-2">
+                                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                Traitement...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    @endif
 </div>

@@ -5,10 +5,31 @@ Tous les changements notables d'**OmnyRestore** sont documentés ici.
 Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventions [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
- 
- ## [0.24.0] — 2026-05-16 — Stratégie d'Acquisition & Croissance SASU
- 
- ### ✨ Nouveautés & Améliorations
+
+## [0.25.0] — 2026-05-16 — Optimisation Support & Résilience Workers
+
+### ✨ Nouveautés & Améliorations
+
+- **Dashboard Admin (Ergonomie Alpine.js)** :
+  - Remplacement des longues listes empilées par un système d'onglets dynamiques ultra-fluides (File d'attente, En cours, Derniers paiements).
+  - Intégration de badges dynamiques pour suivre les volumes en temps réel.
+  - Centralisation intelligente des raccourcis "Liste clients" et "Chiffre d'affaires" dans l'onglet des paiements.
+- **Automatisation & Conformité du Support** :
+  - **Auto-Réponse (Remboursement)** : Pré-remplissage intelligent du modèle de réponse admin incluant le prénom du client et la commande si le sujet contient "remboursement".
+  - **Blocage CGV Automatique** : Blocage total de l'interface de génération de bons de réduction / avoirs si le ticket est un remboursement ET que le client a déjà téléchargé ses fichiers.
+  - **Auto-Close** : Création d'une commande système (`tickets:close-inactive`) tournant toutes les heures pour fermer les tickets "En attente client" sans réponse depuis 24h. Mention dissuasive ajoutée aux messages sortants.
+
+### 🛠️ Maintenance & Robustesse
+
+- **Système de secours JIT (Just-In-Time)** :
+  - Mise en place d'un filet de sécurité synchrone (`GenerateWatermarkJob::generateForMedia`) dans le contrôleur d'accès aux photos. Si le worker asynchrone (Queue) tombe en panne et que le filigrane manque, il est généré instantanément au chargement de la page client, évitant l'erreur 403.
+  - Ajout d'un bloc d'assistance d'urgence (renvoi de lien) dans la sidebar client.
+
+---
+
+## [0.24.0] — 2026-05-16 — Stratégie d'Acquisition & Croissance SASU
+
+### ✨ Nouveautés & Améliorations
  
  - **Stratégie d'Acquisition Mobile** : Planification de deux applications (Swift & React Native) pour la numérisation simplifiée avec retrait automatique des métadonnées EXIF.
  - **Simulateur de Croissance SASU** : Nouvel onglet permettant de projeter le passage en SASU (Charges sociales dirigeant ~82%, IS 15%, Frais comptables).

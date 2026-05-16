@@ -26,6 +26,14 @@ Schedule::command(PurgeExpiredMediaCommand::class)
          ->runInBackground()      // Non-blocking: doesn't delay other scheduled commands
          ->appendOutputTo(storage_path('logs/gdpr-purge.log')); // Log output for audit trail
 
+// ─── Tickets: Auto-closure ───────────────────────────────────────────────────
+// Closes tickets that have been waiting for client response for more than 24 hours.
+// Runs hourly to ensure timely closure of inactive threads.
+Schedule::command(\App\Console\Commands\CloseInactiveTicketsCommand::class)
+         ->hourly()
+         ->withoutOverlapping()
+         ->runInBackground();
+
 // ─── Dev utility ──────────────────────────────────────────────────────────────
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

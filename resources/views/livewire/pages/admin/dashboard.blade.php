@@ -127,138 +127,173 @@ class extends Component
         @endforeach
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+    <div x-data="{ activeTab: 'pending' }" class="mb-8">
+        {{-- Navigation des onglets --}}
+        <div class="flex flex-wrap gap-3 mb-6 border-b border-[#C9A84C]/10 pb-4">
+            <button @click="activeTab = 'pending'"
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-sm text-sm font-medium transition-all"
+                    :class="activeTab === 'pending' ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/25 shadow-[0_0_15px_rgba(201,168,76,0.1)]' : 'text-[#7A6E5E] hover:text-[#F5F0E8] hover:bg-[#C9A84C]/5 border border-transparent'">
+                File d'attente
+                @if ($kpis['pending'] > 0)
+                <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] bg-yellow-500 text-black font-bold rounded-full">{{ $kpis['pending'] }}</span>
+                @endif
+            </button>
+            <button @click="activeTab = 'in_progress'"
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-sm text-sm font-medium transition-all"
+                    :class="activeTab === 'in_progress' ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/25 shadow-[0_0_15px_rgba(201,168,76,0.1)]' : 'text-[#7A6E5E] hover:text-[#F5F0E8] hover:bg-[#C9A84C]/5 border border-transparent'">
+                En cours de restauration
+                @if ($kpis['in_progress'] > 0)
+                <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] bg-blue-400 text-black font-bold rounded-full">{{ $kpis['in_progress'] }}</span>
+                @endif
+            </button>
+            <button @click="activeTab = 'recent_paid'"
+                    class="flex items-center gap-2 px-5 py-2.5 rounded-sm text-sm font-medium transition-all"
+                    :class="activeTab === 'recent_paid' ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/25 shadow-[0_0_15px_rgba(201,168,76,0.1)]' : 'text-[#7A6E5E] hover:text-[#F5F0E8] hover:bg-[#C9A84C]/5 border border-transparent'">
+                Derniers paiements
+                @if ($recent_paid->count() > 0)
+                <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] bg-emerald-400 text-black font-bold rounded-full">{{ $recent_paid->count() }}</span>
+                @endif
+            </button>
+        </div>
 
-        {{-- ── File d'attente PENDING ── --}}
-        <div class="card-glass overflow-hidden flex flex-col h-full" style="min-height: 600px;">
-            <div class="px-5 py-4 border-b border-[#C9A84C]/10 flex items-center justify-between">
-                <h2 class="text-[#F5F0E8] font-semibold text-sm">
-                    File d'attente
-                    @if ($kpis['pending'] > 0)
-                    <span class="ml-2 inline-flex items-center justify-center w-5 h-5 text-xs bg-yellow-500 text-black font-bold rounded-full">{{ $kpis['pending'] }}</span>
+        {{-- Contenu des onglets --}}
+        <div>
+            {{-- ── File d'attente PENDING ── --}}
+            <div x-cloak x-show="activeTab === 'pending'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+                <div class="card-glass overflow-hidden flex flex-col" style="min-height: 400px;">
+                    <div class="px-5 py-4 border-b border-[#C9A84C]/10 flex items-center justify-between">
+                        <h2 class="text-[#F5F0E8] font-semibold text-sm">
+                            Commandes à traiter
+                        </h2>
+                        <span class="text-[#7A6E5E] text-xs">Plus ancienne en premier</span>
+                    </div>
+
+                    @if ($pending_orders->isEmpty())
+                    <div class="px-5 py-10 text-center flex-grow flex flex-col justify-center items-center">
+                        <p class="text-[#7A6E5E] text-sm">Aucune commande en attente</p>
+                    </div>
+                    @else
+                    <div class="divide-y divide-[#C9A84C]/8">
+                        @foreach ($pending_orders as $order)
+                        <div class="px-5 py-3.5 flex items-center justify-between hover:bg-[#C9A84C]/3 transition-colors {{ $order->status === 'FLAGGED' ? 'bg-red-950/20 border-l-4 border-red-500' : '' }}">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono text-[#C9A84C] text-xs">{{ $order->reference }}</span>
+                                    <span class="text-[#7A6E5E] text-xs">·</span>
+                                    <span class="text-[#7A6E5E] text-xs truncate">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
+                                </div>
+                                <div class="flex items-center gap-3 mt-0.5">
+                                    <span class="text-[#F5F0E8] text-xs">{{ $order->photo_count }} photo{{ $order->photo_count > 1 ? 's' : '' }}</span>
+                                    <span class="text-[#7A6E5E] text-xs">{{ $order->created_at->diffForHumans() }}</span>
+                                    @if ($order->damage_level === 'heavy')
+                                    <span class="text-orange-400 text-[10px] border border-orange-500/30 px-1.5 py-0.5 rounded-full">Complète</span>
+                                    @endif
+                                    @if ($order->status === 'FLAGGED')
+                                    <span class="text-red-400 text-[10px] font-bold border border-red-500 px-1.5 py-0.5 rounded-full animate-pulse">🚨 SIGNALÉ</span>
+                                    @endif
+                                </div>
+                            </div>
+                            <a href="{{ route('admin.orders.show', $order) }}" wire:navigate
+                               class="ml-3 px-3 py-1.5 text-xs rounded-sm transition-all shrink-0 {{ $order->status === 'FLAGGED' ? 'bg-red-600 text-white border border-red-500 hover:bg-red-500' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30' }}">
+                                {{ $order->status === 'FLAGGED' ? 'Vérifier l\'alerte →' : 'Prendre en charge →' }}
+                            </a>
+                        </div>
+                        @endforeach
+                    </div>
                     @endif
-                </h2>
-                <span class="text-[#7A6E5E] text-xs">Plus ancienne en premier</span>
+                </div>
             </div>
 
-            @if ($pending_orders->isEmpty())
-            <div class="px-5 py-10 text-center flex-grow flex flex-col justify-center items-center">
-                <p class="text-[#7A6E5E] text-sm">Aucune commande en attente</p>
-            </div>
-            @else
-            <div class="divide-y divide-[#C9A84C]/8">
-                @foreach ($pending_orders as $order)
-                <div class="px-5 py-3.5 flex items-center justify-between hover:bg-[#C9A84C]/3 transition-colors {{ $order->status === 'FLAGGED' ? 'bg-red-950/20 border-l-4 border-red-500' : '' }}">
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                            <span class="font-mono text-[#C9A84C] text-xs">{{ $order->reference }}</span>
-                            <span class="text-[#7A6E5E] text-xs">·</span>
-                            <span class="text-[#7A6E5E] text-xs truncate">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
-                        </div>
-                        <div class="flex items-center gap-3 mt-0.5">
-                            <span class="text-[#F5F0E8] text-xs">{{ $order->photo_count }} photo{{ $order->photo_count > 1 ? 's' : '' }}</span>
-                            <span class="text-[#7A6E5E] text-xs">{{ $order->created_at->diffForHumans() }}</span>
-                            @if ($order->damage_level === 'heavy')
-                            <span class="text-orange-400 text-[10px] border border-orange-500/30 px-1.5 py-0.5 rounded-full">Complète</span>
-                            @endif
-                            @if ($order->status === 'FLAGGED')
-                            <span class="text-red-400 text-[10px] font-bold border border-red-500 px-1.5 py-0.5 rounded-full animate-pulse">🚨 SIGNALÉ</span>
-                            @endif
-                        </div>
+            {{-- ── En cours IN_PROGRESS ── --}}
+            <div x-cloak x-show="activeTab === 'in_progress'" style="display: none;" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+                <div class="card-glass overflow-hidden flex flex-col" style="min-height: 400px;">
+                    <div class="px-5 py-4 border-b border-[#C9A84C]/10">
+                        <h2 class="text-[#F5F0E8] font-semibold text-sm">Restaurations IA et manuelle en cours</h2>
                     </div>
-                    <a href="{{ route('admin.orders.show', $order) }}" wire:navigate
-                       class="ml-3 px-3 py-1.5 text-xs rounded-sm transition-all shrink-0 {{ $order->status === 'FLAGGED' ? 'bg-red-600 text-white border border-red-500 hover:bg-red-500' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30' }}">
-                        {{ $order->status === 'FLAGGED' ? 'Vérifier l\'alerte →' : 'Prendre en charge →' }}
-                    </a>
-                </div>
-                @endforeach
-            </div>
-            @endif
-        </div>
-
-        {{-- ── En cours IN_PROGRESS ── --}}
-        <div class="card-glass overflow-hidden flex flex-col h-full" style="min-height: 600px;">
-            <div class="px-5 py-4 border-b border-[#C9A84C]/10">
-                <h2 class="text-[#F5F0E8] font-semibold text-sm">En cours de restauration</h2>
-            </div>
-            @if ($in_progress_orders->isEmpty())
-            <div class="px-5 py-10 text-center flex-grow flex flex-col justify-center items-center">
-                <p class="text-[#7A6E5E] text-sm">Aucune commande en cours</p>
-            </div>
-            @else
-            <div class="divide-y divide-[#C9A84C]/8">
-                @foreach ($in_progress_orders as $order)
-                <div class="px-5 py-3 flex items-center justify-between hover:bg-[#C9A84C]/3 transition-colors">
-                    <div>
-                        <span class="font-mono text-[#C9A84C] text-xs">{{ $order->reference }}</span>
-                        <span class="text-[#7A6E5E] text-xs ml-2">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
-                        <p class="text-[#7A6E5E] text-xs mt-0.5">{{ $order->photo_count }} photo{{ $order->photo_count > 1 ? 's' : '' }} · mis à jour {{ $order->updated_at->diffForHumans() }}</p>
+                    @if ($in_progress_orders->isEmpty())
+                    <div class="px-5 py-10 text-center flex-grow flex flex-col justify-center items-center">
+                        <p class="text-[#7A6E5E] text-sm">Aucune commande en cours</p>
                     </div>
-                    <a href="{{ route('admin.orders.show', $order) }}" wire:navigate
-                       class="ml-3 px-3 py-1.5 text-xs border border-[#C9A84C]/25 text-[#C9A84C] hover:border-[#C9A84C]/60 rounded-sm transition-all shrink-0">
-                        Voir →
-                    </a>
+                    @else
+                    <div class="divide-y divide-[#C9A84C]/8">
+                        @foreach ($in_progress_orders as $order)
+                        <div class="px-5 py-3 flex items-center justify-between hover:bg-[#C9A84C]/3 transition-colors">
+                            <div>
+                                <span class="font-mono text-[#C9A84C] text-xs">{{ $order->reference }}</span>
+                                <span class="text-[#7A6E5E] text-xs ml-2">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
+                                <p class="text-[#7A6E5E] text-xs mt-0.5">{{ $order->photo_count }} photo{{ $order->photo_count > 1 ? 's' : '' }} · mis à jour {{ $order->updated_at->diffForHumans() }}</p>
+                            </div>
+                            <a href="{{ route('admin.orders.show', $order) }}" wire:navigate
+                               class="ml-3 px-3 py-1.5 text-xs border border-[#C9A84C]/25 text-[#C9A84C] hover:border-[#C9A84C]/60 rounded-sm transition-all shrink-0">
+                                Voir →
+                            </a>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endif
                 </div>
-                @endforeach
             </div>
-            @endif
-        </div>
-    </div>
 
-    {{-- ── Derniers paiements (Pleine largeur) ── --}}
-    <div class="card-glass overflow-hidden w-full mb-8">
-        <div class="px-5 py-4 border-b border-[#C9A84C]/10">
-            <h2 class="text-[#F5F0E8] font-semibold text-sm">Derniers paiements</h2>
-        </div>
-        @if ($recent_paid->isEmpty())
-        <div class="px-5 py-6 text-center text-[#7A6E5E] text-sm">Aucun paiement encore</div>
-        @else
-        <div class="divide-y divide-[#C9A84C]/8">
-            @foreach ($recent_paid as $order)
-            <div class="px-5 py-3 flex items-center justify-between">
-                <div>
-                    <span class="font-mono text-emerald-400 text-xs">{{ $order->reference }}</span>
-                    <span class="text-[#7A6E5E] text-xs ml-2">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
-                    <p class="text-[#7A6E5E] text-xs mt-0.5">{{ $order->paid_at?->format('d/m/Y H:i') }}</p>
+            {{-- ── Derniers paiements ── --}}
+            <div x-cloak x-show="activeTab === 'recent_paid'" style="display: none;" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {{-- Liste des paiements --}}
+                    <div class="lg:col-span-2 card-glass overflow-hidden h-full">
+                        <div class="px-5 py-4 border-b border-[#C9A84C]/10">
+                            <h2 class="text-[#F5F0E8] font-semibold text-sm">Activité récente des paiements</h2>
+                        </div>
+                        @if ($recent_paid->isEmpty())
+                        <div class="px-5 py-6 text-center text-[#7A6E5E] text-sm flex-grow flex flex-col justify-center items-center">Aucun paiement récent</div>
+                        @else
+                        <div class="divide-y divide-[#C9A84C]/8">
+                            @foreach ($recent_paid as $order)
+                            <div class="px-5 py-3 flex items-center justify-between">
+                                <div>
+                                    <span class="font-mono text-emerald-400 text-xs">{{ $order->reference }}</span>
+                                    <span class="text-[#7A6E5E] text-xs ml-2">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
+                                    <p class="text-[#7A6E5E] text-xs mt-0.5">{{ $order->paid_at?->format('d/m/Y H:i') }}</p>
+                                </div>
+                                <span class="text-emerald-400 font-semibold text-sm">
+                                    +{{ number_format($order->getAmountTtcCents() / 100, 2, ',', ' ') }} € TTC
+                                </span>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
+                    </div>
+
+                    {{-- Raccourcis --}}
+                    <div class="flex flex-col gap-4">
+                        <a href="{{ route('admin.clients') }}" wire:navigate
+                           class="card-glass p-5 flex items-center gap-4 border border-[#C9A84C]/10 hover:border-[#C9A84C]/30 transition-all group">
+                            <div class="w-10 h-10 rounded-sm bg-[#C9A84C]/10 border border-[#C9A84C]/20 flex items-center justify-center shrink-0 group-hover:bg-[#C9A84C]/20 transition-colors">
+                                <svg class="w-5 h-5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-[#F5F0E8] font-semibold text-sm">Liste des clients</p>
+                                <p class="text-[#7A6E5E] text-[10px] mt-0.5 uppercase tracking-wider">Base · Historique</p>
+                            </div>
+                            <svg class="w-4 h-4 text-[#7A6E5E] ml-auto group-hover:text-[#C9A84C] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </a>
+                        <a href="{{ route('admin.revenue') }}" wire:navigate
+                           class="card-glass p-5 flex items-center gap-4 border border-emerald-500/10 hover:border-emerald-500/30 transition-all group">
+                            <div class="w-10 h-10 rounded-sm bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+                                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-[#F5F0E8] font-semibold text-sm">Chiffre d'affaires</p>
+                                <p class="text-[#7A6E5E] text-[10px] mt-0.5 uppercase tracking-wider">Graphes · 12 mois</p>
+                            </div>
+                            <svg class="w-4 h-4 text-[#7A6E5E] ml-auto group-hover:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </a>
+                    </div>
                 </div>
-                <span class="text-emerald-400 font-semibold text-sm">
-                    +{{ number_format($order->getAmountTtcCents() / 100, 2, ',', ' ') }} € TTC
-                </span>
             </div>
-            @endforeach
         </div>
-        @endif
     </div>
-
-    {{-- ── Raccourcis ── --}}
-    <div class="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <a href="{{ route('admin.clients') }}" wire:navigate
-           class="card-glass p-6 flex items-center gap-4 border border-[#C9A84C]/10 hover:border-[#C9A84C]/30 transition-all group">
-            <div class="w-10 h-10 rounded-sm bg-[#C9A84C]/10 border border-[#C9A84C]/20 flex items-center justify-center shrink-0 group-hover:bg-[#C9A84C]/20 transition-colors">
-                <svg class="w-5 h-5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-            </div>
-            <div>
-                <p class="text-[#F5F0E8] font-semibold text-sm">Voir la liste des clients</p>
-                <p class="text-[#7A6E5E] text-xs mt-0.5">Base clients · CA payé · Historique commandes</p>
-            </div>
-            <svg class="w-4 h-4 text-[#7A6E5E] ml-auto group-hover:text-[#C9A84C] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        </a>
-        <a href="{{ route('admin.revenue') }}" wire:navigate
-           class="card-glass p-6 flex items-center gap-4 border border-emerald-500/10 hover:border-emerald-500/30 transition-all group">
-            <div class="w-10 h-10 rounded-sm bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20 transition-colors">
-                <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-            </div>
-            <div>
-                <p class="text-[#F5F0E8] font-semibold text-sm">Accéder aux chiffres d'affaires</p>
-                <p class="text-[#7A6E5E] text-xs mt-0.5">Graphes mensuels HT / TTC · 12 mois glissants</p>
-            </div>
-            <svg class="w-4 h-4 text-[#7A6E5E] ml-auto group-hover:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-        </a>
-    </div>
-
 </div>
 

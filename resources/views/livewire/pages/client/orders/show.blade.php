@@ -1068,19 +1068,45 @@ class extends Component
             </div>
             @endif
 
-            {{-- Aide --}}
-            <div class="card-glass p-5 bg-[#1A1510]/50">
-                <h3 class="text-[#F5F0E8] text-sm font-medium mb-2">Une question ?</h3>
-                <p class="text-[#7A6E5E] text-xs leading-relaxed mb-3">
-                    Notre équipe répond sous 24h. Votre ticket sera automatiquement
-                    lié à la commande <span class="font-mono text-[#C9A84C]">{{ $order->reference }}</span>.
-                </p>
-                <a href="{{ route('client.tickets.create') }}?order_id={{ $order->id }}"
-                   wire:navigate
-                   class="inline-flex items-center gap-1.5 text-[#C9A84C] text-xs hover:text-[#E8C97A] transition-colors font-medium">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
-                    Contacter le support →
-                </a>
+            {{-- Aide & Support --}}
+            <div class="space-y-3">
+                @if ($order->status === 'DONE')
+                {{-- Alerte spécifique si photos non visibles --}}
+                <div class="card-glass p-4 bg-emerald-500/5 border-emerald-500/20">
+                    <div class="flex items-start gap-3">
+                        <div class="mt-0.5">
+                            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        </div>
+                        <div>
+                            <h4 class="text-[#F5F0E8] text-xs font-semibold mb-1">Un souci d'affichage ?</h4>
+                            <p class="text-[#7A6E5E] text-[11px] leading-relaxed mb-2">
+                                Si les photos ne s'affichent pas, essayez de rafraîchir la page (F5). Le traitement peut parfois prendre quelques secondes.
+                            </p>
+                            <button wire:click="resendUnlockEmail" 
+                                    wire:loading.attr="disabled"
+                                    class="text-[#C9A84C] text-[10px] uppercase tracking-wider font-bold hover:text-[#E8C97A] transition-colors flex items-center gap-1">
+                                <svg wire:loading wire:target="resendUnlockEmail" class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                <span wire:loading.remove wire:target="resendUnlockEmail">✦ Renvoyer le lien par email</span>
+                                <span wire:loading wire:target="resendUnlockEmail">Envoi...</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                <div class="card-glass p-5 bg-[#1A1510]/50">
+                    <h3 class="text-[#F5F0E8] text-sm font-medium mb-2">Une question ?</h3>
+                    <p class="text-[#7A6E5E] text-xs leading-relaxed mb-3">
+                        Notre équipe répond sous 24h. Votre ticket sera automatiquement
+                        lié à la commande <span class="font-mono text-[#C9A84C]">{{ $order->reference }}</span>.
+                    </p>
+                    <a href="{{ route('client.tickets.create') }}?order_id={{ $order->id }}"
+                       wire:navigate
+                       class="inline-flex items-center gap-1.5 text-[#C9A84C] text-xs hover:text-[#E8C97A] transition-colors font-medium">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                        Contacter le support →
+                    </a>
+                </div>
             </div>
 
         </div>

@@ -50,14 +50,13 @@ class OrderObserver
         try {
             match ($newStatus) {
                 // L'admin vient de finir la restauration
-                'DONE' => Mail::to($userEmail)->queue(new \App\Mail\OrderReadyForPayment($order)),
+                'DONE' => Mail::to($userEmail)->send(new \App\Mail\OrderReadyForPayment($order)),
 
                 // Paiement réussi (automatique via Webhook)
-                // Note: On pourrait envoyer un "OrderPaidConfirmation" ici si on le crée plus tard.
-                'PAID' => null, 
+                'PAID' => Mail::to($userEmail)->send(new \App\Mail\OrderPaidConfirmation($order)),
 
                 // Le statut DELIVERED est atteint quand le ZIP est prêt (Job terminé)
-                'DELIVERED' => Mail::to($userEmail)->queue(new \App\Mail\OrderDeliveryReady($order)),
+                'DELIVERED' => Mail::to($userEmail)->send(new \App\Mail\OrderDeliveryReady($order)),
 
                 default => null,
             };

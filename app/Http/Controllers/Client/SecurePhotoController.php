@@ -88,6 +88,15 @@ class SecurePhotoController extends Controller
             $watermarkedMedia = $order->getMedia('watermarked')->firstWhere('file_name', $expectedFilename);
 
             if (! $watermarkedMedia || ! file_exists($watermarkedMedia->getPath())) {
+                // FAIL-SAFE: Si le worker a échoué ou est en retard, on génère le watermark ON-DEMAND (synchrone).
+                // Cela garantit que le client voit ses photos même si la queue est bloquée.
+                \App\Jobs\GenerateWatermarkJob::generateForMedia($order, $media);
+                
+                // Re-tenter de récupérer le média après génération
+                $watermarkedMedia = $order->getMedia('watermarked')->firstWhere('file_name', $expectedFilename);
+            }
+
+            if (! $watermarkedMedia || ! file_exists($watermarkedMedia->getPath())) {
                 abort(403, 'Aperçu filigrané en cours de génération, veuillez patienter.');
             }
             $pathToServe = $watermarkedMedia->getPath();

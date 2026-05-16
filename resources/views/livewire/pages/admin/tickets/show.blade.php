@@ -42,6 +42,25 @@ class extends Component
             ->where('is_read', false)
             ->update(['is_read' => true]);
 
+        // ── Modèle de réponse automatique pour les remboursements ──
+        $isRefundRequest = stripos($this->ticket->subject, 'remboursement') !== false;
+        $isDownloaded = $this->ticket->order && $this->ticket->order->status === 'DELIVERED' && $this->ticket->order->delivery && $this->ticket->order->delivery->download_count > 0;
+
+        if ($isRefundRequest && empty($this->reply)) {
+            $name = trim(explode(' ', $this->ticket->user->name)[0]); // Prénom
+            $orderRef = $this->ticket->order ? " concernant la commande {$this->ticket->order->reference}" : "";
+            
+            $this->reply = "Bonjour {$name},\n\nNous vous remercions d'avoir contacté le support OmnyRestore.\nNous avons bien pris connaissance de votre demande de remboursement{$orderRef}.\n\n";
+            
+            if ($isDownloaded) {
+                $this->reply .= "Cependant, nos systèmes indiquent que vous avez déjà téléchargé les fichiers haute définition. Conformément à nos Conditions Générales de Vente, un produit numérique étant considéré comme consommé dès son téléchargement, nous ne pouvons malheureusement pas donner suite à votre demande de remboursement ni émettre de bon de réduction.\n\nNous espérons néanmoins que le travail de restauration vous donne satisfaction.\n\n";
+            } else {
+                $this->reply .= "Votre demande est tout à fait légitime puisque vous n'avez pas encore téléchargé les fichiers de votre commande. Je m'en occupe personnellement.\n\n[Insérer votre réponse / bon de réduction ici]\n\n";
+            }
+            
+            $this->reply .= "Cordialement,\nL'équipe OmnyRestore\n\nPS: Sans réponse de votre part sous 24h, ce ticket sera automatiquement clôturé.";
+        }
+
         $this->dispatch('refresh-navbar-counts');
     }
 
@@ -229,6 +248,23 @@ class extends Component
                 @error('reply') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
                 
                 {{-- Outils de réduction --}}
+                @php
+                    $isRefundRequest = stripos($ticket->subject, 'remboursement') !== false;
+                    $isDownloaded = $ticket->order && $ticket->order->status === 'DELIVERED' && $ticket->order->delivery && $ticket->order->delivery->download_count > 0;
+                    $blockCoupons = $isRefundRequest && $isDownloaded;
+                @endphp
+
+                @if($blockCoupons)
+                <div class="mt-5 border-t border-red-500/10 pt-4">
+                    <div class="bg-red-500/5 border border-red-500/20 rounded-sm p-3 flex items-start gap-2">
+                        <svg class="w-4 h-4 text-red-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <p class="text-red-400 text-[11px] leading-relaxed">
+                            <strong class="uppercase tracking-wider">Génération de bon bloquée</strong><br>
+                            Le client ayant déjà téléchargé sa commande, aucun bon de remboursement ou de réduction ne peut être généré depuis ce ticket conformément aux CGV.
+                        </p>
+                    </div>
+                </div>
+                @else
                 <div class="mt-5 border-t border-[#C9A84C]/10 pt-4" x-data="{ mode: 'generate' }">
                     <div class="flex items-center justify-between mb-4">
                         <label class="text-[#C9A84C] text-xs uppercase tracking-widest flex items-center gap-2">
@@ -282,6 +318,7 @@ class extends Component
                         </button>
                     </div>
                 </div>
+                @endif
 
                 <div class="flex items-center gap-3 mt-4">
                     <button wire:click="sendReply" wire:loading.attr="disabled" class="btn-gold text-sm">

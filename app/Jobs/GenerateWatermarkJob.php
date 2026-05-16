@@ -52,56 +52,62 @@ class GenerateWatermarkJob implements ShouldQueue
         // Effacer les anciens watermarks avant de régénérer
         $this->order->clearMediaCollection('watermarked');
 
-        $manager  = new ImageManager(new Driver());
-        $fontPath = storage_path('app/fonts/watermark.ttf');
-        $useTtf   = file_exists($fontPath);
-
         foreach ($retouched as $media) {
-            $tmpOutput = null;
-            try {
-                $tmpOutput = tempnam(sys_get_temp_dir(), 'wmk_') . '.jpg';
-
-                // 1. Lire l'image (API v3)
-                $image = $manager->read($media->getPath());
-
-                // 2. Redimensionner à 1200px max (ratio conservé)
-                $image->scaleDown(width: 1200, height: 1200);
-
-                // 3. Appliquer le filigrane tuilé en diagonale
-                $this->applyWatermark($image, $fontPath, $useTtf);
-
-                // 4. Encoder en JPEG 75% et sauvegarder
-                $image->toJpeg(75)->save($tmpOutput);
-
-                // 5. Ajouter à la collection watermarked
-                $this->order
-                    ->addMedia($tmpOutput)
-                    ->usingFileName('watermark_' . pathinfo($media->file_name, PATHINFO_FILENAME) . '.jpg')
-                    ->toMediaCollection('watermarked');
-
-            } catch (\Throwable $e) {
-                Log::error("[Watermark] Erreur sur {$media->file_name} : " . $e->getMessage(), [
-                    'file'  => $e->getFile(),
-                    'line'  => $e->getLine(),
-                    'order' => $this->order->reference,
-                ]);
-                if ($tmpOutput && file_exists($tmpOutput)) {
-                    @unlink($tmpOutput);
-                }
-            }
+            static::generateForMedia($this->order, $media);
         }
 
         Log::info("[Watermark] Commande {$this->order->reference} : {$retouched->count()} watermark(s) générés.");
     }
 
     /**
-     * Applique un filigrane "OmnyRestore" répété en diagonale.
-     *
-     * Grille de positionnement (xStep × yStep) décalée pour couvrir toute l'image,
-     * y compris les coins. Le décalage horizontal alterne (offset = xStep/2)
-     * pour simuler un pavage.
+     * Génère un watermark pour un média spécifique et l'ajoute à la collection 'watermarked'.
+     * Peut être appelé de manière synchrone par le controller si le watermark manque.
      */
-    private function applyWatermark(
+    public static function generateForMedia(Order $order, \Spatie\MediaLibrary\MediaCollections\Models\Media $media): bool
+    {
+        $manager  = new ImageManager(new Driver());
+        $fontPath = storage_path('app/fonts/watermark.ttf');
+        $useTtf   = file_exists($fontPath);
+        $tmpOutput = null;
+
+        try {
+            $tmpOutput = tempnam(sys_get_temp_dir(), 'wmk_') . '.jpg';
+
+            // 1. Lire l'image (API v3)
+            $image = $manager->read($media->getPath());
+
+            // 2. Redimensionner à 1200px max (ratio conservé)
+            $image->scaleDown(width: 1200, height: 1200);
+
+            // 3. Appliquer le filigrane tuilé en diagonale
+            // Note: On utilise une instance anonyme pour appeler la méthode privée si besoin, 
+            // ou on rend la méthode statique/publique. Rendons-la statique.
+            static::applyWatermarkToImage($image, $fontPath, $useTtf);
+
+            // 4. Encoder en JPEG 75% et sauvegarder
+            $image->toJpeg(75)->save($tmpOutput);
+
+            // 5. Ajouter à la collection watermarked
+            $order->addMedia($tmpOutput)
+                ->usingFileName('watermark_' . pathinfo($media->file_name, PATHINFO_FILENAME) . '.jpg')
+                ->toMediaCollection('watermarked');
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::error("[Watermark] Erreur sur {$media->file_name} : " . $e->getMessage(), [
+                'order' => $order->reference,
+            ]);
+            if ($tmpOutput && file_exists($tmpOutput)) {
+                @unlink($tmpOutput);
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Applique un filigrane "OmnyRestore" répété en diagonale.
+     */
+    private static function applyWatermarkToImage(
         \Intervention\Image\Interfaces\ImageInterface $image,
         string $fontPath,
         bool $useTtf

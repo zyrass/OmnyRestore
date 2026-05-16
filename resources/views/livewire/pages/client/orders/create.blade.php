@@ -163,6 +163,40 @@ class extends Component
     }
 
     /**
+     * Supprime une photo de la sélection.
+     */
+    public function removePhoto(int $index): void
+    {
+        if (isset($this->photos[$index])) {
+            unset($this->photos[$index]);
+            $this->photos = array_values($this->photos);
+        }
+
+        if (isset($this->analysisResults[$index])) {
+            unset($this->analysisResults[$index]);
+            $this->analysisResults = array_values($this->analysisResults);
+        }
+
+        // Recalculer le pire niveau de dommage
+        $levelPriority = ['light' => 0, 'medium' => 1, 'heavy' => 2];
+        $worstLevel = 'light';
+        foreach ($this->analysisResults as $res) {
+            if (($levelPriority[$res['level']] ?? 0) > ($levelPriority[$worstLevel] ?? 0)) {
+                $worstLevel = $res['level'];
+            }
+        }
+        $this->damage_level = $worstLevel;
+
+        // Réinitialiser le coupon
+        $this->couponResult = null;
+        $this->couponCode   = '';
+
+        if (count($this->photos) === 0) {
+            $this->analysisComplete = false;
+        }
+    }
+
+    /**
      * Valide et soumet la commande.
      */
     public function submit(AuditService $audit, CouponService $couponService): void
@@ -364,6 +398,13 @@ class extends Component
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                             @foreach ($photos as $i => $photo)
                             <div class="relative group">
+                                {{-- Bouton supprimer --}}
+                                <button type="button" 
+                                        wire:click="removePhoto({{ $i }})"
+                                        class="absolute -top-2 -right-2 z-10 bg-red-500/80 hover:bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+
                                 {{-- Miniature --}}
                                 <div class="aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/15">
                                     <img src="{{ $photo->temporaryUrl() }}" alt="Photo {{ $i + 1 }}" class="w-full h-full object-cover">
