@@ -281,62 +281,78 @@ class extends Component
 
             {{-- Encart Atterrissage Annuel (Micro uniquement) --}}
             @if(!$isSasu)
-            <div class="card-glass p-8 border-l-4 {{ $microUsagePercentage > 80 ? 'border-l-amber-500 bg-amber-900/10' : 'border-l-[#C9A84C]' }}">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="p-2 rounded-lg {{ $microUsagePercentage > 80 ? 'bg-amber-500/20 text-amber-500' : 'bg-[#C9A84C]/20 text-[#C9A84C]' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            <div class="card-glass p-10 border-l-4 {{ $microUsagePercentage > 80 ? 'border-l-amber-500 bg-amber-900/5' : 'border-l-[#C9A84C] bg-[#C9A84C]/5' }} relative overflow-hidden">
+                {{-- Motif de fond subtil --}}
+                <div class="absolute top-0 right-0 -mt-4 -mr-4 opacity-[0.03] pointer-events-none">
+                    <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24"><path d="M19 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                </div>
+
+                <div class="flex items-center gap-4 mb-8">
+                    <div class="p-3 rounded-xl {{ $microUsagePercentage > 80 ? 'bg-amber-500/20 text-amber-500' : 'bg-[#C9A84C]/20 text-[#C9A84C]' }} shadow-inner">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-[#F5F0E8]">Atterrissage Annuel & Vigilance Plafond</h3>
-                        <p class="text-xs text-[#7A6E5E]">Monitoring du seuil des 77 700 € (BNC)</p>
+                        <h3 class="text-xl font-bold text-[#F5F0E8] tracking-tight">Atterrissage Annuel & Vigilance Plafond</h3>
+                        <p class="text-xs text-[#7A6E5E] font-medium uppercase tracking-widest">Monitoring du seuil fiscal : 77 700 €</p>
                     </div>
                 </div>
 
-                <div class="grid md:grid-cols-2 gap-8">
-                    <div>
-                        <div class="flex justify-between items-end mb-2">
-                            <span class="text-sm text-[#7A6E5E]">Progression annuelle</span>
-                            <span class="text-xl font-bold {{ $microUsagePercentage > 80 ? 'text-amber-500' : 'text-[#C9A84C]' }}">{{ number_format($microUsagePercentage, 1) }}%</span>
-                        </div>
-                        <div class="w-full h-3 bg-white/5 rounded-full overflow-hidden">
-                            <div class="h-full transition-all duration-1000 {{ $microUsagePercentage > 80 ? 'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.4)]' : 'bg-[#C9A84C]' }}" style="width: {{ $microUsagePercentage }}%"></div>
+                <div class="grid md:grid-cols-2 gap-12 items-center">
+                    {{-- Colonne 1 : Jauge --}}
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between items-end mb-3">
+                                <span class="text-xs uppercase tracking-widest text-[#7A6E5E]">Consommation du Plafond</span>
+                                <span class="text-2xl font-black {{ $microUsagePercentage > 80 ? 'text-amber-500' : 'text-[#C9A84C]' }}">{{ number_format($microUsagePercentage, 1) }}%</span>
+                            </div>
+                            <div class="w-full h-4 bg-white/5 rounded-full p-1 border border-white/10">
+                                <div class="h-full transition-all duration-1000 rounded-full {{ $microUsagePercentage > 80 ? 'bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'bg-gradient-to-r from-[#C9A84C] to-[#E5C167]' }}" style="width: {{ $microUsagePercentage }}%"></div>
+                            </div>
                         </div>
                         
                         @if($microUsagePercentage > 80)
-                        <div class="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                            <div class="flex gap-3">
-                                <span class="text-amber-500">⚠️</span>
-                                <p class="text-xs text-amber-200/80 leading-relaxed">
-                                    <strong>Alerte de saturation :</strong> Votre trajectoire dépasse les 80% du plafond autorisé. 
-                                    Le passage en <strong>SASU</strong> est recommandé avant la fin de l'année pour éviter tout blocage de facturation.
-                                </p>
+                        <div class="p-5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex gap-4">
+                            <span class="text-2xl">⚠️</span>
+                            <div class="text-xs text-amber-200/80 leading-relaxed">
+                                <strong class="text-amber-500 uppercase block mb-1">Seuil Critique Atteint</strong>
+                                Votre trajectoire dépasse les 80% du plafond. Le passage en <strong>SASU</strong> doit être anticipé pour sécuriser votre activité.
                             </div>
                         </div>
                         @else
-                        <p class="mt-4 text-xs text-[#7A6E5E] leading-relaxed italic">
-                            Votre structure Micro-Entreprise est actuellement adaptée à votre volume d'affaires prévisionnel.
-                        </p>
+                        <div class="p-5 bg-emerald-500/5 border border-emerald-500/10 rounded-xl flex gap-4">
+                            <span class="text-emerald-500">🛡️</span>
+                            <div class="text-xs text-emerald-200/70 leading-relaxed">
+                                <strong class="text-emerald-500 uppercase block mb-1">Zone de Sécurité</strong>
+                                Votre volume d'affaires prévisionnel est en parfaite adéquation avec le régime Micro-Entreprise.
+                            </div>
+                        </div>
                         @endif
                     </div>
 
-                    <div class="bg-black/20 p-6 rounded-lg border border-white/5">
-                        <h4 class="text-xs uppercase tracking-widest text-[#7A6E5E] mb-4">Preuve par le calcul (Annuel)</h4>
-                        <div class="space-y-3">
-                            <div class="flex justify-between text-sm">
-                                <span class="text-[#7A6E5E]">CA Réel (Jan à {{ $lastRealMonthName }})</span>
-                                <span class="text-[#F5F0E8] font-medium">+ {{ number_format($ytdRevenue, 2, ',', ' ') }} €</span>
+                    {{-- Colonne 2 : Preuve --}}
+                    <div class="bg-[#120F0A]/50 p-8 rounded-2xl border border-white/5 relative shadow-2xl">
+                        <h4 class="text-[10px] uppercase tracking-[0.2em] text-[#7A6E5E] mb-6 font-bold">Preuve par le calcul (Annuel)</h4>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-[#7A6E5E]">Réel encaissé (Jan à {{ $lastRealMonthName }})</span>
+                                <span class="text-[#F5F0E8] font-mono">+ {{ number_format($ytdRevenue, 2, ',', ' ') }} €</span>
                             </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-[#7A6E5E]">Projection ({{ $remainingMonths }} mois × {{ number_format($targetCaTtc, 0) }}€)</span>
-                                <span class="text-[#F5F0E8] font-medium">+ {{ number_format($targetCaTtc * $remainingMonths, 2, ',', ' ') }} €</span>
+                            <div class="flex justify-between items-center text-sm">
+                                <div class="flex flex-col">
+                                    <span class="text-[#7A6E5E]">Projection {{ $remainingMonths }} mois</span>
+                                    <span class="text-[10px] text-[#C9A84C]/50">({{ $remainingMonths }} × {{ number_format($targetCaTtc, 0) }}€)</span>
+                                </div>
+                                <span class="text-[#F5F0E8] font-mono">+ {{ number_format($targetCaTtc * $remainingMonths, 2, ',', ' ') }} €</span>
                             </div>
-                            <div class="pt-3 border-t border-white/10 flex justify-between items-baseline">
-                                <span class="text-sm font-bold text-[#C9A84C]">Atterrissage 31/12</span>
-                                <span class="text-lg font-bold text-[#C9A84C]">{{ number_format($projectedAnnualRevenue, 2, ',', ' ') }} €</span>
+                            <div class="pt-5 mt-2 border-t border-white/10 flex justify-between items-baseline">
+                                <span class="text-xs font-bold text-[#C9A84C] uppercase tracking-widest">Atterrissage Estimé</span>
+                                <span class="text-2xl font-black text-[#C9A84C]">{{ number_format($projectedAnnualRevenue, 2, ',', ' ') }} €</span>
                             </div>
-                            <div class="flex justify-between text-[10px] {{ $projectedAnnualRevenue > 77700 ? 'text-red-400' : 'text-[#7A6E5E]' }}">
-                                <span>Marge disponible avant plafond</span>
-                                <span>{{ number_format(max(0, 77700 - $projectedAnnualRevenue), 2, ',', ' ') }} €</span>
+                            <div class="flex justify-between items-center pt-2">
+                                <span class="text-[10px] uppercase tracking-widest text-[#7A6E5E]">Disponibilité restante</span>
+                                <span class="px-2 py-0.5 rounded bg-white/5 text-[11px] font-bold {{ $projectedAnnualRevenue > 77700 ? 'text-red-400' : 'text-emerald-400' }}">
+                                    {{ number_format(max(0, 77700 - $projectedAnnualRevenue), 2, ',', ' ') }} €
+                                </span>
                             </div>
                         </div>
                     </div>
