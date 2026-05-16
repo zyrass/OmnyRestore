@@ -94,7 +94,7 @@ class Coupon extends Model
     public function isApplicableTo(int $amountHtCents): bool
     {
         if (! $this->is_active) { return false; }
-        if ($this->expires_at && $this->expires_at->isPast()) { return false; }
+        if (! $this->is_seasonal && $this->expires_at && $this->expires_at->isPast()) { return false; }
         if ($this->max_uses && $this->used_count >= $this->max_uses) { return false; }
         if ($amountHtCents < $this->min_order_cents) { return false; }
 

@@ -102,8 +102,10 @@ class GenerateOrderZipJob implements ShouldQueue
                     continue;
                 }
 
-                // Nom propre sans le préfixe "restored_"
-                $filename = ltrim(str_replace('restored_', '', $media->file_name), '_');
+                // Anonymisation : [Reference]_[Numéro]_HD.[ext]
+                $extension = pathinfo($media->file_name, PATHINFO_EXTENSION) ?: 'jpg';
+                $sequence  = sprintf('%02d', $addedCount + 1);
+                $filename  = "{$order->reference}_{$sequence}_HD.{$extension}";
 
                 $zip->addFromString("photos/{$filename}", $contents);
                 $addedCount++;

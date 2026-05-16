@@ -49,17 +49,16 @@ class OrderObserver
 
         try {
             match ($newStatus) {
-                // L'admin vient de finir la restauration → Le mail sera déclenché MANUELLEMENT
-                // via le bouton dans le panel admin (resendClientNotification).
-                'DONE' => null,
+                // L'admin vient de finir la restauration
+                'DONE' => Mail::to($userEmail)->queue(new \App\Mail\OrderReadyForPayment($order)),
 
-                'PAID' => null,
+                // Paiement réussi (automatique via Webhook)
+                // Note: On pourrait envoyer un "OrderPaidConfirmation" ici si on le crée plus tard.
+                'PAID' => null, 
 
-                // Le statut DELIVERED est atteint manuellement via l'admin qui envoie l'email
-                // de livraison (ZIP + facture). Le mail est déclenché dans sendDeliveryEmail().
-                'DELIVERED' => null,
+                // Le statut DELIVERED est atteint quand le ZIP est prêt (Job terminé)
+                'DELIVERED' => Mail::to($userEmail)->queue(new \App\Mail\OrderDeliveryReady($order)),
 
-                // Pas d'email pour les autres transitions
                 default => null,
             };
 
