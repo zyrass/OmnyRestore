@@ -506,7 +506,7 @@ class extends Component
 
 <div x-data="{ finalHt: {{ (float)($finalPrice ?? 0) }}, showPaymentToast: false }"
      @payment-received.window="showPaymentToast = true"
-     @if($order->status === 'DONE') wire:poll.1s="pollPaymentStatus" @endif>
+     @if($order->status === 'DONE') wire:poll.15s="pollPaymentStatus" @endif>
 
     {{-- Toast Paiement reçu (déclenché par pollPaymentStatus) --}}
     <template x-teleport="body">

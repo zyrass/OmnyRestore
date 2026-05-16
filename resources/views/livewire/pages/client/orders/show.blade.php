@@ -483,7 +483,7 @@ class extends Component
             {{-- === ÉTAT : EN COURS === --}}
             @if (in_array($order->status, ['PENDING', 'IN_PROGRESS']))
             {{-- Polling toutes les 10s pour détecter quand l'admin passe à DONE --}}
-            <div wire:poll.10000ms="pollStatusChange" class="card-glass p-10 text-center">
+            <div wire:poll.20s="pollStatusChange" class="card-glass p-10 text-center">
                 {{-- Spinner animé --}}
                 <div class="relative w-20 h-20 mx-auto mb-6">
                     <div class="absolute inset-0 border-2 border-[#C9A84C]/20 rounded-full"></div>
@@ -741,7 +741,7 @@ class extends Component
 
             {{-- === ÉTAT : PAYÉ — En cours de traitement === --}}
             @if ($order->status === 'PAID')
-            <div class="card-glass overflow-hidden" wire:poll.5000ms="pollDelivery">
+            <div class="card-glass overflow-hidden" wire:poll.10s="pollDelivery">
 
                 {{-- Bande dorée en haut --}}
                 <div class="h-1 bg-gradient-to-r from-[#C9A84C] to-[#E8C97A]"></div>
