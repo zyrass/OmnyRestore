@@ -78,15 +78,18 @@ class extends Component
         $securityReserve = (float) ($this->securityReserve ?: 0);
 
         // --- CALCUL COUT COLLABORATEUR ---
-        $smicNet = 1400; // SMIC Net approximatif 2024
+        $smicNet = 1398.69; // SMIC Net exact 2024 (35h)
         $isSmicWarning = $this->isCollabSalaried && $targetNetCollab < $smicNet;
         $effectiveNetCollab = $this->isCollabSalaried ? max($targetNetCollab, $smicNet) : $targetNetCollab;
-        $chargeMultiplier = 1 + ($this->socialChargeRate / 100);
+        
+        // Vrai taux collaborateur : 32% au SMIC, remonte vers 80% ensuite
+        $collabRate = $this->isCollabSalaried 
+            ? ($effectiveNetCollab <= $smicNet + 10 ? 0.32 : 0.80) 
+            : 0;
 
         $collabTotalCost = 0;
         if ($this->isCollabSalaried) {
-            // Salarié : Net (min SMIC) * multiplicateur variable
-            $collabTotalCost = $effectiveNetCollab * $chargeMultiplier;
+            $collabTotalCost = $effectiveNetCollab * (1 + $collabRate);
         } else {
             // Freelance AE : Net / (1 - 0.212)
             $collabTotalCost = $targetNetCollab / (1 - 0.212); 
@@ -102,13 +105,13 @@ class extends Component
         $targetCaTtc = 0;
         $dirigeantTotalCost = 0;
         $additionalFixedCosts = 0;
-        $isRate = 0.15; // Provision IS (Impôt sur les Sociétés)
+        $isRate = 0.15; // Provision IS
         $effectiveMarginRate = 0;
 
         if ($this->isSasu) {
-            // SASU : Le dirigeant est "assimilé salarié"
-            $dirigeantTotalCost = $targetNetDirigeant * $chargeMultiplier;
-            $additionalFixedCosts = 225; // Comptable + Banque Pro
+            // SASU : Le dirigeant est "assimilé salarié" (Mandataire = ~82% de charges, pas d'allègement Fillon)
+            $dirigeantTotalCost = $targetNetDirigeant * 1.82;
+            $additionalFixedCosts = 225;
             
             $marginAfterVariable = 1 - $ratioIaDecimal - $stripePct - $stripeFixedRatio;
             
@@ -168,6 +171,7 @@ class extends Component
             'remainingMonths' => $remainingMonths,
             'isSmicWarning' => $isSmicWarning,
             'smicNet' => $smicNet,
+            'collabRate' => $collabRate,
             'lastRealMonthName' => now()->subMonth()->translatedFormat('M'),
         ];
     }
@@ -220,13 +224,14 @@ class extends Component
                                 <button wire:click="$set('isCollabSalaried', true)" class="px-2 py-0.5 text-[8px] uppercase transition-all {{ $isCollabSalaried ? 'bg-[#C9A84C]/20 text-[#C9A84C] font-bold' : 'text-[#7A6E5E]' }}">CDI</button>
                             </div>
                         </div>
-                        <input type="number" wire:model.live="targetNetCollab" @if($isCollabSalaried) min="1400" @endif class="w-full bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm text-[#F5F0E8] p-2.5 focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] transition-all">
+                        <input type="number" wire:model.live="targetNetCollab" @if($isCollabSalaried) min="1398.69" step="0.01" @endif class="w-full bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm text-[#F5F0E8] p-2.5 focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] transition-all">
                         <p class="text-[10px] text-[#7A6E5E] mt-1.5 leading-relaxed">
                             @if($isCollabSalaried)
                                 @if($isSmicWarning)
-                                    <span class="text-amber-500 font-bold block mb-1">⚠️ Ajusté au SMIC (1 400€ min.)</span>
+                                    <span class="text-emerald-500 font-bold block mb-1">🛡️ Ajusté au SMIC Net (1 398,69€)</span>
                                 @endif
                                 Coût entreprise (CDI) : <strong>{{ number_format($collabTotalCost, 0, ',', ' ') }} €</strong>
+                                <span class="block text-[9px] opacity-70">Taux appliqué : {{ $collabRate * 100 }}% (Réduction Fillon incluse)</span>
                             @else
                                 Facture AE (Net + 21.2%) : <strong>{{ number_format($collabTotalCost, 0, ',', ' ') }} €</strong>
                             @endif
@@ -247,14 +252,6 @@ class extends Component
                     <div>
                         <label class="block text-xs uppercase tracking-wider text-[#7A6E5E] mb-1">Ratio Coût IA / CA (%)</label>
                         <input type="number" step="0.1" wire:model.live="iaRatio" class="w-full bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm text-[#F5F0E8] p-2.5 focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-xs uppercase tracking-wider text-[#7A6E5E] mb-1">Taux Charges Sociales (%)</label>
-                        <input type="number" wire:model.live="socialChargeRate" class="w-full bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm text-[#F5F0E8] p-2.5 focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] transition-all">
-                        <p class="text-[10px] text-[#7A6E5E] mt-1.5 leading-relaxed italic">
-                            Indice Net -> Coût Total. <br>
-                            <em>(SMIC : ~30% | Salaire > 2k€ : ~80%)</em>
-                        </p>
                     </div>
                 </div>
             </div>
