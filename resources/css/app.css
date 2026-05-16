@@ -138,10 +138,6 @@
 }
 
 /* ── Layout padding responsive (garanti — indépendant du JIT Tailwind) ── */
-/*
- * Sur le header et le main dans layouts/app.blade.php
- * CSS natif = toujours présent dans le bundle compilé, pas de souci de JIT.
- */
 .app-layout {
     padding-left:  1.5rem;
     padding-right: 1.5rem;
@@ -157,4 +153,15 @@
         padding-left:  5rem;
         padding-right: 5rem;
     }
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
 }
