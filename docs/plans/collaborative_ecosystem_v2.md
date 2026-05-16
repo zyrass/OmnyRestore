@@ -9,6 +9,8 @@ Ce document détaille la stratégie complète pour transformer OmnyRestore en un
 2. **Gouvernance Transparente** : Rendre le RBAC (Role-Based Access Control) visible et auditable.
 3. **Qualité de Service** : Garantir une communication parfaite via l'IA.
 4. **Monitoring Analytique** : Mesurer la rentabilité et l'efficacité de chaque collaborateur.
+5. **Acquisition Passive** : Simplifier l'envoi des photos via des utilitaires mobiles gratuits.
+6. **Sécurité & Délivrabilité** : Garantir que les emails de masse et de transaction arrivent en boîte de réception.
 
 ---
 
@@ -113,9 +115,16 @@ graph TD
     *   **Black Friday** (ex: `BLACKOMNY`)
 *   **Analyses de Conversion** : Suivi de l'utilisation des coupons vs CA généré.
 
-### Social Media Toolkit
-*   **Exemple (LinkedIn)** : "Besoin de restaurer vos archives d'entreprise ? OmnyRestore garantit désormais une confidentialité totale et un traitement HD en 24h. 🛡️ #CyberSecurity #Archives"
 *   **Exemple (Facebook)** : "Ne laissez pas vos souvenirs s'effacer ! Nos experts (et nos IA) redonnent vie à vos photos de famille. 📸 Profitez de -10% avec le code SOUVENIR10 !"
+
+### 📱 Stratégie "CamScanner" (Acquisition Mobile)
+Développement d'utilitaires mobiles ultra-légers pour simplifier l'acquisition pour les clients sans scanner (ex: seniors).
+*   **Double Développement (Ciblé)** :
+    *   **iOS (Swift)** : Pour une performance maximale et une intégration native.
+    *   **Android/Multi (React Native)** : Pour une couverture universelle rapide.
+*   **Fonctionnalité Critique** : **Suppression intégrale des métadonnées EXIF** dès la capture (Anonymisation technique immédiate pour éviter tout problème de confidentialité/tracking).
+*   **Business Model** : 100% gratuit, sans publicité.
+*   **Call-To-Action** : Bouton unique "Envoyer à OmnyRestore" redirigeant vers la plateforme avec les photos prêtes.
 
 ---
 
@@ -141,6 +150,12 @@ Transformer les données en rapports professionnels exploitables.
 ### Rapport Global (Admin)
 *   **Audit d'Équipe** : PDF récapitulant la rentabilité de la flotte et comparatifs de performance (anonymisables).
 
+### 📊 Simulateur de Croissance (Option SASU)
+*   **Nouvel Onglet "Projection SASU"** :
+    *   Simulation du passage de l'Auto-Entreprise vers la SASU.
+    *   Calcul des nouveaux frais (IS, Cotisations sociales dirigeant, Expert-comptable).
+    *   Visualisation du CA minimum requis pour maintenir le même revenu net.
+
 ---
 
 ## 🛡️ Phase 6 : Sécurité & Audit Trail
@@ -148,6 +163,7 @@ Transformer les données en rapports professionnels exploitables.
 *   **Middlewares de protection** :
     *   `EnsureIsStaff` : Accès global au panel.
     *   `EnsureIsAdmin` : Accès aux sections sensibles (CA, RBAC).
+*   **Délivrabilité (DMARC)** : Implémentation de politiques SPF/DKIM/DMARC strictes pour éviter le blacklistage lors des envois de masse (Newsletters, Relances).
 *   **Anonymisation RGPD** : Lors de la suppression d'un collaborateur, ses actions historiques sont conservées mais son nom est remplacé par "Ex-Opérateur X".
 
 ---

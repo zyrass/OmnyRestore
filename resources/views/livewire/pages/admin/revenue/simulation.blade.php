@@ -20,6 +20,7 @@ class extends Component
     public $iaRatio = 8.0; // en %
     public $fixedCosts = 150; // Serveurs, BFR, frais fixes mensuels en €
     public $securityReserve = 1000; // Plafond de sécurité impératif à laisser en banque
+    public $isSasu = false; // Toggle Micro-entreprise vs SASU
 
     public function mount()
     {
@@ -28,6 +29,7 @@ class extends Component
         $this->targetNetCollab = $settings['collab'] ?? 1800;
         $this->fixedCosts = $settings['fixed'] ?? 150;
         $this->securityReserve = $settings['reserve'] ?? 1000;
+        $this->isSasu = $settings['isSasu'] ?? false;
         
         // Calcul du panier moyen réel sur les 30 derniers jours
         $recentOrders = Order::where('payment_status', 'paid')
@@ -56,6 +58,7 @@ class extends Component
             'reserve' => (float) ($this->securityReserve ?: 0),
             'averageOrderPrice' => (float) ($this->averageOrderPrice ?: 0),
             'iaRatio' => (float) ($this->iaRatio ?: 0),
+            'isSasu' => (bool) $this->isSasu,
         ]);
     }
 
@@ -77,13 +80,37 @@ class extends Component
         $stripePct = 0.015;
         $stripeFixedRatio = $averageOrderPrice > 0 ? (0.25 / $averageOrderPrice) : 0;
         
-        // Marge effective = 100% - URSSAF(21.2%) - IA(%) - Stripe(1.5%) - StripeFixe(rapporté au panier moyen)
-        $effectiveMarginRate = 1 - 0.212 - $ratioIaDecimal - $stripePct - $stripeFixedRatio;
-        
+        // --- LOGIQUE SPECIFIQUE AU REGIME ---
         $targetCaTtc = 0;
-        if ($effectiveMarginRate > 0) {
-            // CA_TTC * MargeEffective = DirigeantNet + CollabInvoice + FixedCosts + SecurityReserve
-            $targetCaTtc = ($targetNetDirigeant + $collabInvoice + $fixedCosts + $securityReserve) / $effectiveMarginRate;
+        $dirigeantTotalCost = 0;
+        $additionalFixedCosts = 0;
+        $isRate = 0.15; // Provision IS (Impôt sur les Sociétés)
+        $effectiveMarginRate = 0;
+
+        if ($this->isSasu) {
+            // SASU : Le dirigeant est "assimilé salarié"
+            // Coût entreprise = Net * ~1.8 (Charges patronales + salariales)
+            $dirigeantTotalCost = $targetNetDirigeant * 1.82;
+            
+            // Frais fixes supplémentaires SASU (Comptable: 200€, Banque: 25€)
+            $additionalFixedCosts = 225;
+            
+            // Marge brute après IA et Stripe (On ignore l'URSSAF sur CA ici car c'est sur le salaire)
+            $marginAfterVariable = 1 - $ratioIaDecimal - $stripePct - $stripeFixedRatio;
+            
+            if ($marginAfterVariable > 0) {
+                // CA_HT (on suppose ici que le CA TTC est notre base de travail car le client paie TTC)
+                // CA * marginAfterVariable = (ChargesFixes + Salaires + Reserve) / (1 - IS)
+                // On simplifie pour la simulation
+                $targetCaTtc = ($dirigeantTotalCost + $collabInvoice + $fixedCosts + $additionalFixedCosts + $securityReserve) / ($marginAfterVariable * (1 - $isRate));
+            }
+            $effectiveMarginRate = $marginAfterVariable * (1 - $isRate);
+        } else {
+            // MICRO-ENTREPRISE : URSSAF de 21.2% sur le CA TTC
+            $effectiveMarginRate = 1 - 0.212 - $ratioIaDecimal - $stripePct - $stripeFixedRatio;
+            if ($effectiveMarginRate > 0) {
+                $targetCaTtc = ($targetNetDirigeant + $collabInvoice + $fixedCosts + $securityReserve) / $effectiveMarginRate;
+            }
         }
         
         $targetOrders = $averageOrderPrice > 0 ? ceil($targetCaTtc / $averageOrderPrice) : 0;
@@ -100,6 +127,9 @@ class extends Component
             'safeIaRatio' => $iaRatio,
             'safeFixedCosts' => $fixedCosts,
             'safeSecurityReserve' => $securityReserve,
+            'dirigeantTotalCost' => $dirigeantTotalCost,
+            'additionalFixedCosts' => $additionalFixedCosts,
+            'isProvision' => $targetCaTtc * ($this->isSasu ? $effectiveMarginRate * $isRate : 0),
         ];
     }
 }; ?>
@@ -126,12 +156,21 @@ class extends Component
         {{-- Colonne Formulaire --}}
         <div class="lg:col-span-1 space-y-6">
             <div class="card-glass p-6 border-t-2 border-t-[#C9A84C]">
-                <h3 class="text-[#F5F0E8] font-bold mb-4">Objectifs de Rémunération</h3>
-                
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-[#F5F0E8] font-bold">Régime Fiscal</h3>
+                    <div class="flex bg-[#120F0A] p-1 rounded-sm border border-[#C9A84C]/20">
+                        <button wire:click="$set('isSasu', false)" class="px-3 py-1 text-[10px] uppercase tracking-wider transition-all {{ !$isSasu ? 'bg-[#C9A84C] text-[#120F0A] font-bold' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">Micro</button>
+                        <button wire:click="$set('isSasu', true)" class="px-3 py-1 text-[10px] uppercase tracking-wider transition-all {{ $isSasu ? 'bg-[#C9A84C] text-[#120F0A] font-bold' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">SASU</button>
+                    </div>
+                </div>
+
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs uppercase tracking-wider text-[#7A6E5E] mb-1">Salaire Net Dirigeant (€)</label>
                         <input type="number" wire:model.live="targetNetDirigeant" class="w-full bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm text-[#F5F0E8] p-2.5 focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] transition-all">
+                        @if($isSasu)
+                            <p class="text-[10px] text-blue-400/80 mt-1.5 leading-relaxed">En SASU, le coût réel pour la société est d'environ <strong>{{ number_format($dirigeantTotalCost, 0, ',', ' ') }} €</strong> (charges incluses).</p>
+                        @endif
                     </div>
                     
                     <div>
@@ -211,12 +250,21 @@ class extends Component
                         <span class="text-[#F5F0E8] font-bold">{{ number_format($targetCaTtc, 2, ',', ' ') }} €</span>
                     </div>
                     
-                    {{-- Ligne URSSAF Plateforme --}}
+                    @if(!$isSasu)
+                    {{-- Ligne URSSAF Plateforme (Micro) --}}
                     <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative">
                         <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
-                        <span class="text-[#7A6E5E] text-sm">URSSAF Plateforme (21,2% du TTC)</span>
+                        <span class="text-[#7A6E5E] text-sm">URSSAF Plateforme (21,2% du CA)</span>
                         <span class="text-red-400 font-medium">- {{ number_format($targetCaTtc * 0.212, 2, ',', ' ') }} €</span>
                     </div>
+                    @else
+                    {{-- Ligne IS (SASU) --}}
+                    <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative">
+                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
+                        <span class="text-[#7A6E5E] text-sm">Impôt sur les Sociétés (Provision 15%)</span>
+                        <span class="text-red-400 font-medium">- {{ number_format($isProvision, 2, ',', ' ') }} €</span>
+                    </div>
+                    @endif
                     
                     {{-- Ligne Coûts IA --}}
                     <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative">
@@ -239,6 +287,15 @@ class extends Component
                         <span class="text-red-400 font-medium">- {{ number_format($safeFixedCosts, 2, ',', ' ') }} €</span>
                     </div>
 
+                    @if($isSasu)
+                    {{-- Frais spécifiques SASU --}}
+                    <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative">
+                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
+                        <span class="text-[#7A6E5E] text-sm">Comptabilité & Banque Pro (SASU)</span>
+                        <span class="text-red-400 font-medium">- {{ number_format($additionalFixedCosts, 2, ',', ' ') }} €</span>
+                    </div>
+                    @endif
+
                     {{-- Ligne Plafond de Sécurité --}}
                     <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative">
                         <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-600"></div>
@@ -252,6 +309,15 @@ class extends Component
                         <span class="text-[#7A6E5E] text-sm">Facture du Collaborateur</span>
                         <span class="text-red-400 font-medium">- {{ number_format($collabInvoice, 2, ',', ' ') }} €</span>
                     </div>
+
+                    {{-- Ligne Charges Sociales Dirigeant (SASU) --}}
+                    @if($isSasu)
+                    <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative">
+                        <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
+                        <span class="text-[#7A6E5E] text-sm">Charges Sociales Dirigeant (~82%)</span>
+                        <span class="text-red-400 font-medium">- {{ number_format($dirigeantTotalCost - $safeTargetNetDirigeant, 2, ',', ' ') }} €</span>
+                    </div>
+                    @endif
 
                     {{-- Résultat Dirigeant --}}
                     <div class="flex items-center justify-between py-4 mt-2">
