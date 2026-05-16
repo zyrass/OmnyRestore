@@ -344,13 +344,13 @@ class extends Component
                                 </div>
                                 <span class="text-[#F5F0E8] font-mono">+ {{ number_format($targetCaTtc * $remainingMonths, 2, ',', ' ') }} €</span>
                             </div>
-                            <div class="pt-5 mt-2 border-t border-white/10 flex justify-between items-baseline">
-                                <span class="text-xs font-bold text-[#C9A84C] uppercase tracking-widest">Atterrissage Estimé</span>
-                                <span class="text-2xl font-black text-[#C9A84C]">{{ number_format($projectedAnnualRevenue, 2, ',', ' ') }} €</span>
+                            <div class="pt-5 mt-2 border-t border-white/10 flex justify-between items-baseline gap-4">
+                                <span class="text-[10px] font-bold text-[#C9A84C] uppercase tracking-widest whitespace-nowrap">Atterrissage Estimé</span>
+                                <span class="text-xl font-black text-[#C9A84C] whitespace-nowrap">{{ number_format($projectedAnnualRevenue, 2, ',', ' ') }} €</span>
                             </div>
                             <div class="flex justify-between items-center pt-2">
-                                <span class="text-[10px] uppercase tracking-widest text-[#7A6E5E]">Disponibilité restante</span>
-                                <span class="px-2 py-0.5 rounded bg-white/5 text-[11px] font-bold {{ $projectedAnnualRevenue > 77700 ? 'text-red-400' : 'text-emerald-400' }}">
+                                <span class="text-[9px] uppercase tracking-widest text-[#7A6E5E] whitespace-nowrap">Disponibilité restante</span>
+                                <span class="px-2 py-0.5 rounded bg-white/5 text-[10px] font-bold {{ $projectedAnnualRevenue > 77700 ? 'text-red-400' : 'text-emerald-400' }} whitespace-nowrap">
                                     {{ number_format(max(0, 77700 - $projectedAnnualRevenue), 2, ',', ' ') }} €
                                 </span>
                             </div>
