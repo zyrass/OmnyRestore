@@ -219,8 +219,6 @@ class extends Component
                             @endif
                         </p>
                     </div>
-
-                    @endif
                 </div>
             </div>
 
