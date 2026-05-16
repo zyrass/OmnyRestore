@@ -54,8 +54,8 @@ class extends Component
 
     public function updated()
     {
-        // Force le SMIC si CDI actif
-        if ($this->isCollabSalaried && $this->targetNetCollab < 1398.69) {
+        // Force le SMIC si CDI actif et montant saisi (autorise 0 pour "pas de salarié")
+        if ($this->isCollabSalaried && $this->targetNetCollab > 0 && $this->targetNetCollab < 1398.69) {
             $this->targetNetCollab = 1398.69;
         }
 
@@ -84,11 +84,13 @@ class extends Component
 
         // --- CALCUL COUT COLLABORATEUR ---
         $smicNet = 1398.69; // SMIC Net exact 2024 (35h)
-        $isSmicWarning = $this->isCollabSalaried && $targetNetCollab < $smicNet;
-        $effectiveNetCollab = $this->isCollabSalaried ? max($targetNetCollab, $smicNet) : $targetNetCollab;
+        $effectiveNetCollab = $targetNetCollab;
+        if ($this->isCollabSalaried && $targetNetCollab > 0 && $targetNetCollab < $smicNet) {
+            $effectiveNetCollab = $smicNet;
+        }
         
         // Vrai taux collaborateur : 32% au SMIC, remonte vers 80% ensuite
-        $collabRate = $this->isCollabSalaried 
+        $collabRate = ($this->isCollabSalaried && $effectiveNetCollab > 0) 
             ? ($effectiveNetCollab <= $smicNet + 10 ? 0.32 : 0.80) 
             : 0;
 
@@ -174,7 +176,7 @@ class extends Component
             'microUsagePercentage' => $microUsagePercentage,
             'ytdRevenue' => $ytdRevenue,
             'remainingMonths' => $remainingMonths,
-            'isSmicWarning' => $isSmicWarning,
+            'isSmicWarning' => $this->isCollabSalaried && $targetNetCollab > 0 && $targetNetCollab < $smicNet,
             'smicNet' => $smicNet,
             'collabRate' => $collabRate,
             'lastRealMonthName' => now()->subMonth()->translatedFormat('M'),
@@ -200,7 +202,7 @@ class extends Component
         </div>
     </div>
 
-    <div class="space-y-10">
+    <div class="flex flex-col gap-12">
         {{-- Row 1: Key Metrics (Top Results) --}}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div class="card-glass p-8 bg-[#120F0A] border border-[#C9A84C]/30 text-center flex flex-col justify-center overflow-hidden">
