@@ -120,9 +120,23 @@ class extends Component
         $targetOrders = $averageOrderPrice > 0 ? ceil($targetCaTtc / $averageOrderPrice) : 0;
         $estimatedStripeFees = ($targetCaTtc * $stripePct) + ($targetOrders * 0.25);
 
+        // --- CALCUL DU CUMUL ANNUEL RÉEL + PROJETÉ ---
+        $currentYear = now()->year;
+        $currentMonth = now()->month; // Ex: 5 pour Mai
+        
+        // CA Réel encaissé (Janvier -> Aujourd'hui)
+        $ytdRevenue = \App\Models\Order::whereYear('paid_at', $currentYear)
+            ->where('payment_status', 'paid')
+            ->sum('total_price_cents') / 100;
+
+        // Mois restants à simuler (incluant le mois en cours)
+        $remainingMonths = 12 - $currentMonth + 1; 
+        
         // Plafond Micro-Entreprise (BNC Prestations)
         $microCeiling = 77700;
-        $projectedAnnualRevenue = $targetCaTtc * 12;
+        
+        // Cumul Annuel Estimé = Déjà encaissé + (Simulé * Mois restants)
+        $projectedAnnualRevenue = $ytdRevenue + ($targetCaTtc * $remainingMonths);
         $microUsagePercentage = min(100, ($projectedAnnualRevenue / $microCeiling) * 100);
 
         return [
@@ -141,6 +155,8 @@ class extends Component
             'isProvision' => $targetCaTtc * ($this->isSasu ? $effectiveMarginRate * $isRate : 0),
             'projectedAnnualRevenue' => $projectedAnnualRevenue,
             'microUsagePercentage' => $microUsagePercentage,
+            'ytdRevenue' => $ytdRevenue,
+            'remainingMonths' => $remainingMonths,
         ];
     }
 }; ?>
@@ -206,18 +222,28 @@ class extends Component
                     @if(!$isSasu)
                     <div class="mt-4 p-3 bg-[#120F0A] border border-[#C9A84C]/10 rounded-sm">
                         <div class="flex justify-between items-center mb-1.5">
-                            <span class="text-[10px] uppercase tracking-wider text-[#7A6E5E]">Utilisation Plafond Micro (77 700€)</span>
+                            <span class="text-[10px] uppercase tracking-wider text-[#7A6E5E]">Compteur Annuel Micro (77 700€)</span>
                             <span class="text-[10px] font-bold {{ $microUsagePercentage > 80 ? 'text-amber-500' : 'text-[#C9A84C]' }}">{{ number_format($microUsagePercentage, 1) }}%</span>
                         </div>
                         <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                             <div class="h-full transition-all duration-500 {{ $microUsagePercentage > 80 ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'bg-[#C9A84C]' }}" style="width: {{ $microUsagePercentage }}%"></div>
                         </div>
+                        <div class="mt-2 space-y-1">
+                            <div class="flex justify-between text-[8px] text-[#7A6E5E]">
+                                <span>Réel (YTD) :</span>
+                                <span class="text-[#F5F0E8]">{{ number_format($ytdRevenue, 0, ',', ' ') }} €</span>
+                            </div>
+                            <div class="flex justify-between text-[8px] text-[#7A6E5E]">
+                                <span>Simulé ({{ $remainingMonths }} mois) :</span>
+                                <span class="text-[#F5F0E8]">{{ number_format($targetCaTtc * $remainingMonths, 0, ',', ' ') }} €</span>
+                            </div>
+                        </div>
                         @if($microUsagePercentage > 80)
-                            <div class="flex items-start gap-2 mt-2">
+                            <div class="flex items-start gap-2 mt-2 pt-2 border-t border-white/5">
                                 <span class="text-amber-500 text-xs">⚠️</span>
                                 <p class="text-[9px] text-amber-500/80 leading-tight">
-                                    Alerte : Vous projetez <strong>{{ number_format($projectedAnnualRevenue, 0, ',', ' ') }} €/an</strong>. 
-                                    À plus de 80% du plafond, il est critique d'anticiper la transition en <strong>SASU</strong> dès maintenant.
+                                    Attention : Cumul estimé à <strong>{{ number_format($projectedAnnualRevenue, 0, ',', ' ') }} €</strong>. 
+                                    Le passage en <strong>SASU</strong> doit être planifié immédiatement.
                                 </p>
                             </div>
                         @endif
