@@ -61,7 +61,7 @@ new class extends Component
 
         {{-- 2. Navigation (Centre - Prend tout l'espace restant) --}}
         <div class="hidden md:flex flex-1 justify-center min-w-0">
-            <nav class="flex items-center gap-1 overflow-x-auto no-scrollbar py-2">
+            <nav class="flex items-center gap-1 overflow-x-auto no-scrollbar py-4">
                 @if (Auth::user()->role === 'admin')
                 <a href="{{ route('admin.dashboard') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-all whitespace-nowrap font-medium border border-[#C9A84C]/20 
