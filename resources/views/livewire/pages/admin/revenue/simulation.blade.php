@@ -344,23 +344,28 @@ class extends Component
                 </div>
 
                 {{-- Preuve --}}
-                <div class="bg-[#120F0A]/50 p-8 rounded-2xl border border-white/5 shadow-2xl">
-                    <h4 class="text-[10px] uppercase tracking-[0.2em] text-[#7A6E5E] mb-6 font-bold">Preuve par le calcul (Annuel)</h4>
-                    <div class="space-y-4">
-                        <div class="flex justify-between items-center text-sm">
+                <div class="bg-black/20 rounded-lg p-6 border border-white/5">
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-[#7A6E5E] font-black mb-4">Preuve par le calcul (annuel)</p>
+                    
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between text-sm">
                             <span class="text-[#7A6E5E]">Réel encaissé (Jan à {{ $lastRealMonthName }})</span>
-                            <span class="text-[#F5F0E8] font-mono">+ {{ number_format($ytdRevenue, 2, ',', ' ') }} €</span>
+                            <span class="text-[#F5F0E8] font-bold">+ {{ number_format($ytdRevenue, 2, ',', ' ') }} €</span>
                         </div>
-                        <div class="flex justify-between items-center text-sm">
-                            <div class="flex flex-col">
+
+                        <div class="flex flex-col space-y-1">
+                            <div class="flex items-center justify-between text-sm">
                                 <span class="text-[#7A6E5E]">Projection {{ $remainingMonths }} mois</span>
-                                <span class="text-[10px] text-[#C9A84C]/50">({{ $remainingMonths }} × {{ number_format($targetCaTtc, 0) }}€)</span>
+                                <span class="text-[#F5F0E8] font-bold">+ {{ number_format($targetCaTtc * $remainingMonths, 2, ',', ' ') }} €</span>
                             </div>
-                            <span class="text-[#F5F0E8] font-mono">+ {{ number_format($targetCaTtc * $remainingMonths, 2, ',', ' ') }} €</span>
+                            <div class="bg-white/5 rounded px-2 py-1 text-center">
+                                <span class="text-[10px] text-[#C9A84C] font-mono font-bold tracking-wider">Détail : {{ $remainingMonths }} mois × {{ number_format($targetCaTtc, 2, ',', ' ') }} €</span>
+                            </div>
                         </div>
-                        <div class="pt-5 mt-2 border-t border-white/10 flex justify-between items-baseline gap-4">
-                            <span class="text-[10px] font-bold text-[#C9A84C] uppercase tracking-widest whitespace-nowrap">Atterrissage Estimé</span>
-                            <span class="text-xl font-black text-[#C9A84C] whitespace-nowrap">{{ number_format($projectedAnnualRevenue, 2, ',', ' ') }} €</span>
+
+                        <div class="pt-3 border-t border-white/10 flex items-center justify-between">
+                            <span class="text-[#C9A84C] text-[10px] uppercase font-black">Atterrissage estimé</span>
+                            <span class="text-[#C9A84C] font-black text-xl">{{ number_format($projectedAnnualRevenue, 2, ',', ' ') }} €</span>
                         </div>
                     </div>
                 </div>
