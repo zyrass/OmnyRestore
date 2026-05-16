@@ -113,6 +113,7 @@ class extends Component
         $dirigeantTotalCost = 0;
         $additionalFixedCosts = 0;
         $isRate = 0.15; // Provision IS
+        $isProvision = 0;
         $effectiveMarginRate = 0;
 
         if ($this->isSasu) {
