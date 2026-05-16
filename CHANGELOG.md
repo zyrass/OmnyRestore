@@ -6,6 +6,15 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.27.1] — 2026-05-17 — Ajustements UI & Master Plan
+
+### 🛠️ Maintenance & Ergonomie
+
+- **Navigation Admin** : Déplacement du lien "Transparence Salariale" dans le menu déroulant du profil pour le Super-Admin, afin d'épurer la barre de navigation principale (le lien reste visible directement pour les opérateurs).
+- **Documentation Stratégique** : Réorganisation logique du Master Plan (`collaborative_ecosystem_v2.md`), en déplaçant la phase de stabilisation IA (Phase 0) à la fin du processus (Phase 7).
+
+---
+
 ## [0.27.0] — 2026-05-16 — Écosystème Collaboratif & Transparence Salariale (Phase 1)
 
 ### ✨ Nouveautés & Améliorations

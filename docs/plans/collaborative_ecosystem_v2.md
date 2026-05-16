@@ -14,17 +14,6 @@ Ce document détaille la stratégie complète pour transformer OmnyRestore en un
 
 ---
 
-## 🛠️ Phase 0 : Hardening de l'Automatisation IA (Priorité Critique)
-Avant d'intégrer des collaborateurs, nous devons stabiliser le moteur de traitement qui est actuellement défaillant.
-
-*   **Diagnostic Intégral** : Identifier pourquoi la reprise des images par l'IA ne fonctionne pas (problème de payload, timeout API OpenAI ou mauvaise gestion des médias Spatie).
-*   **Refonte du `PhotoDamageAnalyzer`** : 
-    *   Optimisation des prompts pour une classification 100% cohérente.
-    *   Implémentation d'un mécanisme de "Retry" intelligent en cas d'échec de l'IA.
-    *   Logging granulaire pour isoler les erreurs de traitement par photo.
-
----
-
 ## 🏗️ Phase 1 : Architecture RBAC & Gestion des Sièges (10 Max)
 L'administration doit avoir une visibilité totale sur qui peut faire quoi.
 
@@ -121,7 +110,6 @@ Développement d'utilitaires mobiles ultra-légers pour simplifier l'acquisition
 *   **Business Model** : 100% gratuit, sans publicité.
 *   **Call-To-Action** : Bouton unique "Envoyer à OmnyRestore" redirigeant vers la plateforme avec les photos prêtes. Pour cela le compte une fois connecté serait un identifiant unique permettant à l'utilisateur de lié son compte avec la plateforme. c'est valable pour android et ios. C'est un outil de captation de clients.
 *   Le theme doit être similaire à celui de la plateforme pour garder une certaine cohérence visuelle.
-*   
 
 ---
 
@@ -165,8 +153,19 @@ Transformer les données en rapports professionnels exploitables.
 
 ---
 
+## 🛠️ Phase 7 : Diagnostic & Hardening de l'Automatisation IA
+Dernière étape technique pour parfaire l'écosystème : stabiliser définitivement le moteur de traitement.
+
+*   **Diagnostic Intégral** : Identifier pourquoi la reprise des images par l'IA ne fonctionne pas parfois (problème de payload, timeout API OpenAI ou mauvaise gestion des médias Spatie).
+*   **Refonte du `PhotoDamageAnalyzer`** : 
+    *   Optimisation des prompts pour une classification 100% cohérente.
+    *   Implémentation d'un mécanisme de "Retry" intelligent en cas d'échec de l'IA.
+    *   Logging granulaire pour isoler les erreurs de traitement par photo.
+
+---
+
 ## 🚀 Prochaines Étapes Suggérées (Roadmap)
 1. ✅ **Phase 1 (Base Collaborative)** : Migrations DB `operator_id`, Middlewares `EnsureIsStaff`/`EnsureIsAdmin`, Dashboard de Transparence Salariale et Assignation terminés.
-2. ⏳ **Phase de Diagnostic (IA)** : Reprendre la résolution du bug d'automatisation de l'IA (Phase 0).
-3. ⏳ **Gestion de l'Équipe** : Créer l'interface `/admin/team/roles` pour inviter des collaborateurs et gérer les 10 sièges.
-4. ⏳ **Prototype IA** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.
+2. ⏳ **Gestion de l'Équipe (Phase 1.5)** : Créer l'interface `/admin/team/roles` pour inviter des collaborateurs et gérer les 10 sièges.
+3. ⏳ **Prototype IA (Phase 4)** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.
+4. ⏳ **Hardening IA (Phase 7)** : Reprendre la résolution du bug d'automatisation de l'IA.

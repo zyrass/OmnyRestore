@@ -72,10 +72,12 @@ new class extends Component
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.orders.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     Commandes
                 </a>
+                @if(!Auth::user()->isAdmin())
                 <a href="{{ route('admin.transparency.index') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.transparency.index') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     Transparence
                 </a>
+                @endif
                 <a href="{{ route('admin.clients') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.clients') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     Clients
@@ -159,6 +161,12 @@ new class extends Component
                      class="absolute right-0 top-10 w-52 bg-[#1A1510] border border-[#C9A84C]/15 rounded-sm shadow-xl py-1 z-50">
                     @if (Auth::user()->isStaff())
 
+                    @if(Auth::user()->isAdmin())
+                    <a href="{{ route('admin.transparency.index') }}" wire:navigate
+                       class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 transition-colors border-b border-white/5">
+                        Transparence Salariale
+                    </a>
+                    @endif
                     <a href="{{ route('admin.moderation.lexicon') }}" wire:navigate
                        class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-red-400 hover:bg-red-900/10 transition-colors border-b border-white/5">
                         Lexique Modération
