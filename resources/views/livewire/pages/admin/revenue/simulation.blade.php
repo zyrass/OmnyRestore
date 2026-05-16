@@ -120,6 +120,11 @@ class extends Component
         $targetOrders = $averageOrderPrice > 0 ? ceil($targetCaTtc / $averageOrderPrice) : 0;
         $estimatedStripeFees = ($targetCaTtc * $stripePct) + ($targetOrders * 0.25);
 
+        // Plafond Micro-Entreprise (BNC Prestations)
+        $microCeiling = 77700;
+        $projectedAnnualRevenue = $targetCaTtc * 12;
+        $microUsagePercentage = min(100, ($projectedAnnualRevenue / $microCeiling) * 100);
+
         return [
             'collabTotalCost' => $collabTotalCost,
             'targetCaTtc' => $targetCaTtc,
@@ -134,6 +139,8 @@ class extends Component
             'dirigeantTotalCost' => $dirigeantTotalCost,
             'additionalFixedCosts' => $additionalFixedCosts,
             'isProvision' => $targetCaTtc * ($this->isSasu ? $effectiveMarginRate * $isRate : 0),
+            'projectedAnnualRevenue' => $projectedAnnualRevenue,
+            'microUsagePercentage' => $microUsagePercentage,
         ];
     }
 }; ?>
@@ -194,6 +201,28 @@ class extends Component
                             @endif
                         </p>
                     </div>
+
+                    {{-- Alerte Plafond Micro --}}
+                    @if(!$isSasu)
+                    <div class="mt-4 p-3 bg-[#120F0A] border border-[#C9A84C]/10 rounded-sm">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="text-[10px] uppercase tracking-wider text-[#7A6E5E]">Utilisation Plafond Micro (77 700€)</span>
+                            <span class="text-[10px] font-bold {{ $microUsagePercentage > 80 ? 'text-amber-500' : 'text-[#C9A84C]' }}">{{ number_format($microUsagePercentage, 1) }}%</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div class="h-full transition-all duration-500 {{ $microUsagePercentage > 80 ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'bg-[#C9A84C]' }}" style="width: {{ $microUsagePercentage }}%"></div>
+                        </div>
+                        @if($microUsagePercentage > 80)
+                            <div class="flex items-start gap-2 mt-2">
+                                <span class="text-amber-500 text-xs">⚠️</span>
+                                <p class="text-[9px] text-amber-500/80 leading-tight">
+                                    Alerte : Vous projetez <strong>{{ number_format($projectedAnnualRevenue, 0, ',', ' ') }} €/an</strong>. 
+                                    À plus de 80% du plafond, il est critique d'anticiper la transition en <strong>SASU</strong> dès maintenant.
+                                </p>
+                            </div>
+                        @endif
+                    </div>
+                    @endif
                 </div>
             </div>
 
