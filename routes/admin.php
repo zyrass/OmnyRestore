@@ -6,21 +6,21 @@ use Livewire\Volt\Volt;
 /**
  * Admin Routes — OmnyRestore
  *
- * Back-office accessible uniquement aux utilisateurs avec role='admin'.
- * Stack middleware: auth → verified → admin (EnsureIsAdmin)
+ * Back-office réparti entre le 'staff' (opérateurs, marketing) et 'admin' (super-admin).
+ * Stack middleware de base : auth → verified → staff (EnsureIsStaff)
  */
 
-Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.')->group(function () {
 
-    // ─── Dashboard ────────────────────────────────────────────────────────
+    // ─── ROUTES STAFF (Accès Opérateurs & Marketing) ──────────────────────
+
     // GET /admin/dashboard — KPIs + file d'attente des commandes PENDING
     Volt::route('/dashboard', 'pages.admin.dashboard')
         ->name('dashboard');
 
-    // ─── Compliance / Légal ───────────────────────────────────────────────
-    // GET /admin/compliance — Rappels légaux (RGPD, NIS2) pour l'admin
-    Volt::route('/compliance', 'pages.admin.compliance')
-        ->name('compliance');
+    // GET /admin/transparency — Dashboard de transparence salariale (Loi UE)
+    Volt::route('/transparency', 'pages.admin.transparency.index')
+        ->name('transparency.index');
 
     // ─── Order Management ─────────────────────────────────────────────────
     // GET /admin/orders — Liste toutes les commandes (filtrables)
@@ -65,19 +65,6 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Volt::route('/clients', 'pages.admin.clients.index')
         ->name('clients');
 
-    // ─── Chiffre d'Affaire ───────────────────────────────────────────────
-    // GET /admin/revenue — CA mensuel avec graphes Chart.js
-    Volt::route('/revenue', 'pages.admin.revenue.index')
-        ->name('revenue');
-
-    // GET /admin/revenue/simulation — Simulateur d'objectifs (2 personnes)
-    Volt::route('/revenue/simulation', 'pages.admin.revenue.simulation')
-        ->name('revenue.simulation');
-
-    Route::get('/revenue/export',
-        \App\Http\Controllers\Admin\AdminRevenueExportController::class . '@download'
-    )->name('revenue.export');
-
     // ─── Témoignages (modération) ─────────────────────────────────────────
     // GET /admin/testimonials — Modération (publier / rejeter / supprimer)
     Volt::route('/testimonials', 'pages.admin.testimonials.index')
@@ -94,13 +81,37 @@ Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.'
     Volt::route('/moderation/lexicon', 'pages.admin.moderation.lexicon')
         ->name('moderation.lexicon');
 
-    // ─── Cellule de Crise (PRI) ──────────────────────────────────────────
-    // Poste de commandement en cas d'incident majeur ou RGPD
-    Volt::route('/incident-response', 'pages.admin.incident.index')
-        ->name('incident.response');
 
-    Route::get('/incident-response/export',
-        \App\Http\Controllers\Admin\IncidentReportController::class . '@download'
-    )->name('incident.export');
+    // ─── ROUTES SUPER-ADMIN (Pilotage & Finances) ─────────────────────────
+    Route::middleware(['admin'])->group(function () {
+
+        // ─── Compliance / Légal ───────────────────────────────────────────────
+        // GET /admin/compliance — Rappels légaux (RGPD, NIS2) pour l'admin
+        Volt::route('/compliance', 'pages.admin.compliance')
+            ->name('compliance');
+
+        // ─── Chiffre d'Affaire ───────────────────────────────────────────────
+        // GET /admin/revenue — CA mensuel avec graphes Chart.js
+        Volt::route('/revenue', 'pages.admin.revenue.index')
+            ->name('revenue');
+
+        // GET /admin/revenue/simulation — Simulateur d'objectifs (2 personnes)
+        Volt::route('/revenue/simulation', 'pages.admin.revenue.simulation')
+            ->name('revenue.simulation');
+
+        Route::get('/revenue/export',
+            \App\Http\Controllers\Admin\AdminRevenueExportController::class . '@download'
+        )->name('revenue.export');
+
+        // ─── Cellule de Crise (PRI) ──────────────────────────────────────────
+        // Poste de commandement en cas d'incident majeur ou RGPD
+        Volt::route('/incident-response', 'pages.admin.incident.index')
+            ->name('incident.response');
+
+        Route::get('/incident-response/export',
+            \App\Http\Controllers\Admin\IncidentReportController::class . '@download'
+        )->name('incident.export');
+
+    });
 
 });

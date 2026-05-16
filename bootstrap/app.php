@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\EnsureIsAdmin;
 use App\Http\Middleware\EnsureIsClient;
+use App\Http\Middleware\EnsureIsStaff;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin'  => EnsureIsAdmin::class,
             'client' => EnsureIsClient::class,
+            'staff'  => EnsureIsStaff::class,
         ]);
 
         // ─── Exemptions CSRF ────────────────────────────────────────────────────

@@ -29,9 +29,10 @@ Avant d'intégrer des collaborateurs, nous devons stabiliser le moteur de traite
 L'administration doit avoir une visibilité totale sur qui peut faire quoi.
 
 ### Structure des Rôles
-*   **Super-Admin** : Propriétaire. Accès total (Finances, RBAC, Crise, Logs).
+*   **Super-Admin** : Propriétaire. Accès total (Configuration, Pilotage stratégique, Crise, Logs).
 *   **Collaborateur (Opérateur)** : Focus sur le traitement des photos et le support client.
 *   **Marketing** : Focus sur l'acquisition, les coupons et les avis clients.
+*   **Transparence Légale (Loi Européenne)** : *Tous les rôles ci-dessus* ont accès en lecture à un **Dashboard de Transparence Salariale** centralisant les revenus et performances de tous les collègues, par honnêteté et conformité légale.
 
 ### Diagramme d'État : Cycle de Vie d'un Compte Staff
 ```mermaid
@@ -104,17 +105,11 @@ graph TD
 ```
 
 ### Fonctionnalités Clés
+
 *   **Centre de Coupons** : Interface pour créer des campagnes (ex: `FLASH20` pour -20% sur 24h).
 *   **Gestion des Avis** : Modération avancée avec analyse de sentiment IA.
 *   **Mass Mailer (GDPR Ready)** : Envoi de newsletters aux clients ayant consenti, avec filtres (ex: "Tous les clients ayant dépensé plus de 50€").
-*   **Calendrier Promotionnel (Modèles)** :
-    *   **Noël & Jour de l'An** (ex: `NOEL2026`)
-    *   **Saint-Valentin** (ex: `VALENTIN24`)
-    *   **Fête des Mères** (ex: `MAMAN15`)
-    *   **Fête des Pères** (ex: `PAPA15`)
-    *   **Black Friday** (ex: `BLACKOMNY`)
 *   **Analyses de Conversion** : Suivi de l'utilisation des coupons vs CA généré.
-
 *   **Exemple (Facebook)** : "Ne laissez pas vos souvenirs s'effacer ! Nos experts (et nos IA) redonnent vie à vos photos de famille. 📸 Profitez de -10% avec le code SOUVENIR10 !"
 
 ### 📱 Stratégie "CamScanner" (Acquisition Mobile)
@@ -124,7 +119,9 @@ Développement d'utilitaires mobiles ultra-légers pour simplifier l'acquisition
     *   **Android/Multi (React Native)** : Pour une couverture universelle rapide.
 *   **Fonctionnalité Critique** : **Suppression intégrale des métadonnées EXIF** dès la capture (Anonymisation technique immédiate pour éviter tout problème de confidentialité/tracking).
 *   **Business Model** : 100% gratuit, sans publicité.
-*   **Call-To-Action** : Bouton unique "Envoyer à OmnyRestore" redirigeant vers la plateforme avec les photos prêtes.
+*   **Call-To-Action** : Bouton unique "Envoyer à OmnyRestore" redirigeant vers la plateforme avec les photos prêtes. Pour cela le compte une fois connecté serait un identifiant unique permettant à l'utilisateur de lié son compte avec la plateforme. c'est valable pour android et ios. C'est un outil de captation de clients.
+*   Le theme doit être similaire à celui de la plateforme pour garder une certaine cohérence visuelle.
+*   
 
 ---
 
@@ -161,15 +158,15 @@ Transformer les données en rapports professionnels exploitables.
 ## 🛡️ Phase 6 : Sécurité & Audit Trail
 *   **Logs Granulaires** : Chaque modification de prix ou de statut est enregistrée avec l'ID de l'opérateur.
 *   **Middlewares de protection** :
-    *   `EnsureIsStaff` : Accès global au panel.
-    *   `EnsureIsAdmin` : Accès aux sections sensibles (CA, RBAC).
+    *   `EnsureIsStaff` : Accès global au panel (Commandes, Tickets) ET au **Dashboard de Transparence Salariale**.
+    *   `EnsureIsAdmin` : Accès exclusif aux sections de gestion d'entreprise (Configuration Stripe, Pilotage SASU, RBAC).
 *   **Délivrabilité (DMARC)** : Implémentation de politiques SPF/DKIM/DMARC strictes pour éviter le blacklistage lors des envois de masse (Newsletters, Relances).
 *   **Anonymisation RGPD** : Lors de la suppression d'un collaborateur, ses actions historiques sont conservées mais son nom est remplacé par "Ex-Opérateur X".
 
 ---
 
 ## 🚀 Prochaines Étapes Suggérées (Roadmap)
-1. **Phase de Diagnostic** : Résoudre le bug d'automatisation de l'IA (Phase 0).
-2. **Migration DB** : Ajouter les rôles et les champs de tracking dans les tables `users` et `orders`.
-3. **Maquette RBAC** : Créer l'interface de visualisation des droits pour validation.
-4. **Prototype IA** : Intégrer le premier bouton de correction sur les tickets de support.
+1. ✅ **Phase 1 (Base Collaborative)** : Migrations DB `operator_id`, Middlewares `EnsureIsStaff`/`EnsureIsAdmin`, Dashboard de Transparence Salariale et Assignation terminés.
+2. ⏳ **Phase de Diagnostic (IA)** : Reprendre la résolution du bug d'automatisation de l'IA (Phase 0).
+3. ⏳ **Gestion de l'Équipe** : Créer l'interface `/admin/team/roles` pour inviter des collaborateurs et gérer les 10 sièges.
+4. ⏳ **Prototype IA** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.

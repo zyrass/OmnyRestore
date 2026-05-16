@@ -131,14 +131,31 @@ class User extends Authenticatable implements MustVerifyEmail
     // =========================================================================
 
     /**
-     * Check if this user is an administrator.
+     * Check if this user is a super-administrator (Legacy isAdmin alias).
      *
      * Used in: Middleware, Policies, Blade @can directives.
-     * Example: @if(auth()->user()->isAdmin())
      */
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->isSuperAdmin();
+    }
+
+    /**
+     * Check if this user is the super-administrator (Owner).
+     * Has full access including finances and RBAC settings.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super-admin';
+    }
+
+    /**
+     * Check if this user is part of the staff (Operator, Marketing, or Super-Admin).
+     * Has access to the main dashboard, orders, and tickets.
+     */
+    public function isStaff(): bool
+    {
+        return in_array($this->role, ['super-admin', 'operator', 'marketing']);
     }
 
     /**

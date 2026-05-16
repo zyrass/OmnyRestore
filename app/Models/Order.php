@@ -141,6 +141,7 @@ class Order extends Model implements HasMedia
         'billing_name',
         'billing_email',
         'client_ip',
+        'operator_id', // RBAC Assignation
     ];
 
     /**
@@ -406,6 +407,18 @@ class Order extends Model implements HasMedia
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    /**
+     * The staff member (operator) assigned to process this order.
+     *
+     * Usage: $order->operator → User model
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function operator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'operator_id');
     }
 
     /**

@@ -45,7 +45,7 @@ class extends Component
 
     public function mount(Order $order): void
     {
-        $this->order      = $order->load(['user' => fn($u) => $u->withTrashed(), 'media', 'delivery', 'auditLogs', 'testimonial']);
+        $this->order      = $order->load(['user' => fn($u) => $u->withTrashed(), 'media', 'delivery', 'auditLogs', 'testimonial', 'operator']);
         
         // Initialisation du prix en TTC pour l'affichage admin
         $this->finalPrice = number_format($this->order->getAmountTtcCents() / 100, 2, '.', '');
@@ -56,10 +56,13 @@ class extends Component
     public function takeCharge(AuditService $audit): void
     {
         $previous = $this->order->status;
+        
+        $this->order->operator_id = auth()->id();
         $this->order->startProcessing();
+        
         $audit->orderStatusChanged($this->order, $previous, 'IN_PROGRESS');
         session()->flash('success', 'Commande prise en charge — statut : En cours');
-        $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
+        $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs', 'operator']);
     }
 
     /**
@@ -564,9 +567,17 @@ class extends Component
                     {{ $labels[$order->status] ?? $order->status }}
                 </span>
             </div>
-            <p class="text-[#7A6E5E] text-sm mt-1">
-                {{ $order->user?->name ?? 'Utilisateur supprimé' }} · {{ $order->user?->email ?? '—' }} · {{ $order->created_at->format('d/m/Y H:i') }}
-            </p>
+            <div class="flex items-center gap-4 text-[#7A6E5E] text-sm mt-1">
+                <p>
+                    {{ $order->user?->name ?? 'Utilisateur supprimé' }} · {{ $order->user?->email ?? '—' }} · {{ $order->created_at->format('d/m/Y H:i') }}
+                </p>
+                @if($order->operator)
+                <div class="flex items-center gap-1.5 px-2 py-0.5 bg-[#1A1510] border border-[#C9A84C]/20 rounded text-xs text-[#C9A84C]">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                    Pris en charge par {{ $order->operator->name }}
+                </div>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -649,7 +660,7 @@ class extends Component
             {{-- === SECTION IA DÉPLACÉE DANS LA SIDEBAR === --}}
 
             {{-- === ACTION : UPLOAD (Statut IN_PROGRESS) === --}}
-            @if ($order->status === 'IN_PROGRESS')
+            @if ($order->status === 'IN_PROGRESS' && (auth()->user()->isSuperAdmin() || auth()->id() === $order->operator_id))
             <form wire:submit="uploadRestoredPhotos" class="card-glass p-6 border-blue-500/20">
                 <h2 class="text-[#F5F0E8] font-semibold mb-1">Uploader les photos restaurées</h2>
                 <p class="text-[#7A6E5E] text-sm mb-5">Une fois uploadées, vous pourrez envoyer l'email de validation au client.</p>
@@ -779,7 +790,7 @@ class extends Component
             @endif
 
             {{-- === 📧 Notification client (Déplacé ici pour visibilité) === --}}
-            @if (in_array($order->status, ['IN_PROGRESS', 'DONE']) && $order->getMedia('retouched')->isNotEmpty())
+            @if (in_array($order->status, ['IN_PROGRESS', 'DONE']) && $order->getMedia('retouched')->isNotEmpty() && (auth()->user()->isSuperAdmin() || auth()->id() === $order->operator_id))
             <div class="card-glass p-5 border-emerald-500/20 bg-emerald-500/5 mb-6">
                 <h3 class="text-emerald-400 text-xs tracking-widest uppercase border-b border-emerald-500/20 pb-2 mb-4 font-semibold">Notifier le client</h3>
                 <p class="text-[#7A6E5E] text-[11px] mb-4 leading-relaxed">

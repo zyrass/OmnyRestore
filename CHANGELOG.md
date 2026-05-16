@@ -6,6 +6,23 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.27.0] — 2026-05-16 — Écosystème Collaboratif & Transparence Salariale (Phase 1)
+
+### ✨ Nouveautés & Améliorations
+
+- **Sécurisation RBAC (Role-Based Access Control)** :
+  - Restructuration majeure des accès avec la création du middleware `EnsureIsStaff` (Opérateurs, Marketing, Super-Admin) et le durcissement de `EnsureIsAdmin` (réservé à la Direction).
+  - Cloisonnement strict des données financières, statistiques et légales pour protéger la confidentialité de l'entreprise tout en ouvrant l'opérationnel.
+- **Assignation des Commandes (Anti-Collision)** :
+  - Nouveau système de verrouillage : l'action de "Prendre en charge" assigne automatiquement la commande à l'opérateur connecté (`operator_id`).
+  - Sécurité active : les actions de livraison (upload photos, notification) sont désormais inaccessibles aux autres collaborateurs pour éviter les doublons de traitement.
+- **Dashboard de Transparence Salariale** (`/admin/transparency`) :
+  - Création d'un module conforme à la directive de l'UE sur la transparence des rémunérations.
+  - Affichage en temps réel du Chiffre d'Affaires généré et du volume de commandes traitées par chaque collaborateur sur le mois en cours.
+  - Interface "Glass-Card" premium accessible à tout le staff, favorisant l'honnêteté et la motivation de l'équipe.
+
+---
+
 ## [0.26.0] — 2026-05-16 — Optimisation Mémoire & Expérience Premium Post-Paiement
 
 ### ✨ Nouveautés & Améliorations

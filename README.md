@@ -13,7 +13,7 @@
 
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
 [![Tests](https://img.shields.io/badge/Tests-64%2F64%20%E2%9C%85-22c55e?style=for-the-badge&logo=php&logoColor=white)](tests/)
-[![Version](https://img.shields.io/badge/Version-0.24.0-6366f1?style=for-the-badge)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Version-0.27.0-6366f1?style=for-the-badge)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
 </div>
@@ -605,13 +605,10 @@ git commit -m "feat(tickets): interface admin tickets support" \
 - [x] `v0.21.0` — **Pilotage Financier & Simulateur Objectifs**
 - [x] `v0.22.0` — **Hardening Administratif & Assets Locaux**
 - [x] `v0.23.0` — **Standardisation UI & Master Plan v2**
-- [x] `v0.24.0` — **Stratégie d'Acquisition & Croissance SASU** ← *actuel*
-  - [x] Simulateur de croissance (Toggle SASU, Charges patronales, IS)
-  - [x] Option "Collaborateur Salarié" (CDI) vs Freelance (AE)
-  - [x] Monitoring dynamique du plafond Micro (77 700€) — Réel (YTD) + Projeté
-  - [x] Interface "Preuve par le calcul" pour l'atterrissage annuel
-  - [x] Planification Apps Mobiles "CamScanner" (Swift/RN) avec retrait EXIF
-  - [x] Hardening délivrabilité (DMARC)
+- [x] `v0.24.0` — **Stratégie d'Acquisition & Croissance SASU**
+- [x] `v0.25.0` — **Optimisation Support & Résilience Workers**
+- [x] `v0.26.0` — **Optimisation Mémoire & Expérience Premium Post-Paiement**
+- [x] `v0.27.0` — **Écosystème Collaboratif & Transparence Salariale** ← *actuel*
 - [ ] `v1.0.0` — **MVP — Déploiement production (OVH)**
 - [ ] `v2.0.0` — Multi-prestataires + messagerie avancée
 
