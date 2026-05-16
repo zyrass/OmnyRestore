@@ -21,6 +21,7 @@ class extends Component
     public $fixedCosts = 150; // Serveurs, BFR, frais fixes mensuels en €
     public $securityReserve = 1000; // Plafond de sécurité impératif à laisser en banque
     public $isSasu = false; // Toggle Micro-entreprise vs SASU
+    public $isCollabSalaried = false; // Toggle Freelance vs Salarié
 
     public function mount()
     {
@@ -30,6 +31,7 @@ class extends Component
         $this->fixedCosts = $settings['fixed'] ?? 150;
         $this->securityReserve = $settings['reserve'] ?? 1000;
         $this->isSasu = $settings['isSasu'] ?? false;
+        $this->isCollabSalaried = $settings['isCollabSalaried'] ?? false;
         
         // Calcul du panier moyen réel sur les 30 derniers jours
         $recentOrders = Order::where('payment_status', 'paid')
@@ -59,6 +61,7 @@ class extends Component
             'averageOrderPrice' => (float) ($this->averageOrderPrice ?: 0),
             'iaRatio' => (float) ($this->iaRatio ?: 0),
             'isSasu' => (bool) $this->isSasu,
+            'isCollabSalaried' => (bool) $this->isCollabSalaried,
         ]);
     }
 
@@ -71,8 +74,15 @@ class extends Component
         $fixedCosts = (float) ($this->fixedCosts ?: 0);
         $securityReserve = (float) ($this->securityReserve ?: 0);
 
-        // Le collab (BNC à 21.2%) doit facturer:
-        $collabInvoice = $targetNetCollab / (1 - 0.212); 
+        // --- CALCUL COUT COLLABORATEUR ---
+        $collabTotalCost = 0;
+        if ($this->isCollabSalaried) {
+            // Salarié : Net * ~1.8 (Charges patronales + salariales)
+            $collabTotalCost = $targetNetCollab * 1.8;
+        } else {
+            // Freelance AE : Net / (1 - 0.212)
+            $collabTotalCost = $targetNetCollab / (1 - 0.212); 
+        }
         
         $ratioIaDecimal = $iaRatio / 100;
         
@@ -80,7 +90,7 @@ class extends Component
         $stripePct = 0.015;
         $stripeFixedRatio = $averageOrderPrice > 0 ? (0.25 / $averageOrderPrice) : 0;
         
-        // --- LOGIQUE SPECIFIQUE AU REGIME ---
+        // --- LOGIQUE SPECIFIQUE AU REGIME FISCAL ---
         $targetCaTtc = 0;
         $dirigeantTotalCost = 0;
         $additionalFixedCosts = 0;
@@ -89,27 +99,21 @@ class extends Component
 
         if ($this->isSasu) {
             // SASU : Le dirigeant est "assimilé salarié"
-            // Coût entreprise = Net * ~1.8 (Charges patronales + salariales)
             $dirigeantTotalCost = $targetNetDirigeant * 1.82;
+            $additionalFixedCosts = 225; // Comptable + Banque Pro
             
-            // Frais fixes supplémentaires SASU (Comptable: 200€, Banque: 25€)
-            $additionalFixedCosts = 225;
-            
-            // Marge brute après IA et Stripe (On ignore l'URSSAF sur CA ici car c'est sur le salaire)
             $marginAfterVariable = 1 - $ratioIaDecimal - $stripePct - $stripeFixedRatio;
             
             if ($marginAfterVariable > 0) {
-                // CA_HT (on suppose ici que le CA TTC est notre base de travail car le client paie TTC)
                 // CA * marginAfterVariable = (ChargesFixes + Salaires + Reserve) / (1 - IS)
-                // On simplifie pour la simulation
-                $targetCaTtc = ($dirigeantTotalCost + $collabInvoice + $fixedCosts + $additionalFixedCosts + $securityReserve) / ($marginAfterVariable * (1 - $isRate));
+                $targetCaTtc = ($dirigeantTotalCost + $collabTotalCost + $fixedCosts + $additionalFixedCosts + $securityReserve) / ($marginAfterVariable * (1 - $isRate));
             }
             $effectiveMarginRate = $marginAfterVariable * (1 - $isRate);
         } else {
             // MICRO-ENTREPRISE : URSSAF de 21.2% sur le CA TTC
             $effectiveMarginRate = 1 - 0.212 - $ratioIaDecimal - $stripePct - $stripeFixedRatio;
             if ($effectiveMarginRate > 0) {
-                $targetCaTtc = ($targetNetDirigeant + $collabInvoice + $fixedCosts + $securityReserve) / $effectiveMarginRate;
+                $targetCaTtc = ($targetNetDirigeant + $collabTotalCost + $fixedCosts + $securityReserve) / $effectiveMarginRate;
             }
         }
         
@@ -117,7 +121,7 @@ class extends Component
         $estimatedStripeFees = ($targetCaTtc * $stripePct) + ($targetOrders * 0.25);
 
         return [
-            'collabInvoice' => $collabInvoice,
+            'collabTotalCost' => $collabTotalCost,
             'targetCaTtc' => $targetCaTtc,
             'targetOrders' => $targetOrders,
             'effectiveMarginRate' => $effectiveMarginRate * 100,
@@ -174,8 +178,21 @@ class extends Component
                     </div>
                     
                     <div>
-                        <label class="block text-xs uppercase tracking-wider text-[#7A6E5E] mb-1">Salaire Net Collaborateur (€)</label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs uppercase tracking-wider text-[#7A6E5E]">Salaire Net Collaborateur (€)</label>
+                            <div class="flex bg-[#120F0A] p-0.5 rounded-sm border border-[#C9A84C]/10">
+                                <button wire:click="$set('isCollabSalaried', false)" class="px-2 py-0.5 text-[8px] uppercase transition-all {{ !$isCollabSalaried ? 'bg-[#C9A84C]/20 text-[#C9A84C] font-bold' : 'text-[#7A6E5E]' }}">Free</button>
+                                <button wire:click="$set('isCollabSalaried', true)" class="px-2 py-0.5 text-[8px] uppercase transition-all {{ $isCollabSalaried ? 'bg-[#C9A84C]/20 text-[#C9A84C] font-bold' : 'text-[#7A6E5E]' }}">CDI</button>
+                            </div>
+                        </div>
                         <input type="number" wire:model.live="targetNetCollab" class="w-full bg-[#120F0A] border border-[#C9A84C]/20 rounded-sm text-[#F5F0E8] p-2.5 focus:border-[#C9A84C] focus:ring-1 focus:ring-[#C9A84C] transition-all">
+                        <p class="text-[10px] text-[#7A6E5E] mt-1.5 leading-relaxed">
+                            @if($isCollabSalaried)
+                                Coût entreprise (CDI) : <strong>{{ number_format($collabTotalCost, 0, ',', ' ') }} €</strong>
+                            @else
+                                Facture AE (Net + 21.2%) : <strong>{{ number_format($collabTotalCost, 0, ',', ' ') }} €</strong>
+                            @endif
+                        </p>
                     </div>
                 </div>
             </div>
@@ -303,11 +320,11 @@ class extends Component
                         <span class="text-red-500 font-bold">- {{ number_format($safeSecurityReserve, 2, ',', ' ') }} €</span>
                     </div>
                     
-                    {{-- Ligne Facture Collab --}}
+                    {{-- Ligne Facture Collab / Salaire --}}
                     <div class="flex items-center justify-between py-3 border-b border-white/5 pl-4 relative">
                         <div class="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-red-500/50"></div>
-                        <span class="text-[#7A6E5E] text-sm">Facture du Collaborateur</span>
-                        <span class="text-red-400 font-medium">- {{ number_format($collabInvoice, 2, ',', ' ') }} €</span>
+                        <span class="text-[#7A6E5E] text-sm">{{ $isCollabSalaried ? 'Coût Salarié (Net + Charges)' : 'Facture du Collaborateur' }}</span>
+                        <span class="text-red-400 font-medium">- {{ number_format($collabTotalCost, 2, ',', ' ') }} €</span>
                     </div>
 
                     {{-- Ligne Charges Sociales Dirigeant (SASU) --}}
@@ -327,10 +344,14 @@ class extends Component
                 </div>
             </div>
 
-            <div class="card-glass p-6 border-l-4 border-l-blue-500 bg-blue-900/10">
-                <h4 class="text-blue-400 font-bold text-sm mb-2">Et pour le collaborateur ?</h4>
+            <div class="card-glass p-6 border-l-4 {{ $isCollabSalaried ? 'border-l-amber-500 bg-amber-900/10' : 'border-l-blue-500 bg-blue-900/10' }}">
+                <h4 class="{{ $isCollabSalaried ? 'text-amber-400' : 'text-blue-400' }} font-bold text-sm mb-2">Focus Collaborateur</h4>
                 <p class="text-[#7A6E5E] text-sm leading-relaxed">
-                    Le collaborateur facture <strong>{{ number_format($collabInvoice, 2, ',', ' ') }} €</strong> à la plateforme. En tant qu'auto-entrepreneur, il paie lui-même 21,2% d'URSSAF sur cette facture ({{ number_format($collabInvoice * 0.212, 2, ',', ' ') }} €). Il lui reste donc exactement <strong>{{ number_format($safeTargetNetCollab, 2, ',', ' ') }} €</strong> net dans sa poche.
+                    @if($isCollabSalaried)
+                        En tant que salarié (CDI), le collaborateur perçoit <strong>{{ number_format($safeTargetNetCollab, 2, ',', ' ') }} €</strong> net après impôts. La société paie en réalité <strong>{{ number_format($collabTotalCost, 2, ',', ' ') }} €</strong> tout compris. C'est le prix de la stabilité et de la fidélisation.
+                    @else
+                        Le collaborateur facture <strong>{{ number_format($collabTotalCost, 2, ',', ' ') }} €</strong>. Après ses 21,2% d'URSSAF ({{ number_format($collabTotalCost * 0.212, 2, ',', ' ') }} €), il lui reste <strong>{{ number_format($safeTargetNetCollab, 2, ',', ' ') }} €</strong> net. Attention au plafond de 77 700 €/an !
+                    @endif
                 </p>
             </div>
         </div>
