@@ -158,6 +158,7 @@ class extends Component
             'microUsagePercentage' => $microUsagePercentage,
             'ytdRevenue' => $ytdRevenue,
             'remainingMonths' => $remainingMonths,
+            'lastRealMonthName' => now()->subMonth()->translatedFormat('M'),
         ];
     }
 }; ?>
@@ -231,11 +232,11 @@ class extends Component
                         </div>
                         <div class="mt-2 space-y-1">
                             <div class="flex justify-between text-[8px] text-[#7A6E5E]">
-                                <span>Réel (YTD) :</span>
+                                <span>Déjà encaissé (Jan. à {{ $lastRealMonthName }}) :</span>
                                 <span class="text-[#F5F0E8]">{{ number_format($ytdRevenue, 0, ',', ' ') }} €</span>
                             </div>
                             <div class="flex justify-between text-[8px] text-[#7A6E5E]">
-                                <span>Simulé ({{ $remainingMonths }} mois) :</span>
+                                <span>Objectif prévisionnel ({{ $remainingMonths }} mois) :</span>
                                 <span class="text-[#F5F0E8]">{{ number_format($targetCaTtc * $remainingMonths, 0, ',', ' ') }} €</span>
                             </div>
                         </div>
