@@ -186,11 +186,11 @@ class extends Component
             'microUsagePercentage' => $microUsagePercentage,
             'ytdRevenue' => $ytdRevenue,
             'remainingMonths' => $remainingMonths,
-            'isSmicWarning' => $this->isCollabSalaried && $targetNetCollab > 0 && $targetNetCollab < $smicNet,
-            'smicNet' => $smicNet,
-            'collabRate' => $collabRate,
             'collabNet' => $effectiveNetCollab,
-            'collabCharges' => $collabTotalCost - $effectiveNetCollab,
+            'collabBrut' => $this->isCollabSalaried ? ($effectiveNetCollab / 0.78) : $effectiveNetCollab,
+            'collabPatronales' => $this->isCollabSalaried ? ($collabTotalCost - ($effectiveNetCollab / 0.78)) : 0,
+            'dirigeantBrut' => $this->isSasu ? ($targetNetDirigeant / 0.78) : $targetNetDirigeant,
+            'dirigeantPatronales' => $this->isSasu ? ($dirigeantTotalCost - ($targetNetDirigeant / 0.78)) : 0,
             'lastRealMonthName' => now()->subMonth()->translatedFormat('M'),
         ];
     }
@@ -453,21 +453,25 @@ class extends Component
 
                     @if($collabTotalCost > 0)
                         <div class="flex items-center justify-between pl-4 border-l-2 border-blue-500/30">
-                            <span class="text-[#7A6E5E] text-sm">Salaire Net Collaborateur ({{ $isCollabSalaried ? 'CDI' : 'Freelance' }})</span>
-                            <span class="text-blue-400 font-mono">- {{ number_format($collabNet, 2, ',', ' ') }} €</span>
+                            <span class="text-[#7A6E5E] text-sm">{{ $isCollabSalaried ? 'Salaire Brut Collaborateur (CDI)' : 'Facture Collaborateur (Freelance)' }}</span>
+                            <span class="text-blue-400 font-mono">- {{ number_format($collabBrut, 2, ',', ' ') }} €</span>
                         </div>
-                        @if($collabCharges > 0)
+                        @if($isCollabSalaried && $collabPatronales > 0)
                             <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
-                                <span class="text-[#7A6E5E] text-sm">Charges Sociales Collaborateur (Patronales + Salariales)</span>
-                                <span class="text-red-400 font-mono">- {{ number_format($collabCharges, 2, ',', ' ') }} €</span>
+                                <span class="text-[#7A6E5E] text-sm">Charges Patronales Collaborateur</span>
+                                <span class="text-red-400 font-mono">- {{ number_format($collabPatronales, 2, ',', ' ') }} €</span>
                             </div>
                         @endif
                     @endif
 
                     @if($isSasu)
+                        <div class="flex items-center justify-between pl-4 border-l-2 border-blue-500/30">
+                            <span class="text-[#7A6E5E] text-sm">Salaire Brut Dirigeant (Mandataire)</span>
+                            <span class="text-blue-400 font-mono">- {{ number_format($dirigeantBrut, 2, ',', ' ') }} €</span>
+                        </div>
                         <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
-                            <span class="text-[#7A6E5E] text-sm">Charges Sociales Dirigeant (~82%)</span>
-                            <span class="text-red-400 font-mono">- {{ number_format($dirigeantTotalCost - $safeTargetNetDirigeant, 2, ',', ' ') }} €</span>
+                            <span class="text-[#7A6E5E] text-sm">Charges Patronales Dirigeant</span>
+                            <span class="text-red-400 font-mono">- {{ number_format($dirigeantPatronales, 2, ',', ' ') }} €</span>
                         </div>
                         <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
                             <span class="text-[#7A6E5E] text-sm">Comptabilité & Frais SASU</span>
