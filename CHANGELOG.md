@@ -6,6 +6,11 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [2.4.3] — 2026-05-17 — Harmonisation UI : Badges de Statuts
+
+- **UI & Expérience Utilisateur** :
+  - **Standardisation des Badges** : Refonte esthétique des indicateurs de statuts dans les vues `Équipe & Rôles` (Actif/Suspendu) et `Coupons` (Actif/Expiré/Épuisé) pour s'aligner sur le design minimaliste et encapsulé (`inline-flex`, sans icône de puce) introduit dans la vue des `Tickets de Support`.
+
 ## [2.4.2] — 2026-05-17 — Gouvernance HR : Notes & Avis Confidentiels
 
 - **Gouvernance RH (`/admin/team/roles`)** :
