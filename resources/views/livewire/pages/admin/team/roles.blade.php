@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 
@@ -25,7 +26,8 @@ class extends Component
     // Filtres
     public string $search = '';
     public string $roleFilter = 'all'; // all | super-admin | operator | marketing | rh
-    public string $activeTab = 'members'; // members | rbac | diagrams | simulator
+    #[Url(keep: true)]
+    public string $activeTab = 'members'; // members | rbac | diagrams | simulator | hr_notes
 
     // Modal de création
     public bool $showCreateModal = false;
@@ -377,6 +379,7 @@ class extends Component
 
         return [
             'collaborators' => $query->latest()->paginate(10),
+            'notesCount' => User::whereNotNull('hr_notes')->count(),
             'totalPayroll' => $totalPayroll,
             'runwayCurrent' => $runwayCurrent,
             'runwayHypothetical' => $runwayHypothetical,
@@ -438,10 +441,16 @@ class extends Component
             Simulateur RH & Trésorerie
         </button>
         @if(in_array(Auth::user()->role, ['super-admin', 'rh']))
-        <button wire:click="$set('activeTab', 'hr_notes')" 
-                class="px-5 py-3 text-xs tracking-wider uppercase font-bold border-b-2 transition-all whitespace-nowrap
-                       {{ $activeTab === 'hr_notes' ? 'border-[#C9A84C] text-purple-400 bg-purple-900/10 font-black' : 'border-transparent text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
-            Notes & Avis RH
+        <button wire:click="$set('activeTab', 'hr_notes')"
+                class="py-3 px-4 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap relative
+                {{ $activeTab === 'hr_notes' ? 'border-[#C9A84C] text-purple-400 bg-purple-900/10 font-black' : 'border-transparent text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+            <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                Notes & Avis RH
+                @if($notesCount > 0)
+                    <span class="bg-purple-600 text-[#F5F0E8] text-[9px] px-1.5 py-0.5 rounded-full ml-1">{{ $notesCount }}</span>
+                @endif
+            </span>
         </button>
         @endif
     </div>
@@ -1339,13 +1348,18 @@ class extends Component
 
     // Custom event dispatched from Livewire component
     window.addEventListener('init-mermaid', () => {
-        setTimeout(() => initMermaid(), 50);
+        if (typeof Livewire !== 'undefined') {
+            Livewire.hook('morph.updated', () => {
+                setTimeout(() => initMermaid(), 100);
+            });
+        }
+        setTimeout(() => initMermaid(), 150);
     });
 
     // Morph update hook for Livewire 3 dynamic tab updates
     document.addEventListener('livewire:initialized', () => {
         Livewire.hook('morph.updated', () => {
-            initMermaid();
+            setTimeout(() => initMermaid(), 50);
         });
     });
 
