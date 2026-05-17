@@ -170,6 +170,7 @@ Dernière étape technique pour parfaire l'écosystème : stabiliser définitive
 
 ## 🚀 Prochaines Étapes Suggérées (Roadmap)
 1. ✅ **Phase 1, 1.5 & 1.6 (Base Collaborative, Gestion d'Équipe & E-mail Sécurisé)** : Migrations DB, Middlewares de sécurité (EnsureIsStaff/EnsureIsAdmin), Dashboard de Transparence Salariale, interface premium d'administration de l'équipe (`/admin/team/roles`) avec quota de 10 sièges, anonymisation RGPD, et routage de sécurité avec e-mail de contact réel (`contact_email`) 100% opérationnels.
-2. ✅ **Phase 2 (Accès Lecture Seule Marketing)** : Consultation globale des commandes (`/admin/orders`) et détails en lecture seule pour le rôle `marketing` avec masquage UI, désactivation des notes, bouton "Commandes" dans la navbar et blocage strict 403 en écriture 100% opérationnels.
-3. ⏳ **Prototype IA (Phase 4)** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.
-4. ⏳ **Hardening IA (Phase 7)** : Reprendre la résolution du bug d'automatisation de l'IA.
+2. ✅ **Phase 1.7 (Tabs & Diagrammes de Cycle de Vie Super-Admin)** : Organisation par onglets (`Membres`, `Matrice RBAC`, `Cycle de vie & Diagrammes`) et intégration visuelle interactive du cycle de vie des collaborateurs et workflow opérationnel au sein de la page `/admin/team/roles` 100% opérationnels.
+3. ✅ **Phase 2 (Accès Lecture Seule Marketing)** : Consultation globale des commandes (`/admin/orders`) et détails en lecture seule pour le rôle `marketing` avec masquage UI, désactivation des notes, bouton "Commandes" dans la navbar et blocage strict 403 en écriture 100% opérationnels.
+4. ⏳ **Prototype IA (Phase 4)** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.
+5. ⏳ **Hardening IA (Phase 7)** : Reprendre la résolution du bug d'automatisation de l'IA.

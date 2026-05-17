@@ -25,6 +25,7 @@ class extends Component
     // Filtres
     public string $search = '';
     public string $roleFilter = 'all'; // all | super-admin | operator | marketing
+    public string $activeTab = 'members'; // members | rbac | diagrams
 
     // Modal de création
     public bool $showCreateModal = false;
@@ -258,6 +259,25 @@ class extends Component
         </div>
     </div>
 
+    {{-- Onglets Premium --}}
+    <div class="flex items-center gap-2 border-b border-[#C9A84C]/10 mb-8 pb-px overflow-x-auto no-scrollbar">
+        <button wire:click="$set('activeTab', 'members')" 
+                class="px-5 py-3 text-xs tracking-wider uppercase font-bold border-b-2 transition-all whitespace-nowrap
+                       {{ $activeTab === 'members' ? 'border-[#C9A84C] text-[#C9A84C] bg-[#C9A84C]/5 font-black' : 'border-transparent text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+            Membres de l'Equipe
+        </button>
+        <button wire:click="$set('activeTab', 'rbac')" 
+                class="px-5 py-3 text-xs tracking-wider uppercase font-bold border-b-2 transition-all whitespace-nowrap
+                       {{ $activeTab === 'rbac' ? 'border-[#C9A84C] text-[#C9A84C] bg-[#C9A84C]/5 font-black' : 'border-transparent text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+            Matrice RBAC
+        </button>
+        <button wire:click="$set('activeTab', 'diagrams')" 
+                class="px-5 py-3 text-xs tracking-wider uppercase font-bold border-b-2 transition-all whitespace-nowrap
+                       {{ $activeTab === 'diagrams' ? 'border-[#C9A84C] text-[#C9A84C] bg-[#C9A84C]/5 font-black' : 'border-transparent text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+            Cycle de vie & Diagrammes
+        </button>
+    </div>
+
     {{-- Alertes Flash --}}
     @if (session('success'))
     <div class="card-glass p-4 mb-6 border border-emerald-500/30 bg-emerald-500/5 text-emerald-400 text-sm flex items-center gap-2">
@@ -273,6 +293,7 @@ class extends Component
     </div>
     @endif
 
+    @if($activeTab === 'members')
     {{-- Zone de Filtres et Action --}}
     <div class="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center mb-6">
         <div class="flex flex-col sm:flex-row gap-3 flex-1 max-w-2xl">
@@ -435,14 +456,14 @@ class extends Component
                                                {{ $col->isSuspended() 
                                                   ? 'border-emerald-500/30 text-emerald-400/90 hover:bg-emerald-500/10' 
                                                   : 'border-red-500/30 text-red-400/90 hover:bg-red-500/10' }}">
-                                    {{ $col->isSuspended() ? '✓ Réactiver' : '✕ Suspendre' }}
+                                    {{ $col->isSuspended() ? 'Réactiver' : 'Suspendre' }}
                                 </button>
 
                                 {{-- Supprimer définitivement (RGPD) --}}
                                 <button @click="const wire = $wire; omnyConfirm({
                                             title: 'Supprimer ce collaborateur',
                                             message: 'Le collaborateur sera définitivement retiré de l\'équipe. Ses données personnelles seront anonymisées de façon irréversible sous le tag Ex-Collaborateur, tandis que son historique d\'actions sera conservé de manière anonyme (Art. 17 RGPD).',
-                                            confirmLabel: '🗑 Supprimer',
+                                            confirmLabel: 'Supprimer',
                                             danger: true
                                         }).then(() => wire.deleteMember('{{ $col->id }}'))"
                                         class="p-2 border border-red-500/20 text-red-500/60 hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/5 rounded-sm transition-all"
@@ -472,7 +493,7 @@ class extends Component
         </div>
         @endif
     </div>
-
+    @elseif($activeTab === 'rbac')
     {{-- Permissions Matrix (Matrice de Permissions) --}}
     <div class="mb-12">
         <h2 class="text-lg font-bold text-[#F5F0E8] mb-6 flex items-center gap-2">
@@ -539,6 +560,117 @@ class extends Component
             </div>
         </div>
     </div>
+    @elseif($activeTab === 'diagrams')
+    {{-- Diagrammes & Cycle de vie --}}
+    <div class="mb-12" 
+         x-data="{ 
+             initMermaid() {
+                 this.$nextTick(() => {
+                     if (window.mermaid) {
+                         window.mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+                     }
+                 });
+             }
+         }" 
+         x-init="
+             if (!window.mermaid) {
+                 let script = document.createElement('script');
+                 script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
+                 script.onload = () => {
+                     window.mermaid.initialize({ 
+                         startOnLoad: false, 
+                         theme: 'dark',
+                         themeVariables: {
+                             background: '#0F0C08',
+                             primaryColor: '#1A1510',
+                             primaryTextColor: '#F5F0E8',
+                             primaryBorderColor: '#C9A84C',
+                             lineColor: '#C9A84C',
+                             secondaryColor: '#151C15',
+                             tertiaryColor: '#1F1313'
+                         }
+                     });
+                     window.mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+                 };
+                 document.head.appendChild(script);
+             } else {
+                 window.mermaid.init(undefined, document.querySelectorAll('.mermaid'));
+             }
+             $watch('activeTab', () => initMermaid());
+             document.addEventListener('livewire:navigated', () => initMermaid());
+         }">
+        <h2 class="text-lg font-bold text-[#F5F0E8] mb-2 flex items-center gap-2">
+            <svg class="w-5 h-5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            Documentation Technique & Workflows
+        </h2>
+        <p class="text-[#7A6E5E] text-xs mb-8">Visualisation des processus de gouvernance, des cycles opérationnels et de marketing de la plateforme.</p>
+
+        <div class="space-y-12">
+            {{-- 1. State Diagram / Cycle de vie --}}
+            <div class="card-glass border-[#C9A84C]/10 bg-[#0F0C08]/30 p-6 sm:p-8">
+                <h3 class="text-sm uppercase tracking-wider font-black text-[#C9A84C] mb-6 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[#C9A84C] animate-pulse"></span>
+                    Diagramme d'Etat : Cycle de Vie d'un Compte Staff
+                </h3>
+
+                <div wire:ignore class="mermaid flex justify-center bg-[#0F0C08]/50 p-6 rounded border border-[#C9A84C]/10 overflow-x-auto">
+stateDiagram-v2
+    [*] --> Invitation : Envoi du lien (Admin)
+    Invitation --> Actif : Inscription validée
+    Actif --> Suspendu : Action Admin (Quota atteint/Départ)
+    Suspendu --> Actif : Réactivation
+    Actif --> Anonymisé : Suppression RGPD (Art. 17)
+    Anonymisé --> [*]
+                </div>
+            </div>
+
+            {{-- 2. Sequence Diagram / Workflow Commande --}}
+            <div class="card-glass border-[#C9A84C]/10 bg-[#0F0C08]/30 p-6 sm:p-8">
+                <h3 class="text-sm uppercase tracking-wider font-black text-[#C9A84C] mb-6 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[#C9A84C] animate-pulse"></span>
+                    Diagramme de Sequence : Prise en charge d'une Commande
+                </h3>
+
+                <div wire:ignore class="mermaid flex justify-center bg-[#0F0C08]/50 p-6 rounded border border-[#C9A84C]/10 overflow-x-auto">
+sequenceDiagram
+    participant C as Client
+    participant O as Opérateur
+    participant S as Système (Audit Log)
+    participant A as Admin
+
+    C->>S: Crée une commande (PENDING)
+    O->>S: Sélectionne "Me l'assigner"
+    S-->>O: Marque operator_id = O.id
+    S-->>A: Notifie l'Admin de la prise en charge
+    O->>S: Upload les retouches HD
+    O->>S: Valide le passage en DONE
+    S->>C: Envoie l'email de paiement
+    S->>S: Incrémente KPI (Completed) pour Opérateur O
+                </div>
+            </div>
+
+            {{-- 3. Flowchart / Processus Marketing --}}
+            <div class="card-glass border-[#C9A84C]/10 bg-[#0F0C08]/30 p-6 sm:p-8">
+                <h3 class="text-sm uppercase tracking-wider font-black text-[#C9A84C] mb-6 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-[#C9A84C] animate-pulse"></span>
+                    Flowchart : Processus de Campagne Promo (Mass Mail)
+                </h3>
+
+                <div wire:ignore class="mermaid flex justify-center bg-[#0F0C08]/50 p-6 rounded border border-[#C9A84C]/10 overflow-x-auto">
+graph TD
+    A[Début Campagne] --> B{Filtre Client}
+    B -->|High Spend| C[Segment Premium]
+    B -->|Inactif 30j| D[Segment Relance]
+    C --> E[Appliquer Coupon Spécifique]
+    D --> E
+    E --> F[Vérifier Consentement RGPD]
+    F -->|Oui| G[Envoi via Assistant IA]
+    F -->|Non| H[Exclure du listing]
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
 
     {{-- MODAL : AJOUT COMPTE COLLABORATEUR --}}
     <div x-show="$wire.showCreateModal" 
@@ -624,10 +756,10 @@ class extends Component
                             <input :type="show ? 'text' : 'password'" 
                                    wire:model="newMemberPassword"
                                    placeholder="8 caractères minimum..."
-                                   class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs px-3 py-2.5 rounded-sm focus:outline-none focus:border-[#C9A84C] transition-all font-mono" />
-                            <button type="button" @click="show = !show" class="absolute right-3 top-2.5 text-[#7A6E5E] hover:text-[#F5F0E8]">
-                                <span x-show="!show">👁️</span>
-                                <span x-show="show">🙈</span>
+                                   class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs px-3 py-2.5 pr-16 rounded-sm focus:outline-none focus:border-[#C9A84C] transition-all font-mono" />
+                            <button type="button" @click="show = !show" class="absolute right-3 top-2.5 text-[9px] uppercase font-black tracking-widest text-[#C9A84C] hover:text-[#E5C158] transition-colors h-7 flex items-center">
+                                <span x-show="!show">Afficher</span>
+                                <span x-show="show">Masquer</span>
                             </button>
                         </div>
                         @error('newMemberPassword') <span class="text-red-400 text-[10px] mt-1 block font-mono">{{ $message }}</span> @enderror
