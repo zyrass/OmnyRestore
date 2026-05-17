@@ -71,7 +71,29 @@ class DatabaseSeeder extends Seeder
             $this->command->info("  ✅ Client created: {$client->email}");
         }
 
-        // ─── 3. Testimonials ──────────────────────────────────────────────
+        // ─── 3. Test Staff Accounts ───────────────────────────────────────
+        $staffData = [
+            ['name' => 'Alice RH',        'email' => 'rh@omnyrestore.test',        'role' => 'rh',        'contract' => 'CDI'],
+            ['name' => 'Bob Opérateur',   'email' => 'operator@omnyrestore.test',  'role' => 'operator',  'contract' => 'CDD'],
+            ['name' => 'Charlie Marketing','email' => 'marketing@omnyrestore.test', 'role' => 'marketing', 'contract' => 'Freelance'],
+        ];
+
+        foreach ($staffData as $data) {
+            $staff = User::firstOrCreate(
+                ['email' => $data['email']],
+                [
+                    'name'              => $data['name'],
+                    'password'          => Hash::make('password'),
+                    'role'              => $data['role'],
+                    'contract_type'     => $data['contract'],
+                    'email_verified_at' => now(),
+                    'rgpd_consent_at'   => now(),
+                ]
+            );
+            $this->command->info("  ✅ Staff created: {$staff->email} ({$staff->role})");
+        }
+
+        // ─── 4. Testimonials ──────────────────────────────────────────────
         $this->call(TestimonialSeeder::class);
         $this->command->info('  ✅ Testimonials seedés.');
 
@@ -81,10 +103,13 @@ class DatabaseSeeder extends Seeder
         $this->command->table(
             ['Role', 'Email', 'Password'],
             [
-                ['Admin',  'admin@omnyrestore.test',  'password'],
-                ['Client', 'client@omnyrestore.test', 'password'],
-                ['Client', 'jean@omnyrestore.test',   'password'],
-                ['Client', 'sophie@omnyrestore.test', 'password'],
+                ['Admin',     'admin@omnyrestore.test',     'password'],
+                ['RH',        'rh@omnyrestore.test',        'password'],
+                ['Opérateur', 'operator@omnyrestore.test',  'password'],
+                ['Marketing', 'marketing@omnyrestore.test', 'password'],
+                ['Client',    'client@omnyrestore.test',    'password'],
+                ['Client',    'jean@omnyrestore.test',      'password'],
+                ['Client',    'sophie@omnyrestore.test',    'password'],
             ]
         );
         $this->command->warn('⚠️  These are development credentials — NEVER use in production!');

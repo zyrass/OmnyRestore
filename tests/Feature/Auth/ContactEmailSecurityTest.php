@@ -100,11 +100,11 @@ class ContactEmailSecurityTest extends TestCase
         $this->actingAs($admin);
 
         Volt::test('pages.admin.team.roles')
-            ->call('startEditRole', $member->id)
+            ->call('startEditMember', $member->id)
             ->assertSet('editingContactEmail', '')
             ->set('editingContactEmail', 'op2.updated@gmail.com')
             ->set('editingRole', 'operator')
-            ->call('saveRole')
+            ->call('saveMember')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('users', [

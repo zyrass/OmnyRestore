@@ -12,7 +12,7 @@
 [![Stripe](https://img.shields.io/badge/Stripe-Cashier-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com)
 
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
-[![Tests](https://img.shields.io/badge/Tests-64%2F64%20%E2%9C%85-22c55e?style=for-the-badge&logo=php&logoColor=white)](tests/)
+[![Tests](https://img.shields.io/badge/Tests-76%2F76%20%E2%9C%85-22c55e?style=for-the-badge&logo=php&logoColor=white)](tests/)
 [![Version](https://img.shields.io/badge/Version-2.4.3-6366f1?style=for-the-badge)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
@@ -335,11 +335,14 @@ Après `php artisan migrate --seed` :
 | Rôle | Email | Mot de passe | Accès |
 |------|-------|--------------|-------|
 | **Admin** | `admin@omnyrestore.test` | `password` | `/admin/dashboard` |
+| **RH** | `rh@omnyrestore.test` | `password` | `/admin/hr-profile` |
+| **Opérateur** | `operator@omnyrestore.test` | `password` | `/admin/orders` |
+| **Marketing** | `marketing@omnyrestore.test` | `password` | `/admin/coupons` |
 | Client | `client@omnyrestore.test` | `password` | `/client/orders` |
 | Client | `jean@omnyrestore.test` | `password` | `/client/orders` |
 | Client | `sophie@omnyrestore.test` | `password` | `/client/orders` |
 
-> **Note** : Pour tester admin et client simultanément, utilisez Chrome + une fenêtre **Incognito** (deux sessions distinctes).
+> **Note** : Pour tester plusieurs rôles (admin, rh, client) simultanément, utilisez Chrome + une fenêtre **Incognito** ou plusieurs profils de navigateur.
 
 **Distinction visuelle admin dans la nav :**
 - Badge `[Admin]` en or à côté du nom
@@ -469,7 +472,7 @@ $order->addMedia($destPath)->preservingOriginal()->toMediaCollection('originals'
 
 ## 🧪 Tests & Sécurité
 
-### Suite de tests — **64 tests / 146 assertions** ✅
+### Suite de tests — **76 tests / 172 assertions** ✅
 
 ```bash
 # Lancer tous les tests
@@ -478,7 +481,7 @@ php artisan test
 # Lancer un groupe spécifique
 php artisan test --filter="StripeWebhookTest"
 php artisan test --filter="HorizonAuthTest"
-php artisan test --filter="OrderStateMachineTest"
+php artisan test --filter="ContactEmailSecurityTest"
 ```
 
 ### Couverture par catégorie
@@ -493,7 +496,9 @@ php artisan test --filter="OrderStateMachineTest"
 | Webhook Stripe | `StripeWebhookTest` | 7 | Signature HMAC, paiement, idempotence, échec |
 | Horizon Auth | `HorizonAuthTest` | 6 | Gate `viewHorizon` — null/client/admin |
 | Machine d'état | `OrderStateMachineTest` | 10 | Transitions PENDING→PAID→DONE→DELIVERED |
-| **Total** | — | **64** | **146 assertions** |
+| Droits & RBAC | `AccessControlTest` | 10 | Séparation Admin, Opérateur, RH, Marketing |
+| Cybersécurité | `ContactEmailSecurityTest` | 5 | Sécurisation e-mail de contact vs identifiant de connexion |
+| **Total** | — | **76** | **172 assertions** |
 
 ### Sécurité renforcée (v0.15.0)
 
@@ -582,7 +587,10 @@ git commit -m "feat(tickets): interface admin tickets support" \
 - [x] `v2.1.0` — **Cybersécurité & Isolation des Emails (Phase 1.6)**
 - [x] `v2.2.0` — **Accès Lecture Seule Marketing & Rétablissement Suite de Tests 100% Verte**
 - [x] `v2.3.0` — **Espace RH, Actions d'Équipe & Transparence Intégrée**
-- [x] `v2.4.0` — **Assistant de Communication IA OmnyScribe** ← *actuel*
+- [x] `v2.4.0` — **Assistant de Communication IA OmnyScribe**
+- [x] `v2.4.1` — **Hardening UI & Sécurisation Markdown Mermaid**
+- [x] `v2.4.2` — **Gouvernance HR : Notes & Avis Confidentiels**
+- [x] `v2.4.3` — **Harmonisation UI : Badges de Statuts** ← *actuel*
 - [ ] `v3.0.0` — Multi-prestataires + messagerie avancée
 
 ---
