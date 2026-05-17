@@ -192,7 +192,7 @@ class extends Component
     }
 
     /**
-     * Ouvre le mode édition de rôle & HR
+     * Ouvre la modale d'édition d'un collaborateur
      */
     public function startEditMember(string $userId): void
     {
@@ -204,8 +204,45 @@ class extends Component
         $this->editingHireDate = $user->hire_date ? $user->hire_date->format('Y-m-d') : '';
         $this->editingContractEndDate = $user->contract_end_date ? $user->contract_end_date->format('Y-m-d') : '';
         $this->editingNetSalary = $user->net_salary ?? '';
-        $this->editingHrNotes = $user->hr_notes ?? '';
         $this->showEditModal = true;
+    }
+
+    /**
+     * Ouvre la modale d'édition des notes RH d'un collaborateur
+     */
+    public function startEditNote(string $userId): void
+    {
+        $user = User::findOrFail($userId);
+        $this->editingUserId = $userId;
+        $this->editingHrNotes = $user->hr_notes ?? '';
+        $this->showEditNoteModal = true;
+    }
+
+    /**
+     * Enregistre uniquement la note RH
+     */
+    public function saveNote(): void
+    {
+        if (!$this->editingUserId) return;
+
+        $this->validate([
+            'editingHrNotes' => 'nullable|string|max:5000',
+        ]);
+
+        $user = User::findOrFail($this->editingUserId);
+        $user->update([
+            'hr_notes' => $this->editingHrNotes ?: null,
+        ]);
+
+        session()->flash('success', '✅ Avis RH mis à jour pour ' . $user->name);
+        $this->cancelEditNote();
+    }
+
+    public function cancelEditNote(): void
+    {
+        $this->showEditNoteModal = false;
+        $this->editingUserId = null;
+        $this->editingHrNotes = '';
     }
 
     /**
@@ -233,7 +270,6 @@ class extends Component
             'editingHireDate' => 'nullable|date',
             'editingContractEndDate' => 'nullable|date',
             'editingNetSalary' => 'nullable|numeric|min:0',
-            'editingHrNotes' => 'nullable|string|max:5000',
         ], [
             'editingContactEmail.email' => 'L\'adresse e-mail de contact doit être valide.'
         ]);
@@ -249,7 +285,6 @@ class extends Component
             'hire_date' => $this->editingHireDate ?: null,
             'contract_end_date' => ($this->editingContractType === 'CDD' && $this->editingContractEndDate) ? $this->editingContractEndDate : null,
             'net_salary' => $this->editingNetSalary ?: null,
-            'hr_notes' => $this->editingHrNotes ?: null,
         ]);
 
         // Si le salaire a changé
@@ -507,13 +542,6 @@ class extends Component
                                         Contact : {{ $col->contact_email }}
                                     </p>
                                     @endif
-
-                                    @if($col->hr_notes && in_array(Auth::user()->role, ['super-admin', 'rh']))
-                                    <p class="text-purple-400/90 text-[10px] font-normal mt-2 flex items-start gap-1.5 bg-purple-900/10 border border-purple-800/30 px-2 py-1.5 rounded-sm w-full whitespace-normal">
-                                        <svg class="w-3.5 h-3.5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                                        <span class="leading-relaxed">{{ $col->hr_notes }}</span>
-                                    </p>
-                                    @endif
                                 </div>
                             </div>
                         </td>
@@ -602,7 +630,7 @@ class extends Component
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="py-12 text-center text-[#7A6E5E] text-xs">
+                        <td colspan="7" class="py-12 text-center text-[#7A6E5E] text-xs">
                             Aucun collaborateur trouvé correspondant à vos critères.
                         </td>
                     </tr>
@@ -731,7 +759,7 @@ class extends Component
                     @endif
                 </div>
 
-                <button wire:click="startEditMember('{{ $col->id }}')" 
+                <button wire:click="startEditNote('{{ $col->id }}')" 
                         class="mt-auto w-full px-4 py-2.5 bg-[#C9A84C]/5 border border-[#C9A84C]/20 text-[#C9A84C] hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/40 text-[10px] font-black uppercase tracking-[0.1em] rounded-sm transition-all text-center group-hover:bg-[#C9A84C]/10">
                     Rédiger / Modifier
                 </button>
@@ -1131,12 +1159,6 @@ class extends Component
                         <input type="number" wire:model="editingNetSalary" placeholder="Ex: 2500"
                                class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs px-3 py-2.5 rounded-sm focus:outline-none focus:border-[#C9A84C] font-mono" />
                     </div>
-                    <div>
-                        <label class="block text-[10px] text-[#7A6E5E] font-bold uppercase tracking-widest mb-1.5">Avis / Notes RH (Confidentiel)</label>
-                        <textarea wire:model="editingHrNotes" rows="3" placeholder="Évaluation, alertes, observations (visible uniquement par Admin et RH)..."
-                                  class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs px-3 py-2.5 rounded-sm focus:outline-none focus:border-[#C9A84C] font-mono"></textarea>
-                        @error('editingHrNotes') <span class="text-red-400 text-[10px] mt-1 block font-mono">{{ $message }}</span> @enderror
-                    </div>
 
                     {{-- Actions --}}
                     <div class="flex gap-3 pt-4">
@@ -1148,6 +1170,53 @@ class extends Component
                         <button type="submit"
                                 class="flex-1 px-4 py-3 bg-[#C9A84C] text-[#0D0B08] text-xs font-black uppercase tracking-[0.1em] rounded-sm hover:bg-[#E5C158] transition-all">
                             Sauvegarder
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    {{-- MODAL : EDITION NOTE RH --}}
+    <div x-show="$wire.showEditNoteModal" 
+         class="fixed inset-0 z-50 overflow-y-auto" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;">
+        {{-- Backdrop --}}
+        <div class="fixed inset-0 bg-[#060504]/90 backdrop-blur-sm" wire:click="cancelEditNote"></div>
+
+        {{-- Modal Content --}}
+        <div class="flex items-center justify-center min-h-screen p-4 relative">
+            <div class="bg-[#0F0C08] border border-purple-800/30 rounded-sm p-8 max-w-md w-full shadow-2xl relative">
+                <button wire:click="cancelEditNote" class="absolute top-4 right-4 text-[#7A6E5E] hover:text-[#F5F0E8] text-sm">✕</button>
+
+                <h3 class="text-[#F5F0E8] text-xl font-bold uppercase tracking-wider border-b border-purple-800/30 pb-4 mb-6">
+                    Notes & Avis RH
+                </h3>
+
+                <form wire:submit.prevent="saveNote" class="space-y-4">
+                    <div>
+                        <label class="block text-[10px] text-[#7A6E5E] font-bold uppercase tracking-widest mb-1.5">Avis / Notes RH (Confidentiel)</label>
+                        <textarea wire:model="editingHrNotes" rows="6" placeholder="Évaluation, alertes, observations (visible uniquement par Admin et RH)..."
+                                  class="w-full bg-[#1A1510] border border-purple-800/30 text-[#F5F0E8] text-xs px-3 py-2.5 rounded-sm focus:outline-none focus:border-purple-500 font-mono"></textarea>
+                        @error('editingHrNotes') <span class="text-red-400 text-[10px] mt-1 block font-mono">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- Actions --}}
+                    <div class="flex gap-3 pt-4 border-t border-purple-500/10">
+                        <button type="button" 
+                                wire:click="cancelEditNote"
+                                class="flex-1 px-4 py-3 border border-[#3A3028] text-[#7A6E5E] text-xs font-bold uppercase tracking-wider rounded-sm hover:text-[#F5F0E8] transition-all">
+                            Annuler
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-3 bg-purple-600/20 border border-purple-500/40 text-purple-400 hover:bg-purple-600/30 text-xs font-black uppercase tracking-[0.1em] rounded-sm transition-all">
+                            Enregistrer l'avis
                         </button>
                     </div>
                 </form>
