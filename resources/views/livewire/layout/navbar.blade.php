@@ -66,7 +66,7 @@ new class extends Component
                 <a href="{{ route('admin.dashboard') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-all whitespace-nowrap font-medium border border-[#C9A84C]/20 
                           {{ request()->routeIs('admin.dashboard') ? 'text-[#C9A84C] bg-[#C9A84C]/10 border-[#C9A84C]/40' : 'text-[#C9A84C]/80 hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 hover:border-[#C9A84C]/40' }}">
-                    {{ Auth::user()->role === 'super-admin' ? 'Espace Admin' : (Auth::user()->role === 'operator' ? 'Espace Opérateur' : (Auth::user()->role === 'rh' ? 'Espace RH' : 'Espace Marketing')) }}
+                    Dashboard
                 </a>
                 @if(Auth::user()->role !== 'rh')
                 <a href="{{ route('admin.orders.index') }}" wire:navigate
@@ -78,7 +78,11 @@ new class extends Component
                     Clients
                 </a>
                 @endif
-                @if(Auth::user()->isAdmin())
+                @if(in_array(Auth::user()->role, ['super-admin', 'rh']))
+                <a href="{{ route('admin.team.roles') }}" wire:navigate
+                   class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.team.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+                    Équipe
+                </a>
                 <a href="{{ route('admin.revenue') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.revenue') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     CA
@@ -173,12 +177,8 @@ new class extends Component
                         Lexique Modération
                     </a>
 
-                    {{-- Outils d'administration (Super-Admin) --}}
+                    {{-- Outils d'administration (Super-Admin uniquement) --}}
                     @if(Auth::user()->isAdmin())
-                    <a href="{{ route('admin.team.roles') }}" wire:navigate
-                       class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 transition-colors border-b border-white/5">
-                        Gestion de l'Équipe
-                    </a>
                     <a href="{{ route('admin.incident.response') }}" wire:navigate
                        class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-red-400 hover:bg-red-900/10 transition-colors border-b border-white/5">
                         Gestion de Crise

@@ -27,8 +27,11 @@ class EnsureIsStaff
             abort(403, 'Accès réservé aux membres de l\'équipe (Staff).');
         }
 
-        if ($forbiddenRole && $request->user()->role === $forbiddenRole) {
-            abort(403, 'Vous n\'avez pas les privilèges suffisants pour accéder à cette ressource.');
+        if ($forbiddenRole) {
+            $forbiddenRoles = array_map('trim', explode(',', $forbiddenRole));
+            if (in_array($request->user()->role, $forbiddenRoles)) {
+                abort(403, 'Vous n\'avez pas les privilèges suffisants pour accéder à cette ressource.');
+            }
         }
 
         return $next($request);

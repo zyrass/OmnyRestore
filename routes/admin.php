@@ -96,14 +96,9 @@ Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.'
     });
 
 
-    // ─── ROUTES SUPER-ADMIN (Pilotage & Finances) ─────────────────────────
-    Route::middleware(['admin'])->group(function () {
-
-        // ─── Compliance / Légal ───────────────────────────────────────────────
-        // GET /admin/compliance — Rappels légaux (RGPD, NIS2) pour l'admin
-        Volt::route('/compliance', 'pages.admin.compliance')
-            ->name('compliance');
-
+    // ─── ADMIN & RH (Pas de Marketing, Pas d'Opérateur) ───────────────────
+    Route::middleware(['staff:marketing,operator'])->group(function () {
+        
         // ─── Team / Roles Management ──────────────────────────────────────────
         Volt::route('/team/roles', 'pages.admin.team.roles')
             ->name('team.roles');
@@ -120,6 +115,16 @@ Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.'
         Route::get('/revenue/export',
             \App\Http\Controllers\Admin\AdminRevenueExportController::class . '@download'
         )->name('revenue.export');
+        
+    });
+
+    // ─── ROUTES SUPER-ADMIN (Pilotage & Finances) ─────────────────────────
+    Route::middleware(['admin'])->group(function () {
+
+        // ─── Compliance / Légal ───────────────────────────────────────────────
+        // GET /admin/compliance — Rappels légaux (RGPD, NIS2) pour l'admin
+        Volt::route('/compliance', 'pages.admin.compliance')
+            ->name('compliance');
 
         // ─── Cellule de Crise (PRI) ──────────────────────────────────────────
         // Poste de commandement en cas d'incident majeur ou RGPD
