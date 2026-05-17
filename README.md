@@ -71,35 +71,36 @@ graph TB
         DL[Téléchargement<br/>ZIP signé]
     end
 
-    subgraph ADMIN["🔧 Back Office — Rôle Admin"]
-        DASH[Dashboard<br/>KPIs + file d'attente]
-        GES[Gestion statuts<br/>PENDING → IN_PROGRESS → DONE]
-        UPLOAD[Upload photos<br/>Images restaurées par IA]
-        TICKETS_ADM[Tickets support<br/>Réponses + suivi]
-        GOV[Gouvernance & Conformité<br/>RGPD / ISO 27001 / SDSI]
+    subgraph STAFF["🔧 Back Office — Staff & Admin (RBAC)"]
+        DASH[Dashboard & KPIs<br/>(Admin)]
+        TEAM[Gestion Équipe & RH<br/>Gouvernance Confidentielle]
+        MKTG[Coupons & Témoignages<br/>(Marketing)]
+        GES[Commandes & Upload<br/>(Opérateur)]
+        TICKETS_ADM[Tickets & OmnyScribe IA<br/>(Opérateur)]
         ZIP_GEN[Génération ZIP<br/>Job asynchrone]
     end
 
     subgraph INFRA["⚙️ Infrastructure"]
         DB[(PostgreSQL 16)]
-        STORAGE[(Storage local<br/>ou S3)]
-        REDIS[(Redis<br/>Queue + Cache)]
+        STORAGE[(Storage local / S3)]
+        REDIS[(Redis Queue + Cache)]
         STRIPE_API[Stripe API]
-        AI[OpenAI API<br/>GPT-4o Vision]
-        MAIL[Laravel Mail<br/>Transactionnel]
+        AI[OpenAI API<br/>Vision + OmnyScribe]
+        MAIL[Laravel Mail]
     end
 
     V --> AUTH --> DC --> SUIVI --> PAY --> DL
     SUIVI --> TICKET --> TICKETS_ADM
-    DASH --> GES --> UPLOAD --> ZIP_GEN
-
+    DASH --> GES --> ZIP_GEN
+    
     DC --> DB
     DC --> STORAGE
     GES --> DB
-    UPLOAD --> STORAGE
+    GES --> STORAGE
     ZIP_GEN --> REDIS
     PAY --> STRIPE_API
     DC --> AI
+    TICKETS_ADM --> AI
     GES --> MAIL
     TICKET --> MAIL
 ```
@@ -349,80 +350,49 @@ Après `php artisan migrate --seed` :
 
 ## 📁 Structure du projet
 
-```
+```text
 omnyrestore/
 ├── app/
-│   ├── Console/Commands/
-│   │   ├── DebugMedia.php           # php artisan debug:media
-│   │   └── ListUsers.php            # php artisan debug:users
 │   ├── Http/
 │   │   ├── Controllers/
-│   │   │   ├── Admin/
-│   │   │   │   └── OrderController.php
-│   │   │   └── Webhook/
-│   │   │       └── StripeWebhookController.php
+│   │   │   └── Admin/OrderController.php
 │   │   ├── Middleware/
-│   │   │   └── EnsureIsAdmin.php    # Contrôle d'accès par rôle
-│   │   └── Requests/
-│   │       └── Client/
-│   │           ├── CreateOrderRequest.php   # Validation upload photos + instructions
-│   │           └── StoreTestimonialRequest.php  # Validation avis client (20-500 chars)
+│   │   │   ├── EnsureIsAdmin.php    # Super Admin uniquement
+│   │   │   └── EnsureIsStaff.php    # Filtrage par rôle (Opérateur, RH, Marketing)
+│   │   └── Requests/Client/CreateOrderRequest.php
 │   ├── Models/
-│   │   ├── User.php                 # Billable, RGPD, soft delete
-│   │   ├── Order.php                # State machine, relations, media collections
-│   │   ├── OrderDelivery.php        # Gestion URL signée ZIP
-│   │   ├── SupportTicket.php        # Tickets support client
-│   │   ├── SupportTicketMessage.php # Messages du fil de conversation
-│   │   └── AuditLog.php             # Audit trail immuable
-│   ├── Jobs/
-│   │   └── GenerateOrderZipJob.php
-│   ├── Policies/
-│   │   └── OrderPolicy.php          # Prévention IDOR — vérification propriété
+│   │   ├── User.php                 # Billable, RGPD, hr_notes (confidentiel)
+│   │   ├── Order.php                # State machine, collections médias
+│   │   ├── Coupon.php               # Codes de réduction
+│   │   └── SupportTicket.php        # Tickets support
 │   ├── Services/
-│   │   ├── PhotoDamageAnalyzer.php  # Analyse IA niveau dégradation
-│   │   ├── AuditService.php         # Écriture logs audit centralisée
+│   │   ├── OmnyScribeService.php    # Assistant IA pour la rédaction de réponses
+│   │   ├── PhotoDamageAnalyzer.php  # Analyse IA de l'état des photos (Vision)
+│   │   ├── PhotoRestorationService.php
+│   │   ├── CouponService.php
 │   │   └── ZipGeneratorService.php
-│   └── Mail/
-│       ├── OrderReadyForPayment.php    # Email DONE → aperçu filigranné + bouton Payer
-│       ├── OrderPaidConfirmation.php   # Email PAID → ZIP en préparation
-│       └── OrderDeliveryReady.php      # Email DELIVERED → ZIP + Facture [NEW v0.10]
+│   └── Mail/OrderReadyForPayment.php
 ├── resources/views/livewire/pages/
 │   ├── client/
 │   │   ├── orders/
-│   │   │   ├── create.blade.php     # Wizard upload + analyse IA
-│   │   │   ├── index.blade.php      # Historique commandes
-│   │   │   └── show.blade.php       # Détail + aperçu filigranné + paiement
 │   │   ├── tickets/
-│   │   │   ├── create.blade.php     # Création ticket support
-│   │   │   ├── index.blade.php      # Liste tickets client
-│   │   │   └── show.blade.php       # Fil de conversation
 │   │   └── profile.blade.php
+│   ├── staff/
+│   │   └── hr-profile.blade.php     # Espace personnel collaborateur (Transparence)
 │   └── admin/
-│       ├── dashboard.blade.php      # KPIs + file d'attente
-│       ├── clients/
-│       │   └── index.blade.php      # Liste clients avec dépenses
+│       ├── dashboard.blade.php
+│       ├── team/roles.blade.php     # Gouvernance RH, diagrammes Mermaid, Quotas
+│       ├── transparency/index.blade.php # Dashboard Transparence Loi UE
+│       ├── coupons/index.blade.php  # Codes de réduction (Marketing)
 │       ├── orders/
-│       │   ├── index.blade.php      # Liste commandes filtrables
-│       │   └── show.blade.php       # Gestion commande + upload photos
 │       └── tickets/
-│           ├── index.blade.php      # Liste tous les tickets (badge non-lus)
-│           └── show.blade.php       # Fil conversation + réponse admin
 ├── resources/views/emails/
-│   └── orders/
-│       ├── ready-for-payment.blade.php  # Email DONE → aperçu + lien paiement
-│       ├── paid-confirmation.blade.php  # Email PAID → ZIP en préparation
-│       └── delivery-ready.blade.php     # Email DELIVERED → ZIP + Facture ← NEW v0.10
 ├── routes/
 │   ├── web.php
-│   ├── client.php                   # Routes espace client (auth + verified)
-│   ├── admin.php                    # Routes admin (middleware: admin)
-│   └── webhook.php                  # Stripe webhook (sans CSRF)
-├── config/
-│   ├── livewire.php                 # Upload max 100Mo, disk local, tiff support
-│   └── media-library.php            # Disk dynamique via MEDIA_DISK env
+│   ├── client.php                   # Espace client protégé
+│   └── admin.php                    # Back-office (Routes compartimentées par rôles)
 └── storage/
-    ├── app/public/                  # Fichiers media accessibles (symlink → public/storage)
-    └── app/tmp-uploads/             # Buffer temporaire pour uploads admin/client
+    └── app/public/                  # Fichiers médias
 ```
 
 ---
