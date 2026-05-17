@@ -48,7 +48,22 @@
 2. **Admin** prend en charge, restaure et uploade les photos → statut DONE
 3. **Client** visualise les aperçus filigrannnés, **sélectionne les photos à garder** (rejet possible, prix recalculé **par photo selon son niveau**)
 4. **Client** paie via Stripe pour les photos sélectionnées
-5. **ZIP généré en asynchrone** — email de livraison avec lien téléchargement + facture PDF avec TVA
+5. **Admin** génère le ZIP (asynchrone), l'URL est envoyée par email au client
+6. **Support client intégré** pour la communication (avec OmnyScribe IA pour rédaction assistée)
+
+---
+
+## ✨ Aperçu de la Plateforme (Showcase)
+
+| Vitrine SaaS & Espace Client | Dashboard Financier & KPIs |
+|:---:|:---:|
+| ![Landing Page](docs/assets/images/showcase_landing.png) | ![Dashboard](docs/assets/images/showcase_dashboard.png) |
+| *Landing page minimaliste, portfolio et conversion client* | *Dashboard analytique premium, KPIs financiers (CA, Volume)* |
+
+| Pilotage Trésorerie & RH | Acquisition & Marketing (Coupons) |
+|:---:|:---:|
+| ![Simulation RH](docs/assets/images/showcase_simulation.png) | ![Coupons](docs/assets/images/showcase_coupons.png) |
+| *Outil de simulation de rentabilité et gestion d'équipe (CDI, Freelance)* | *Gouvernance des codes promotionnels et historique client* |
 
 > **Modèle économique** : aperçu d'abord, paiement ensuite. Le filigrane crée un déclencheur émotionnel fort avant la conversion.
 
@@ -348,6 +363,18 @@ Après `php artisan migrate --seed` :
 - Badge `[Admin]` en or à côté du nom
 - Avatar avec bordure 2px pleine or vs 1px client
 - Navigation différente : Dashboard / Commandes / Tickets
+
+### 🔧 Vérification locale d'un compte (Tinker)
+
+Lors de vos tests en local, vous n'avez pas de serveur de messagerie (ou vous n'utilisez pas Mailtrap). Vous pouvez valider l'e-mail d'un compte de test (salarié, freelance ou client) via la console interactive **Tinker** :
+
+```bash
+php artisan tinker
+> $u = App\Models\User::where('email', 'rh@omnyrestore.test')->first();
+> $u->markEmailAsVerified();
+> $u->save();
+> exit
+```
 
 ---
 
