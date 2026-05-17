@@ -10,10 +10,13 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 - **Autorisation de Consultation (Liste & Détails)** :
   - Ajustement des middlewares de sécurité pour permettre aux utilisateurs de type `marketing` d'accéder à la liste globale des commandes (`/admin/orders`) ainsi qu'aux fiches individuelles de détails, sans compromettre le blocage des tickets.
+  - **Exposition de l'onglet dans la Navbar** : Suppression du filtre restrictif sur le lien "Commandes" dans [navbar.blade.php](file:///g:/Omnyvia/omnyretouche/resources/views/livewire/layout/navbar.blade.php) pour permettre aux membres marketing d'y naviguer facilement d'un seul clic.
 - **Sécurisation Multi-Couche de l'Interface** :
   - Intégration de contrôles stricts de sécurité côté backend (`abort_if(..., 403)`) bloquant toutes les actions d'écriture et de mutation sur le composant Livewire (ex. prise en charge, annulation, uploader les photos, modifier les notes internes, signaler CSAM/NSFW, rembourser Stripe).
-  - Masquage intelligent dans l'interface utilisateur (UI) de tous les boutons et zones d'action pour préserver l'intégrité opérationnelle.
+  - Masquage intelligent dans l'interface utilisateur (UI) de tous les boutons et zones d'action pour préserver l'intégrité opérationnelle, y compris le bouton de renvoi d'email de livraison et le bouton de téléchargement de la facture PDF.
   - Désactivation esthétique de la zone d'édition des notes internes.
+- **Alignement de la Matrice de Permissions (RBAC)** :
+  - Mise à jour du tableau de bord de l'équipe et rôles [roles.blade.php](file:///g:/Omnyvia/omnyretouche/resources/views/livewire/pages/admin/team/roles.blade.php) pour afficher le statut officiel `✓ Lecture` à l'intersection du rôle Marketing et de la ligne Commandes, assurant une parfaite cohérence visuelle et documentaire.
 
 ### 🧪 Rétablissement et Alignement des Tests Légataires (100% Verts)
 - **Tests d'Authentification (`AuthenticationTest`)** :

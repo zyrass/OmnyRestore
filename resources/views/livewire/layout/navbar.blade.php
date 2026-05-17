@@ -68,12 +68,10 @@ new class extends Component
                           {{ request()->routeIs('admin.dashboard') ? 'text-[#C9A84C] bg-[#C9A84C]/10 border-[#C9A84C]/40' : 'text-[#C9A84C]/80 hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 hover:border-[#C9A84C]/40' }}">
                     Panel Staff
                 </a>
-                @if(Auth::user()->role !== 'marketing')
                 <a href="{{ route('admin.orders.index') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.orders.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     Commandes
                 </a>
-                @endif
                 <a href="{{ route('admin.clients') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.clients') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     Clients

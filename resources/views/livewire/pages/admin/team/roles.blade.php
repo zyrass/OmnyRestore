@@ -511,7 +511,7 @@ class extends Component
                             <td class="py-4 px-6 font-bold text-[#F5F0E8]">Gérer et livrer les Commandes</td>
                             <td class="py-4 px-6 text-center text-emerald-400 font-bold">✓ Accès total</td>
                             <td class="py-4 px-6 text-center text-blue-400 font-bold">✓ Traitement</td>
-                            <td class="py-4 px-6 text-center text-red-500/50">✕ Aucun accès</td>
+                            <td class="py-4 px-6 text-center text-[#C9A84C] font-bold">✓ Lecture</td>
                         </tr>
                         {{-- 4. Support --}}
                         <tr class="hover:bg-white/5 transition-colors">
