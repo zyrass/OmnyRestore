@@ -562,43 +562,7 @@ class extends Component
     </div>
     @elseif($activeTab === 'diagrams')
     {{-- Diagrammes & Cycle de vie --}}
-    <div class="mb-12" 
-         x-data="{ 
-             initMermaid() {
-                 this.$nextTick(() => {
-                     if (window.mermaid) {
-                         window.mermaid.init(undefined, document.querySelectorAll('.mermaid'));
-                     }
-                 });
-             }
-         }" 
-         x-init="
-             if (!window.mermaid) {
-                 let script = document.createElement('script');
-                 script.src = 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js';
-                 script.onload = () => {
-                     window.mermaid.initialize({ 
-                         startOnLoad: false, 
-                         theme: 'dark',
-                         themeVariables: {
-                             background: '#0F0C08',
-                             primaryColor: '#1A1510',
-                             primaryTextColor: '#F5F0E8',
-                             primaryBorderColor: '#C9A84C',
-                             lineColor: '#C9A84C',
-                             secondaryColor: '#151C15',
-                             tertiaryColor: '#1F1313'
-                         }
-                     });
-                     window.mermaid.init(undefined, document.querySelectorAll('.mermaid'));
-                 };
-                 document.head.appendChild(script);
-             } else {
-                 window.mermaid.init(undefined, document.querySelectorAll('.mermaid'));
-             }
-             $watch('activeTab', () => initMermaid());
-             document.addEventListener('livewire:navigated', () => initMermaid());
-         }">
+    <div class="mb-12">
         <h2 class="text-lg font-bold text-[#F5F0E8] mb-2 flex items-center gap-2">
             <svg class="w-5 h-5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
             Documentation Technique & Workflows
@@ -613,14 +577,14 @@ class extends Component
                     Diagramme d'Etat : Cycle de Vie d'un Compte Staff
                 </h3>
 
-                <div wire:ignore class="mermaid flex justify-center bg-[#0F0C08]/50 p-6 rounded border border-[#C9A84C]/10 overflow-x-auto">
-stateDiagram-v2
-    [*] --> Invitation : Envoi du lien (Admin)
-    Invitation --> Actif : Inscription validée
-    Actif --> Suspendu : Action Admin (Quota atteint/Départ)
-    Suspendu --> Actif : Réactivation
-    Actif --> Anonymisé : Suppression RGPD (Art. 17)
-    Anonymisé --> [*]
+                <div wire:ignore class="mermaid flex justify-center bg-[#0F0C08]/50 py-8 px-4 rounded border border-[#C9A84C]/10 overflow-x-auto min-h-[350px]">
+                    stateDiagram-v2
+                        [*] --> Invitation : Envoi du lien (Admin)
+                        Invitation --> Actif : Inscription validée
+                        Actif --> Suspendu : Action Admin (Quota atteint/Départ)
+                        Suspendu --> Actif : Réactivation
+                        Actif --> Anonymisé : Suppression RGPD (Art. 17)
+                        Anonymisé --> [*]
                 </div>
             </div>
 
@@ -631,21 +595,22 @@ stateDiagram-v2
                     Diagramme de Sequence : Prise en charge d'une Commande
                 </h3>
 
-                <div wire:ignore class="mermaid flex justify-center bg-[#0F0C08]/50 p-6 rounded border border-[#C9A84C]/10 overflow-x-auto">
-sequenceDiagram
-    participant C as Client
-    participant O as Opérateur
-    participant S as Système (Audit Log)
-    participant A as Admin
+                <div wire:ignore class="mermaid flex justify-center bg-[#0F0C08]/50 py-8 px-4 rounded border border-[#C9A84C]/10 overflow-x-auto min-h-[450px]">
+                    sequenceDiagram
+                        autonumber
+                        participant C as Client
+                        participant O as Opérateur
+                        participant S as Système (Audit Log)
+                        participant A as Admin
 
-    C->>S: Crée une commande (PENDING)
-    O->>S: Sélectionne "Me l'assigner"
-    S-->>O: Marque operator_id = O.id
-    S-->>A: Notifie l'Admin de la prise en charge
-    O->>S: Upload les retouches HD
-    O->>S: Valide le passage en DONE
-    S->>C: Envoie l'email de paiement
-    S->>S: Incrémente KPI (Completed) pour Opérateur O
+                        C->>S: Crée une commande (PENDING)
+                        O->>S: Sélectionne "Me l'assigner"
+                        S-->>O: Marque operator_id = O.id
+                        S-->>A: Notifie l'Admin de la prise en charge
+                        O->>S: Upload les retouches HD
+                        O->>S: Valide le passage en DONE
+                        S->>C: Envoie l'email de paiement
+                        S->>S: Incrémente KPI (Completed) pour Opérateur O
                 </div>
             </div>
 
@@ -656,16 +621,16 @@ sequenceDiagram
                     Flowchart : Processus de Campagne Promo (Mass Mail)
                 </h3>
 
-                <div wire:ignore class="mermaid flex justify-center bg-[#0F0C08]/50 p-6 rounded border border-[#C9A84C]/10 overflow-x-auto">
-graph TD
-    A[Début Campagne] --> B{Filtre Client}
-    B -->|High Spend| C[Segment Premium]
-    B -->|Inactif 30j| D[Segment Relance]
-    C --> E[Appliquer Coupon Spécifique]
-    D --> E
-    E --> F[Vérifier Consentement RGPD]
-    F -->|Oui| G[Envoi via Assistant IA]
-    F -->|Non| H[Exclure du listing]
+                <div wire:ignore class="mermaid flex justify-center bg-[#0F0C08]/50 py-8 px-4 rounded border border-[#C9A84C]/10 overflow-x-auto min-h-[350px]">
+                    graph TD
+                        A[Début Campagne] --> B{Filtre Client}
+                        B -->|High Spend| C[Segment Premium]
+                        B -->|Inactif 30j| D[Segment Relance]
+                        C --> E[Appliquer Coupon Spécifique]
+                        D --> E
+                        E --> F[Vérifier Consentement RGPD]
+                        F -->|Oui| G[Envoi via Assistant IA]
+                        F -->|Non| H[Exclure du listing]
                 </div>
             </div>
         </div>
@@ -782,3 +747,58 @@ graph TD
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    
+    function initMermaid() {
+        document.querySelectorAll('.mermaid[data-processed="true"]').forEach(el => {
+            el.removeAttribute('data-processed');
+        });
+
+        try {
+            mermaid.initialize({ 
+                startOnLoad: true, 
+                theme: 'dark',
+                themeVariables: {
+                    primaryColor: '#06b6d4',
+                    primaryTextColor: '#fff',
+                    primaryBorderColor: '#0891b2',
+                    lineColor: '#C9A84C',
+                    secondaryColor: '#10b981',
+                    tertiaryColor: '#0f172a',
+                    mainBkg: '#0F0C08',
+                    nodeBorder: '#C9A84C'
+                }
+            });
+            mermaid.run();
+        } catch (e) {
+            console.error("Mermaid initialization failed:", e);
+        }
+    }
+
+    // Initial load
+    initMermaid();
+
+    // Livewire navigation
+    document.addEventListener('livewire:navigated', () => {
+        initMermaid();
+    });
+
+    // Morph update hook for Livewire 3 dynamic tab updates
+    document.addEventListener('livewire:initialized', () => {
+        Livewire.hook('morph.updated', () => {
+            initMermaid();
+        });
+    });
+
+    // Click handler backup
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('button')) {
+            setTimeout(() => initMermaid(), 150);
+            setTimeout(() => initMermaid(), 450);
+        }
+    });
+</script>
+@endpush
