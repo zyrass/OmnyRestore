@@ -54,6 +54,7 @@ class extends Component
     public string $editingContractEndDate = '';
     public string $editingNetSalary = '';
     public string $editingHrNotes = '';
+    public bool $showEditNoteModal = false;
 
     // Simulateur Trésorerie
     public string $simulatorTreasury = '0';
