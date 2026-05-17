@@ -6,6 +6,15 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [2.4.2] — 2026-05-17 — Gouvernance HR : Notes & Avis Confidentiels
+
+- **Gouvernance RH (`/admin/team/roles`)** :
+  - **Espace Centralisé Notes & Avis RH** : Création d'un onglet dédié pour isoler l'évaluation qualitative des collaborateurs de la gestion administrative de base.
+  - **Isolement des Données Sensibles** : Les "Notes RH" sont désormais strictement confidentielles et ne sont plus exposées dans la liste principale des membres ou la modale d'édition globale.
+  - **Badge Dynamique** : Intégration d'un compteur visuel sur l'onglet "Notes & Avis RH" pour suivre en direct le volume de retours.
+  - **Interface Robuste** : Amélioration du cycle de vie des modales AlpineJS / Livewire pour empêcher la double exécution des événements (comme le chargement asynchrone des diagrammes Mermaid via `Livewire.hook`).
+  - **Correction du Modèle User** : Intégration de la colonne `hr_notes` dans la propriété `$fillable` pour autoriser la sauvegarde en base.
+
 ## [2.4.0] — 2026-05-17 — Assistant de Communication IA "OmnyScribe" (Phase 4)
 
 - **OmnyScribe (Support Admin)** :
