@@ -401,6 +401,13 @@ class extends Component
                        {{ $activeTab === 'simulator' ? 'border-[#C9A84C] text-[#C9A84C] bg-[#C9A84C]/5 font-black' : 'border-transparent text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
             Simulateur RH & Trésorerie
         </button>
+        @if(in_array(Auth::user()->role, ['super-admin', 'rh']))
+        <button wire:click="$set('activeTab', 'hr_notes')" 
+                class="px-5 py-3 text-xs tracking-wider uppercase font-bold border-b-2 transition-all whitespace-nowrap
+                       {{ $activeTab === 'hr_notes' ? 'border-[#C9A84C] text-purple-400 bg-purple-900/10 font-black' : 'border-transparent text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
+            Notes & Avis RH
+        </button>
+        @endif
     </div>
 
     {{-- Alertes Flash --}}
@@ -470,7 +477,7 @@ class extends Component
                         <th class="py-4 px-6">Collaborateur</th>
                         <th class="py-4 px-6">Rôle principal</th>
                         <th class="py-4 px-6">Type / Entrée le</th>
-                        <th class="py-4 px-6">Salaire Net</th>
+                        <th class="py-4 px-6 whitespace-nowrap">Salaire Net</th>
                         <th class="py-4 px-6">Dernière Connexion</th>
                         <th class="py-4 px-6">Statut</th>
                         <th class="py-4 px-6 text-right">Actions</th>
@@ -551,7 +558,7 @@ class extends Component
                         </td>
 
                         {{-- Salaire Net --}}
-                        <td class="py-4 px-6 text-xs font-mono font-bold text-[#C9A84C]">
+                        <td class="py-4 px-6 text-xs font-mono font-bold text-[#C9A84C] whitespace-nowrap">
                             @if($col->net_salary)
                                 {{ number_format($col->net_salary, 2, ',', ' ') }} €
                             @else
@@ -686,6 +693,61 @@ class extends Component
                 @endif
             </div>
         </div>
+    </div>
+    @elseif($activeTab === 'hr_notes' && in_array(Auth::user()->role, ['super-admin', 'rh']))
+    {{-- Onglet Notes & Avis RH --}}
+    <div class="mb-12">
+        <h2 class="text-lg font-bold text-[#F5F0E8] mb-6 flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+            Suivi des collaborateurs (Avis & Notes)
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @forelse($collaborators as $col)
+            <div class="card-glass border-[#C9A84C]/10 bg-[#0F0C08]/30 p-6 flex flex-col h-full relative group">
+                <div class="flex items-center gap-3 mb-4 pb-4 border-b border-[#C9A84C]/10">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs shrink-0
+                                {{ $col->role === 'super-admin'
+                                   ? 'border-2 border-[#C9A84C] bg-[#C9A84C]/20 text-[#C9A84C]'
+                                   : 'border border-[#C9A84C]/30 bg-[#1A1510] text-[#7A6E5E]' }}">
+                        {{ strtoupper(substr($col->name, 0, 1)) }}
+                    </div>
+                    <div>
+                        <p class="font-bold text-[#F5F0E8]">{{ $col->name }}</p>
+                        <p class="text-[10px] font-mono text-[#7A6E5E]">{{ $col->email }}</p>
+                    </div>
+                </div>
+                
+                <div class="flex-1 mb-6">
+                    <p class="text-[10px] text-[#7A6E5E] uppercase tracking-widest font-bold mb-2">Avis RH actuel :</p>
+                    @if($col->hr_notes)
+                        <div class="p-3 bg-purple-900/10 border border-purple-800/30 rounded-sm text-xs text-purple-200/80 leading-relaxed whitespace-pre-wrap">
+                            {{ $col->hr_notes }}
+                        </div>
+                    @else
+                        <div class="p-3 bg-white/5 border border-white/5 rounded-sm text-xs text-white/30 italic text-center">
+                            Aucune note renseignée pour l'instant.
+                        </div>
+                    @endif
+                </div>
+
+                <button wire:click="startEditMember('{{ $col->id }}')" 
+                        class="mt-auto w-full px-4 py-2.5 bg-[#C9A84C]/5 border border-[#C9A84C]/20 text-[#C9A84C] hover:bg-[#C9A84C]/10 hover:border-[#C9A84C]/40 text-[10px] font-black uppercase tracking-[0.1em] rounded-sm transition-all text-center group-hover:bg-[#C9A84C]/10">
+                    Rédiger / Modifier
+                </button>
+            </div>
+            @empty
+            <div class="col-span-full py-12 text-center text-[#7A6E5E] text-xs">
+                Aucun collaborateur trouvé correspondant à vos critères.
+            </div>
+            @endforelse
+        </div>
+        
+        @if($collaborators->hasPages())
+        <div class="mt-6">
+            {{ $collaborators->links() }}
+        </div>
+        @endif
     </div>
     @elseif($activeTab === 'rbac')
     {{-- Permissions Matrix (Matrice de Permissions) --}}
