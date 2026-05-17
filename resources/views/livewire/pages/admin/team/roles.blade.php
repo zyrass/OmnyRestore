@@ -559,6 +559,10 @@ class extends Component
                 </table>
             </div>
         </div>
+        
+        <p class="text-center text-[#7A6E5E] text-xs mt-6 italic">
+            Cette matrice répertorie les <strong class="font-bold text-[#F5F0E8]">niveaux d'accès</strong> selon chaque rôle, définissant l'<strong class="font-bold text-[#F5F0E8]">habilitation</strong> aux fonctionnalités critiques de la plateforme.
+        </p>
     </div>
     @elseif($activeTab === 'diagrams')
     {{-- Diagrammes & Cycle de vie --}}
