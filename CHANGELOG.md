@@ -6,12 +6,30 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
-## [2.0.0] — 2026-05-17 — L'Écosystème Collaboratif, Securi-Team & Transparence (OmnyRestore v2.0)
+## [2.1.1] — 2026-05-17 — Durcissement RBAC & Alignement Habilitations (Marjorie RBAC Fix)
 
-Cette mise à jour majeure marque l'achèvement complet et la mise en production de **l'Écosystème Collaboratif v2.0** d'OmnyRestore. Le projet bascule officiellement d'une application mono-utilisateur vers une plateforme d'équipe hautement sécurisée, conforme aux directives européennes et durcie face aux menaces cyber.
+### 🔒 Restriction Stricte de Sécurité (Routage)
+- **Bloquage de sécurité au Routage (Middleware)** :
+  - Mise à niveau du middleware `EnsureIsStaff.php` pour accepter un paramètre de rôle interdit (ex. `staff:marketing` ou `staff:operator`).
+  - Restructuration et cloisonnement des groupes de routes dans [admin.php](file:///g:/Omnyvia/omnyretouche/routes/admin.php) :
+    - Blocage total des routes de **Commandes** (`/admin/orders/*`) et de **Tickets** (`/admin/tickets/*`) pour le rôle `marketing` (renvoie une exception HTTP 403 Forbidden).
+    - Blocage total des routes de **Coupons** (`/admin/coupons*`) et d'**Avis** (`/admin/testimonials*`) pour le rôle `operator` (renvoie une exception HTTP 403 Forbidden).
+- **Sécurisation du bouton "Accéder au CA"** :
+  - Restriction de l'accès au chiffre d'affaires accumulé aux seuls Super-Administrateurs sur la liste des clients.
 
-### 🛡️ Cybersécurité & Séparation des Emails (Phase 1.6)
+### 🛠️ Refonte de la Navbar (Interface)
+- **Visibilité Contextuelle RBAC** dans [navbar.blade.php](file:///g:/Omnyvia/omnyretouche/resources/views/livewire/layout/navbar.blade.php) :
+  - Masquage automatique des onglets `Commandes` et `Tickets` pour le rôle `marketing`.
+  - Masquage automatique des onglets `Avis` et `Réductions` pour le rôle `operator`.
 
+### 🧪 Tests d'Intégration d'Habilitations
+- Écriture et passage au vert de 4 tests de fonctionnalités dans `AccessControlTest.php` couvrant les autorisations et les interdictions strictes pour les rôles `marketing` et `operator`.
+
+---
+
+## [2.1.0] — 2026-05-17 — Cybersécurité & Isolation des Emails (Phase 1.6)
+
+### 🛡️ Cybersécurité & Séparation des Emails
 - **Séparation Email d'Identification et Contact Réel** :
   - **Base de Données** : Ajout de la colonne `contact_email` (nullable string) après la colonne `email` sur la table `users`.
   - **Modèle `User`** : Intégration de `contact_email` dans les propriétés mass-assignables `$fillable` et typées `$casts`.
@@ -20,11 +38,17 @@ Cette mise à jour majeure marque l'achèvement complet et la mise en production
   - **Modal de Création** : Ajout d'un champ facultatif "Adresse E-mail de Sécurité (Réelle)" avec des explications claires sur la prévention contre les compromissions futures.
   - **Édition Rapide Inline** : Intégration de la modification de l'e-mail de contact réel directement dans le formulaire d'édition rapide inline aux côtés du rôle.
   - **Badge de Protection** : Affichage d'un élégant badge de sécurité `🛡️ Contact : ...` sous le nom du collaborateur si son adresse de contact réelle diffère de son identifiant de connexion.
-- **Sécurité & Tests** :
-  - Écriture d'une suite de tests robustes (`ContactEmailSecurityTest.php`) couvrant la surcharge de routage, l'envoi effectif de réinitialisation de mot de passe vers l'email sécurisé, ainsi que la création et modification Livewire.
+
+### 🧪 Validation & Sécurité
+- Écriture d'une suite de tests robustes (`ContactEmailSecurityTest.php`) couvrant la surcharge de routage, l'envoi effectif de réinitialisation de mot de passe vers l'email sécurisé, ainsi que la création et modification Livewire.
+
+---
+
+## [2.0.0] — 2026-05-17 — L'Écosystème Collaboratif, Licences & Transparence (OmnyRestore v2.0)
+
+Cette mise à jour majeure marque l'achèvement complet et la mise en production de **l'Écosystème Collaboratif v2.0** d'OmnyRestore. Le projet bascule officiellement d'une application mono-utilisateur vers une plateforme d'équipe hautement sécurisée, conforme aux directives européennes et durcie face aux menaces cyber.
 
 ### 💼 Gestion de l'Équipe, Licences & Suspension (Phase 1.5)
-
 - **Gestion de l'Équipe & Rôles** (`/admin/team/roles`) :
   - Création d'une interface d'administration premium et exclusive au Super-Admin pour piloter les comptes collaborateurs.
   - **Widget de Licence (Quota 10 Sièges)** : Barre de progression dorée et indicateur en temps réel pour suivre le quota strict des 10 sièges collaborateurs actifs (hors clients), avec blocage automatique des invitations en cas de dépassement.
@@ -38,7 +62,6 @@ Cette mise à jour majeure marque l'achèvement complet et la mise en production
   - Intégration d'un flux de suppression définitive avec anonymisation non réversible : remplacement du nom par un tag unique (`Ex-Collaborateur [UUID]`) et purge de l'email, blocage définitif de l'authentification et application d'un soft-delete pour conserver la cohérence historique de l'audit trail.
 
 ### ⚖️ Architecture RBAC & Transparence Salariale (Phase 1)
-
 - **Sécurisation RBAC (Role-Based Access Control)** :
   - Restructuration majeure des accès avec la création du middleware `EnsureIsStaff` (Opérateurs, Marketing, Super-Admin) et le durcissement de `EnsureIsAdmin` (réservé à la Direction).
   - Cloisonnement strict des données financières, statistiques et légales pour protéger la confidentialité de l'entreprise tout en ouvrant l'opérationnel.
@@ -51,7 +74,6 @@ Cette mise à jour majeure marque l'achèvement complet et la mise en production
   - Interface "Glass-Card" premium accessible à tout le staff, favorisant l'honnêteté et la motivation de l'équipe.
 
 ### 🛠️ Maintenance, Ergonomie & Master Plan
-
 - **Navigation Admin** : Déplacement du lien "Transparence Salariale" dans le menu déroulant du profil pour le Super-Admin, afin d'épurer la barre de navigation principale (le lien reste visible directement pour les opérateurs).
 - **Documentation Stratégique** : Réorganisation logique du Master Plan (`collaborative_ecosystem_v2.md`), en déplaçant la phase de stabilisation IA (Phase 0) à la fin du processus (Phase 7).
 
