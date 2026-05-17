@@ -53,6 +53,7 @@ class extends Component
     public string $editingHireDate = '';
     public string $editingContractEndDate = '';
     public string $editingNetSalary = '';
+    public string $editingHrNotes = '';
 
     // Simulateur Trésorerie
     public string $simulatorTreasury = '0';
@@ -90,6 +91,13 @@ class extends Component
         return User::whereIn('role', ['super-admin', 'operator', 'marketing', 'rh'])
             ->whereNull('deleted_at')
             ->count();
+    }
+    
+    public function updatedActiveTab($value)
+    {
+        if ($value === 'diagrams') {
+            $this->dispatch('init-mermaid');
+        }
     }
 
     /**
@@ -196,6 +204,7 @@ class extends Component
         $this->editingHireDate = $user->hire_date ? $user->hire_date->format('Y-m-d') : '';
         $this->editingContractEndDate = $user->contract_end_date ? $user->contract_end_date->format('Y-m-d') : '';
         $this->editingNetSalary = $user->net_salary ?? '';
+        $this->editingHrNotes = $user->hr_notes ?? '';
         $this->showEditModal = true;
     }
 
@@ -224,6 +233,7 @@ class extends Component
             'editingHireDate' => 'nullable|date',
             'editingContractEndDate' => 'nullable|date',
             'editingNetSalary' => 'nullable|numeric|min:0',
+            'editingHrNotes' => 'nullable|string|max:5000',
         ], [
             'editingContactEmail.email' => 'L\'adresse e-mail de contact doit être valide.'
         ]);
@@ -239,6 +249,7 @@ class extends Component
             'hire_date' => $this->editingHireDate ?: null,
             'contract_end_date' => ($this->editingContractType === 'CDD' && $this->editingContractEndDate) ? $this->editingContractEndDate : null,
             'net_salary' => $this->editingNetSalary ?: null,
+            'hr_notes' => $this->editingHrNotes ?: null,
         ]);
 
         // Si le salaire a changé
@@ -1051,6 +1062,12 @@ class extends Component
                         <input type="number" wire:model="editingNetSalary" placeholder="Ex: 2500"
                                class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs px-3 py-2.5 rounded-sm focus:outline-none focus:border-[#C9A84C] font-mono" />
                     </div>
+                    <div>
+                        <label class="block text-[10px] text-[#7A6E5E] font-bold uppercase tracking-widest mb-1.5">Avis / Notes RH (Confidentiel)</label>
+                        <textarea wire:model="editingHrNotes" rows="3" placeholder="Évaluation, alertes, observations (visible uniquement par Admin et RH)..."
+                                  class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs px-3 py-2.5 rounded-sm focus:outline-none focus:border-[#C9A84C] font-mono"></textarea>
+                        @error('editingHrNotes') <span class="text-red-400 text-[10px] mt-1 block font-mono">{{ $message }}</span> @enderror
+                    </div>
 
                     {{-- Actions --}}
                     <div class="flex gap-3 pt-4">
@@ -1148,8 +1165,13 @@ class extends Component
     
     function initMermaid() {
         try {
+            // Force reset of mermaid diagrams
+            document.querySelectorAll('.mermaid').forEach(el => {
+                el.removeAttribute('data-processed');
+            });
+            
             mermaid.initialize({ 
-                startOnLoad: true, 
+                startOnLoad: false, 
                 theme: 'dark',
                 themeVariables: {
                     primaryColor: '#06b6d4',
@@ -1162,7 +1184,7 @@ class extends Component
                     nodeBorder: '#C9A84C'
                 }
             });
-            mermaid.run();
+            mermaid.run({ querySelector: '.mermaid' });
         } catch (e) {
             console.error("Mermaid initialization failed:", e);
         }
@@ -1174,6 +1196,11 @@ class extends Component
     // Livewire navigation
     document.addEventListener('livewire:navigated', () => {
         initMermaid();
+    });
+
+    // Custom event dispatched from Livewire component
+    window.addEventListener('init-mermaid', () => {
+        setTimeout(() => initMermaid(), 50);
     });
 
     // Morph update hook for Livewire 3 dynamic tab updates
