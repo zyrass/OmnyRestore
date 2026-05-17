@@ -68,6 +68,7 @@ new class extends Component
                           {{ request()->routeIs('admin.dashboard') ? 'text-[#C9A84C] bg-[#C9A84C]/10 border-[#C9A84C]/40' : 'text-[#C9A84C]/80 hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 hover:border-[#C9A84C]/40' }}">
                     {{ Auth::user()->role === 'super-admin' ? 'Espace Admin' : (Auth::user()->role === 'operator' ? 'Espace Opérateur' : (Auth::user()->role === 'rh' ? 'Espace RH' : 'Espace Marketing')) }}
                 </a>
+                @if(Auth::user()->role !== 'rh')
                 <a href="{{ route('admin.orders.index') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.orders.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     Commandes
@@ -76,13 +77,14 @@ new class extends Component
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.clients') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     Clients
                 </a>
+                @endif
                 @if(Auth::user()->isAdmin())
                 <a href="{{ route('admin.revenue') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.revenue') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     CA
                 </a>
                 @endif
-                @if(Auth::user()->role !== 'marketing')
+                @if(!in_array(Auth::user()->role, ['marketing', 'rh']))
                 <a href="{{ route('admin.tickets.index') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap relative {{ request()->routeIs('admin.tickets.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     Tickets
@@ -93,7 +95,7 @@ new class extends Component
                     @endif
                 </a>
                 @endif
-                @if(Auth::user()->role !== 'operator')
+                @if(!in_array(Auth::user()->role, ['operator', 'rh']))
                 <a href="{{ route('admin.testimonials.index') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap relative {{ request()->routeIs('admin.testimonials.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     Avis
@@ -104,7 +106,7 @@ new class extends Component
                     @endif
                 </a>
                 @endif
-                @if(Auth::user()->role !== 'operator')
+                @if(!in_array(Auth::user()->role, ['operator', 'rh']))
                 <a href="/admin/coupons" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->is('admin/coupons*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
                     Réductions
