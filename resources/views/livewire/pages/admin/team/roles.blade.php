@@ -448,7 +448,7 @@ class extends Component
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
                 Notes & Avis RH
                 @if($notesCount > 0)
-                    <span class="bg-purple-600 text-[#F5F0E8] text-[9px] px-1.5 py-0.5 rounded-full ml-1">{{ $notesCount }}</span>
+                    <span class="bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-sm shadow-purple-900/50 text-[10px] px-2 py-0.5 rounded-full ml-1 font-black border border-purple-400/30">{{ $notesCount }}</span>
                 @endif
             </span>
         </button>
@@ -1313,11 +1313,14 @@ class extends Component
     
     function initMermaid() {
         try {
-            // Force reset of mermaid diagrams
-            const nodes = document.querySelectorAll('.mermaid');
-            if (nodes.length === 0) return;
+            // Select mermaid diagrams that haven't been rendered yet
+            const rawNodes = Array.from(document.querySelectorAll('.mermaid')).filter(el => {
+                return !el.querySelector('svg');
+            });
+            
+            if (rawNodes.length === 0) return;
 
-            nodes.forEach(el => {
+            rawNodes.forEach(el => {
                 el.removeAttribute('data-processed');
             });
             
@@ -1335,7 +1338,7 @@ class extends Component
                     nodeBorder: '#C9A84C'
                 }
             });
-            mermaid.run({ nodes: Array.from(nodes) });
+            mermaid.run({ nodes: rawNodes });
         } catch (e) {
             console.error("Mermaid initialization failed:", e);
         }
