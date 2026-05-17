@@ -1314,7 +1314,10 @@ class extends Component
     function initMermaid() {
         try {
             // Force reset of mermaid diagrams
-            document.querySelectorAll('.mermaid').forEach(el => {
+            const nodes = document.querySelectorAll('.mermaid');
+            if (nodes.length === 0) return;
+
+            nodes.forEach(el => {
                 el.removeAttribute('data-processed');
             });
             
@@ -1332,7 +1335,7 @@ class extends Component
                     nodeBorder: '#C9A84C'
                 }
             });
-            mermaid.run({ querySelector: '.mermaid' });
+            mermaid.run({ nodes: Array.from(nodes) });
         } catch (e) {
             console.error("Mermaid initialization failed:", e);
         }

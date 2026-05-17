@@ -97,6 +97,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'hire_date',
         'contract_type',
         'net_salary',
+        'hr_notes',
     ];
 
     /**
