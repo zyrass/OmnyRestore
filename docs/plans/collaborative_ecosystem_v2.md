@@ -20,7 +20,7 @@ L'administration doit avoir une visibilité totale sur qui peut faire quoi.
 ### Structure des Rôles
 *   **Super-Admin** : Propriétaire. Accès total (Configuration, Pilotage stratégique, Crise, Logs).
 *   **Collaborateur (Opérateur)** : Focus sur le traitement des photos et le support client.
-*   **Marketing** : Focus sur l'acquisition, les coupons et les avis clients.
+*   **Marketing** : Focus sur l'acquisition, les coupons et les avis clients. A également accès en **Lecture Seule (Read-Only)** à la liste et aux fiches détaillées des commandes (sans aucune possibilité de modification opérationnelle ou financière) afin de pouvoir authentifier ou justifier les avis positifs/négatifs des clients.
 *   **Transparence Légale (Loi Européenne)** : *Tous les rôles ci-dessus* ont accès en lecture à un **Dashboard de Transparence Salariale** centralisant les revenus et performances de tous les collègues, par honnêteté et conformité légale.
 
 ### Diagramme d'État : Cycle de Vie d'un Compte Staff
@@ -100,6 +100,7 @@ graph TD
 
 *   **Centre de Coupons** : Interface pour créer des campagnes (ex: `FLASH20` pour -20% sur 24h).
 *   **Gestion des Avis** : Modération avancée avec analyse de sentiment IA.
+*   **Visualisation des Commandes (Lecture Seule)** : Possibilité de consulter l'ensemble des commandes et leurs détails pour valider et justifier la pertinence d'un avis client, sans aucune possibilité d'action ou modification.
 *   **Mass Mailer (GDPR Ready)** : Envoi de newsletters aux clients ayant consenti, avec filtres (ex: "Tous les clients ayant dépensé plus de 50€").
 *   **Analyses de Conversion** : Suivi de l'utilisation des coupons vs CA généré.
 *   **Exemple (Facebook)** : "Ne laissez pas vos souvenirs s'effacer ! Nos experts (et nos IA) redonnent vie à vos photos de famille. 📸 Profitez de -10% avec le code SOUVENIR10 !"
@@ -169,5 +170,6 @@ Dernière étape technique pour parfaire l'écosystème : stabiliser définitive
 
 ## 🚀 Prochaines Étapes Suggérées (Roadmap)
 1. ✅ **Phase 1, 1.5 & 1.6 (Base Collaborative, Gestion d'Équipe & E-mail Sécurisé)** : Migrations DB, Middlewares de sécurité (EnsureIsStaff/EnsureIsAdmin), Dashboard de Transparence Salariale, interface premium d'administration de l'équipe (`/admin/team/roles`) avec quota de 10 sièges, anonymisation RGPD, et routage de sécurité avec e-mail de contact réel (`contact_email`) 100% opérationnels.
-2. ⏳ **Prototype IA (Phase 4)** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.
-3. ⏳ **Hardening IA (Phase 7)** : Reprendre la résolution du bug d'automatisation de l'IA.
+2. ✅ **Phase 2 (Accès Lecture Seule Marketing)** : Consultation globale des commandes (`/admin/orders`) et détails en lecture seule pour le rôle `marketing` avec masquage UI, désactivation des notes, bouton "Commandes" dans la navbar et blocage strict 403 en écriture 100% opérationnels.
+3. ⏳ **Prototype IA (Phase 4)** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.
+4. ⏳ **Hardening IA (Phase 7)** : Reprendre la résolution du bug d'automatisation de l'IA.
