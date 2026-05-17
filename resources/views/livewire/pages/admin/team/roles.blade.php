@@ -934,7 +934,7 @@ class extends Component
                                 <option value="Freelance">Freelance</option>
                             </select>
                         </div>
-                        <div x-data="{ type: @entangle('newMemberContractType').live }">
+                        <div>
                             <label class="block text-[10px] text-[#7A6E5E] font-bold uppercase tracking-widest mb-1.5">Date d'entrée</label>
                             <input type="date" wire:model="newMemberHireDate"
                                    class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs px-3 py-2.5 rounded-sm focus:outline-none focus:border-[#C9A84C] font-mono" />
@@ -1046,7 +1046,7 @@ class extends Component
                                 <option value="Freelance">Freelance</option>
                             </select>
                         </div>
-                        <div x-data="{ type: @entangle('editingContractType').live }">
+                        <div>
                             <label class="block text-[10px] text-[#7A6E5E] font-bold uppercase tracking-widest mb-1.5">Date d'entrée</label>
                             <input type="date" wire:model="editingHireDate"
                                    class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs px-3 py-2.5 rounded-sm focus:outline-none focus:border-[#C9A84C] font-mono" />
