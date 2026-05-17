@@ -6,6 +6,28 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [2.2.0] — 2026-05-17 — Accès Lecture Seule Marketing & Rétablissement Suite de Tests 100% Verte
+
+### 🔑 Rôle Marketing en Lecture Seule (Détail Commande)
+- **Autorisation de Consultation** :
+  - Ajustement des middlewares de sécurité pour permettre aux utilisateurs de type `marketing` d'accéder individuellement aux fiches de commandes sans compromettre le blocage des tickets et de la liste globale des commandes.
+- **Sécurisation Multi-Couche de l'Interface** :
+  - Intégration de contrôles stricts de sécurité côté backend (`abort_if(..., 403)`) bloquant toutes les actions d'écriture et de mutation sur le composant Livewire (ex. prise en charge, annulation, uploader les photos, modifier les notes internes, signaler CSAM/NSFW, rembourser Stripe).
+  - Masquage intelligent dans l'interface utilisateur (UI) de tous les boutons et zones d'action pour préserver l'intégrité opérationnelle.
+  - Désactivation esthétique de la zone d'édition des notes internes.
+
+### 🧪 Rétablissement et Alignement des Tests Légataires (100% Verts)
+- **Tests d'Authentification (`AuthenticationTest`)** :
+  - Adaptation des redirections de connexion pour valider les comportements distincts lors de la première connexion (redirection vers le profil) et des connexions ultérieures (vers la liste des commandes).
+- **Tests d'Enregistrement (`RegistrationTest`)** :
+  - Ajustement des assertions pour refléter la nouvelle page de confirmation d'inscription et s'assurer que le nouvel inscrit demeure invité (`assertGuest`) en attente de validation de son adresse de contact réelle.
+- **Tests de Vérification (`EmailVerificationTest`)** :
+  - Redirection du lien de vérification d'email vers la page de connexion sécurisée.
+- **Tests de Sécurité RBAC (`AccessControlTest`)** :
+  - Écriture d'un test d'intégration complet garantissant le blocage des actions Livewire en 403 Forbidden et la bonne restitution visuelle pour le marketing.
+
+---
+
 ## [2.1.1] — 2026-05-17 — Durcissement RBAC & Alignement Habilitations (Marjorie RBAC Fix)
 
 ### 🔒 Restriction Stricte de Sécurité (Routage)

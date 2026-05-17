@@ -32,10 +32,8 @@ class RegistrationTest extends TestCase
 
         $component->call('register');
 
-        // L'app redirige les nouveaux clients vers /client/orders (pas /dashboard)
-        // Voir resources/views/livewire/pages/auth/register.blade.php
-        $component->assertRedirect(route('client.orders.index', absolute: false));
+        $component->assertRedirect(route('registration.success', absolute: false));
 
-        $this->assertAuthenticated();
+        $this->assertGuest();
     }
 }

@@ -30,6 +30,15 @@ Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.'
     Volt::route('/moderation/lexicon', 'pages.admin.moderation.lexicon')
         ->name('moderation.lexicon');
 
+    // GET /admin/orders/{order} — Détail + actions admin (prise en charge, upload, prix)
+    Volt::route('/orders/{order}', 'pages.admin.orders.show')
+        ->name('orders.show');
+
+    // GET /admin/orders/{order}/photos/{media} — Photos sécurisées (originals & retouched)
+    Route::get('/orders/{order}/photos/{media}',
+        [\App\Http\Controllers\Admin\AdminSecurePhotoController::class, 'show']
+    )->name('orders.photo.show');
+
 
     // ─── ROUTES OPÉRATEURS & ADMINS (Pas de Marketing) ───────────────────
     Route::middleware(['staff:marketing'])->group(function () {
@@ -38,10 +47,6 @@ Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.'
         // GET /admin/orders — Liste toutes les commandes (filtrables)
         Volt::route('/orders', 'pages.admin.orders.index')
             ->name('orders.index');
-
-        // GET /admin/orders/{order} — Détail + actions admin (prise en charge, upload, prix)
-        Volt::route('/orders/{order}', 'pages.admin.orders.show')
-            ->name('orders.show');
 
         // PATCH /admin/orders/{order}/status — Transition de statut (via Livewire actions)
         Route::patch('/orders/{order}/status',
@@ -57,13 +62,6 @@ Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.'
         Route::post('/orders/{order}/auto-restore',
             \App\Http\Controllers\Admin\OrderAutoRestoreController::class . '@dispatch'
         )->name('orders.auto-restore');
-
-        // ─── Photos sécurisées ────────────────────────────────────────────
-        // GET /admin/orders/{order}/photos/{media}
-        // Sert les photos retouched/originals depuis le disk privé (non public).
-        Route::get('/orders/{order}/photos/{media}',
-            [\App\Http\Controllers\Admin\AdminSecurePhotoController::class, 'show']
-        )->name('orders.photo.show');
 
         // ─── Support Tickets ──────────────────────────────────────────────
         // GET /admin/tickets — Liste tous les tickets (filtrables par statut)

@@ -22,7 +22,7 @@ class AuthenticationTest extends TestCase
 
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
-        $user = User::factory()->create(); // role='client' par défaut
+        $user = User::factory()->create(['last_login_at' => now()]); // Connexion secondaire
 
         $component = Volt::test('pages.auth.login')
             ->set('form.email', $user->email)
@@ -32,9 +32,24 @@ class AuthenticationTest extends TestCase
 
         $component
             ->assertHasNoErrors()
-            // L'app redirige les clients vers /client/orders (pas /dashboard)
-            // Voir resources/views/livewire/pages/auth/login.blade.php
             ->assertRedirect(route('client.orders.index', absolute: false));
+
+        $this->assertAuthenticated();
+    }
+
+    public function test_first_time_client_login_redirects_to_profile(): void
+    {
+        $user = User::factory()->create(['last_login_at' => null]); // Première connexion
+
+        $component = Volt::test('pages.auth.login')
+            ->set('form.email', $user->email)
+            ->set('form.password', 'password');
+
+        $component->call('login');
+
+        $component
+            ->assertHasNoErrors()
+            ->assertRedirect(route('client.profile', absolute: false));
 
         $this->assertAuthenticated();
     }

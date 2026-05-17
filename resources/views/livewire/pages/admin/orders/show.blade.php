@@ -55,6 +55,7 @@ class extends Component
     /** PENDING → IN_PROGRESS */
     public function takeCharge(AuditService $audit): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         $previous = $this->order->status;
         
         $this->order->operator_id = auth()->id();
@@ -71,6 +72,7 @@ class extends Component
      */
     public function launchAiRestoration(): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         if (! config('openai.api_key')) {
             session()->flash('error', 'Clé API OpenAI non configurée (OPENAI_API_KEY manquante dans .env).');
             $this->aiConfirmOpen = false;
@@ -100,6 +102,7 @@ class extends Component
     /** Upload des photos restaurées (reste en IN_PROGRESS pour validation admin) */
     public function uploadRestoredPhotos(AuditService $audit): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         $this->validate([
             'restoredPhotos'   => ['required', 'array', 'min:1'],
             'restoredPhotos.*' => ['required', 'file', 'mimes:jpg,jpeg,png,tiff,tif,webp', 'max:51200'],
@@ -189,6 +192,7 @@ class extends Component
     /** Mise à jour du prix et des notes sans changer le statut */
     public function saveNotes(): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         $this->validate([
             'finalPrice' => ['required', 'numeric', 'min:0'],
             'adminNotes' => ['nullable', 'string', 'max:2000'],
@@ -203,6 +207,7 @@ class extends Component
     /** Annuler la commande */
     public function cancelOrder(AuditService $audit): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         $this->validate(['cancelReason' => ['required', 'string', 'min:10', 'max:500']]);
         $previous = $this->order->status;
         $this->order->cancel($this->cancelReason);
@@ -215,6 +220,7 @@ class extends Component
 
     public function ignoreReport(): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         $this->order->forceFill(['status' => 'PENDING'])->save();
         session()->flash('success', 'Signalement ignoré. La commande est de nouveau en attente.');
         $this->order->refresh()->load(['user', 'media', 'delivery', 'auditLogs']);
@@ -222,6 +228,7 @@ class extends Component
 
     public function banAndDestroy(): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         // Détruire tous les médias physiquement
         $this->order->clearMediaCollection('originals');
         $this->order->clearMediaCollection('retouched');
@@ -264,6 +271,7 @@ class extends Component
      */
     public function rejectPhoto(int $mediaId): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         $media = $this->order->getMedia('retouched')->firstWhere('id', $mediaId);
         abort_if(! $media, 404, 'Photo introuvable.');
 
@@ -282,6 +290,7 @@ class extends Component
      */
     public function restorePhoto(int $mediaId): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         $media = $this->order->getMedia('retouched')->firstWhere('id', $mediaId);
         abort_if(! $media, 404, 'Photo introuvable.');
 
@@ -355,6 +364,7 @@ class extends Component
      */
     public function deleteRetouchedPhoto(int $mediaId): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         $media = $this->order->getMedia('retouched')->firstWhere('id', $mediaId);
         abort_if(! $media, 404, 'Photo introuvable.');
 
@@ -375,6 +385,7 @@ class extends Component
      */
     public function notifyClient(AuditService $audit): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         // On peut notifier si DONE ou si IN_PROGRESS avec des photos
         if (!in_array($this->order->status, ['IN_PROGRESS', 'DONE'])) {
             abort(403, 'Notification non disponible pour ce statut.');
@@ -418,6 +429,7 @@ class extends Component
      */
     public function sendDeliveryEmail(AuditService $audit): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         abort_if(! in_array($this->order->status, ['PAID', 'DELIVERED']), 403, 'Livraison disponible uniquement après paiement.');
 
         $sessionKey = "admin_delivery_{$this->order->id}";
@@ -470,6 +482,7 @@ class extends Component
      */
     public function refundOrder(AuditService $audit): void
     {
+        abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
         abort_if(! in_array($this->order->status, ['PAID', 'DELIVERED']), 403, 'Seules les commandes payées peuvent être remboursées.');
         abort_if(! $this->order->payment_intent_id, 400, 'Aucun Payment Intent Stripe associé à cette commande.');
 
@@ -639,7 +652,7 @@ class extends Component
             </div>
 
             {{-- === ACTION : PRISE EN CHARGE === --}}
-            @if ($order->status === 'PENDING')
+            @if ($order->status === 'PENDING' && auth()->user()->role !== 'marketing')
             <div class="card-glass p-6 border-yellow-500/20">
                 <h2 class="text-[#F5F0E8] font-semibold mb-3">Prendre en charge</h2>
                 <p class="text-[#7A6E5E] text-sm mb-5">Cliquez pour démarrer la restauration. Le statut passera à "En cours".</p>
@@ -660,7 +673,7 @@ class extends Component
             {{-- === SECTION IA DÉPLACÉE DANS LA SIDEBAR === --}}
 
             {{-- === ACTION : UPLOAD (Statut IN_PROGRESS) === --}}
-            @if ($order->status === 'IN_PROGRESS' && (auth()->user()->isSuperAdmin() || auth()->id() === $order->operator_id))
+            @if ($order->status === 'IN_PROGRESS' && auth()->user()->role !== 'marketing' && (auth()->user()->isSuperAdmin() || auth()->id() === $order->operator_id))
             <form wire:submit="uploadRestoredPhotos" class="card-glass p-6 border-blue-500/20">
                 <h2 class="text-[#F5F0E8] font-semibold mb-1">Uploader les photos restaurées</h2>
                 <p class="text-[#7A6E5E] text-sm mb-5">Une fois uploadées, vous pourrez envoyer l'email de validation au client.</p>
@@ -767,7 +780,7 @@ class extends Component
                                 <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                             </a>
                             {{-- Bouton suppression (visible au survol, statuts avant DONE uniquement) --}}
-                            @if (! in_array($order->status, ['DONE', 'PAID', 'DELIVERED']))
+                            @if (! in_array($order->status, ['DONE', 'PAID', 'DELIVERED']) && auth()->user()->role !== 'marketing')
                             <button x-show="h"
                                      @click.stop="const wire = $wire; omnyConfirm({
                                          title: 'Supprimer Photo',
@@ -881,6 +894,7 @@ class extends Component
                     @endif
 
                     {{-- Bouton de remboursement Stripe --}}
+                    @if (auth()->user()->role !== 'marketing')
                     <div class="mt-6 pt-5 border-t border-red-500/10" x-data="{ confirmRefund: false }">
                         <button type="button" @click="confirmRefund = true" x-show="!confirmRefund"
                                 class="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-900/10 hover:bg-red-900/20 text-red-400 border border-red-500/20 rounded-sm transition-all text-xs font-medium">
@@ -907,6 +921,7 @@ class extends Component
                             </div>
                         </div>
                     </div>
+                    @endif
 
                     @else
                     {{-- Paiement en attente --}}
@@ -929,7 +944,7 @@ class extends Component
 
 
             {{-- === 🤖 Restauration IA (Compact) === --}}
-            @if ($order->status === 'IN_PROGRESS')
+            @if ($order->status === 'IN_PROGRESS' && auth()->user()->role !== 'marketing')
             <div class="card-glass p-5 border-purple-500/20 bg-purple-500/5">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-purple-400 text-xs tracking-widest uppercase font-semibold">Restauration IA</h3>
@@ -1022,10 +1037,10 @@ class extends Component
             {{-- Notes + prix rapide --}}
             <div class="card-glass p-5">
                 <h3 class="text-[#C9A84C] text-xs tracking-widest uppercase border-b border-[#C9A84C]/20 pb-2 mb-4 font-semibold">Notes internes</h3>
-                <textarea wire:model="adminNotes" rows="4" placeholder="Notes visibles uniquement par l'équipe…"
-                          class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs rounded-sm px-3 py-2 placeholder-[#7A6E5E]/50 resize-none focus:outline-none focus:border-[#C9A84C]/60 transition-all mb-3">
+                <textarea wire:model="adminNotes" rows="4" placeholder="Notes visibles uniquement par l'équipe…" {{ auth()->user()->role === 'marketing' ? 'disabled' : '' }}
+                          class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs rounded-sm px-3 py-2 placeholder-[#7A6E5E]/50 resize-none focus:outline-none focus:border-[#C9A84C]/60 transition-all mb-3 {{ auth()->user()->role === 'marketing' ? 'opacity-50 cursor-not-allowed' : '' }}">
                 </textarea>
-                @if (!in_array($order->status, ['PAID', 'DELIVERED', 'CANCELLED']))
+                @if (!in_array($order->status, ['PAID', 'DELIVERED', 'CANCELLED']) && auth()->user()->role !== 'marketing')
                 <div class="mb-3">
                     <div class="flex gap-2 mb-1">
                         <input wire:model="finalPrice" type="number" step="0.01" placeholder="Prix TTC (€)"
@@ -1043,7 +1058,7 @@ class extends Component
             </div>
 
             {{-- Urgence Légale (CSAM / NSFW) --}}
-            @if ($order->status === 'FLAGGED')
+            @if ($order->status === 'FLAGGED' && auth()->user()->role !== 'marketing')
             <div class="card-glass p-5 border-red-500 bg-red-950/20">
                 <h3 class="text-red-400 text-xs tracking-widest uppercase border-b border-red-500/20 pb-2 mb-4 font-bold flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
@@ -1093,7 +1108,7 @@ class extends Component
             @endif
 
             {{-- Annulation --}}
-            @if (in_array($order->status, ['PENDING', 'IN_PROGRESS', 'FLAGGED']))
+            @if (in_array($order->status, ['PENDING', 'IN_PROGRESS', 'FLAGGED']) && auth()->user()->role !== 'marketing')
             <div class="card-glass p-5 border-red-500/15" x-data="{ open: false, confirmCancel: false }">
                 <button @click="open = !open; confirmCancel = false" class="w-full flex items-center justify-between text-red-400 text-xs hover:text-red-300 transition-colors">
                     <span class="font-medium">Annuler la commande</span>

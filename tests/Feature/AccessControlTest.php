@@ -105,6 +105,39 @@ class AccessControlTest extends TestCase
     }
 
     /** @test */
+    public function marketing_can_view_order_details_but_cannot_modify(): void
+    {
+        $marketing = User::factory()->create(['role' => 'marketing', 'email_verified_at' => now()]);
+        $client = User::factory()->create(['role' => 'client', 'email_verified_at' => now()]);
+
+        $order = Order::create([
+            'user_id'        => $client->id,
+            'description'    => 'Commande test',
+            'photo_count'    => 1,
+            'status'         => 'PENDING',
+            'payment_status' => 'pending',
+        ]);
+
+        // 1. Le marketing a le droit de voir le détail d'une commande
+        $this->actingAs($marketing)
+            ->get("/admin/orders/{$order->id}")
+            ->assertSuccessful();
+
+        // 2. Le marketing ne peut pas modifier la commande (ex: takeCharge via Livewire)
+        $this->actingAs($marketing);
+        $component = \Livewire\Livewire::test('pages.admin.orders.show', ['order' => $order]);
+
+        try {
+            $component->call('takeCharge');
+            $component->assertStatus(403);
+        } catch (\Throwable $e) {
+            // Dans certains environnements, Pest/PHPUnit ou Livewire jette quand même l'exception brute, on gère les deux cas.
+            $this->assertInstanceOf(\Symfony\Component\HttpKernel\Exception\HttpException::class, $e);
+            $this->assertEquals(403, $e->getStatusCode());
+        }
+    }
+
+    /** @test */
     public function operator_cannot_access_coupons_or_testimonials(): void
     {
         $operator = User::factory()->create(['role' => 'operator', 'email_verified_at' => now()]);
