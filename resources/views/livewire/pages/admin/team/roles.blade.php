@@ -753,10 +753,6 @@ class extends Component
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
     
     function initMermaid() {
-        document.querySelectorAll('.mermaid[data-processed="true"]').forEach(el => {
-            el.removeAttribute('data-processed');
-        });
-
         try {
             mermaid.initialize({ 
                 startOnLoad: true, 
