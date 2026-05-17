@@ -6,6 +6,13 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [2.4.0] — 2026-05-17 — Assistant de Communication IA "OmnyScribe" (Phase 4)
+
+- **OmnyScribe (Support Admin)** :
+  - Création du service d'intelligence artificielle `OmnyScribeService` utilisant GPT-4o-mini pour la réécriture et l'optimisation des réponses clients.
+  - **Optimisation de Ton** : Ajout d'une interface de sélection de ton (Standard, Empathique, Directif) intégrée directement dans le formulaire de réponse des tickets.
+  - **Filtre de Sécurité** : Détection automatique des données sensibles (mot de passe, carte bancaire) par l'IA avant l'envoi, avec affichage d'une alerte visuelle préventive bloquant virtuellement l'envoi de données critiques.
+
 ## [2.3.0] — 2026-05-17 — Espace RH, Actions d'Équipe & Transparence Intégrée
 
 - **Espace Collaborateur RH (`/admin/hr-profile`)** :

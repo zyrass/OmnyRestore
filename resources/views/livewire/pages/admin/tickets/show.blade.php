@@ -7,6 +7,7 @@
 use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use App\Models\Coupon;
+use App\Services\OmnyScribeService;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -24,6 +25,10 @@ class extends Component
     // Pour la génération dynamique
     public string $newCouponType = 'percentage';
     public int $newCouponValue = 10;
+
+    // OmnyScribe
+    public string $omnyScribeTone = 'standard';
+    public array $omnyScribeFlags = [];
 
     public function with(): array
     {
@@ -95,6 +100,23 @@ class extends Component
         $this->ticket->update(['status' => 'open', 'closed_at' => null]);
         $this->ticket->refresh();
         $this->dispatch('refresh-navbar-counts');
+    }
+
+    public function optimizeWithOmnyScribe(OmnyScribeService $scribe): void
+    {
+        if (empty(trim($this->reply))) {
+            $this->addError('reply', 'Veuillez rédiger un brouillon avant d\'utiliser OmnyScribe.');
+            return;
+        }
+
+        try {
+            $result = $scribe->optimize($this->reply, $this->omnyScribeTone, $this->ticket->subject);
+            $this->reply = $result['optimized_text'];
+            $this->omnyScribeFlags = $result['sensitive_flags'] ?? [];
+            $this->resetErrorBag('reply');
+        } catch (\Throwable $e) {
+            $this->addError('reply', "Erreur OmnyScribe : " . $e->getMessage());
+        }
     }
 
     public function generateAndAppendCoupon(): void
@@ -246,6 +268,42 @@ class extends Component
                           onblur="this.style.borderColor='rgba(201,168,76,0.2)'">
                 </textarea>
                 @error('reply') <p class="text-red-400 text-xs mt-1">{{ $message }}</p> @enderror
+                
+                {{-- Outils OmnyScribe --}}
+                <div class="mt-3 flex items-center justify-between border-b border-[#C9A84C]/10 pb-4 mb-4">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <select wire:model="omnyScribeTone" class="appearance-none bg-[#1A1510] text-[#7A6E5E] border border-[#C9A84C]/20 rounded-sm pl-2 pr-6 py-1 text-[11px] font-bold uppercase tracking-wider outline-none focus:border-[#C9A84C]/50 transition-colors cursor-pointer"
+                                style="background-image: url('data:image/svg+xml;utf8,<svg fill=\'%237A6E5E\' height=\'24\' viewBox=\'0 0 24 24\' width=\'24\' xmlns=\'http://www.w3.org/2000/svg\'><path d=\'M7 10l5 5 5-5z\'/></svg>'); background-repeat: no-repeat; background-position: right 2px center; background-size: 16px;">
+                            <option value="standard">Ton : Standard</option>
+                            <option value="empathique">Ton : Empathique</option>
+                            <option value="directif">Ton : Directif</option>
+                        </select>
+                        <button wire:click.prevent="optimizeWithOmnyScribe" wire:loading.attr="disabled" class="text-[11px] font-bold uppercase tracking-wider px-3 py-1 bg-[#1A1510] hover:bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/30 rounded-sm transition-colors flex items-center gap-1.5 disabled:opacity-50">
+                            <span wire:loading.remove wire:target="optimizeWithOmnyScribe">✨ Optimiser avec OmnyScribe</span>
+                            <span wire:loading wire:target="optimizeWithOmnyScribe">Analyses en cours...</span>
+                        </button>
+                    </div>
+                </div>
+
+                {{-- Alertes de sécurité --}}
+                @if(!empty($omnyScribeFlags))
+                <div class="mb-4 bg-red-500/10 border border-red-500/30 rounded-sm p-3">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-4 h-4 text-red-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        <div>
+                            <p class="text-red-400 text-[11px] font-bold uppercase tracking-wider mb-1">Attention : Données Sensibles Détectées</p>
+                            <p class="text-red-400/80 text-[11px] mb-2 leading-tight">L'IA a détecté que vous vous apprêtez à envoyer des informations potentiellement critiques :</p>
+                            <ul class="list-disc pl-4 mb-2">
+                                @foreach($omnyScribeFlags as $flag)
+                                    <li class="text-red-400/80 text-[11px] font-mono leading-tight">{{ $flag }}</li>
+                                @endforeach
+                            </ul>
+                            <p class="text-red-400/80 text-[11px] leading-tight">Veuillez vérifier et nettoyer votre message avant de l'envoyer.</p>
+                        </div>
+                    </div>
+                </div>
+                @endif
                 
                 {{-- Outils de réduction --}}
                 @php
