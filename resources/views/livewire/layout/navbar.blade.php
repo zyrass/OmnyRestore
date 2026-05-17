@@ -139,7 +139,7 @@ new class extends Component
             <div class="hidden md:flex items-center gap-2">
                 <span class="text-[#7A6E5E] text-sm">{{ Auth::user()->name }}</span>
                 @if (Auth::user()->isStaff())
-                <span class="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 bg-emerald-900/30 text-emerald-400 border border-emerald-700/40 rounded-full">
+                <span class="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 bg-emerald-900/30 text-emerald-400 border border-emerald-700/40 rounded-full inline-block text-center" style="min-width: 80px;">
                     {{ Auth::user()->role === 'super-admin' ? 'Super Admin' : (Auth::user()->role === 'operator' ? 'Opérateur' : (Auth::user()->role === 'rh' ? 'RH' : 'Marketing')) }}
                 </span>
                 @endif

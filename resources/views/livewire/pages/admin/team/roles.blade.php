@@ -497,13 +497,13 @@ class extends Component
                         <td class="py-4 px-6 font-mono text-xs">
                             <div class="flex items-center gap-2">
                                 @if($col->role === 'super-admin')
-                                <span class="bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Super Admin</span>
+                                <span class="bg-[#C9A84C]/10 border border-[#C9A84C]/30 text-[#C9A84C] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block text-center" style="min-width: 100px;">Super Admin</span>
                                 @elseif($col->role === 'rh')
-                                <span class="bg-purple-900/20 border border-purple-800/40 text-purple-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">RH</span>
+                                <span class="bg-purple-900/20 border border-purple-800/40 text-purple-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block text-center" style="min-width: 100px;">RH</span>
                                 @elseif($col->role === 'operator')
-                                <span class="bg-blue-900/10 border border-blue-800/30 text-blue-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Opérateur</span>
+                                <span class="bg-blue-900/10 border border-blue-800/30 text-blue-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block text-center" style="min-width: 100px;">Opérateur</span>
                                 @else
-                                <span class="bg-emerald-900/10 border border-emerald-800/30 text-emerald-400 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">Marketing</span>
+                                <span class="bg-emerald-900/10 border border-emerald-800/30 text-emerald-400 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block text-center" style="min-width: 100px;">Marketing</span>
                                 @endif
 
                                 @if($col->id !== Auth::id())
@@ -684,7 +684,7 @@ class extends Component
                         <tr class="border-b border-[#C9A84C]/10 bg-[#0F0C08] text-[#7A6E5E] text-[9px] tracking-widest font-black uppercase">
                             <th class="py-4 px-6 w-1/4">Fonctionnalité / Permission</th>
                             <th class="py-4 px-6 text-center">Super Admin</th>
-                            <th class="py-4 px-6 text-center">Ressources Humaines</th>
+                            <th class="py-4 px-6 text-center">RH</th>
                             <th class="py-4 px-6 text-center">Opérateur</th>
                             <th class="py-4 px-6 text-center">Marketing</th>
                         </tr>
