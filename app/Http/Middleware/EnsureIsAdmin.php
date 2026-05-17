@@ -44,6 +44,10 @@ class EnsureIsAdmin
             return redirect()->route('login');
         }
 
+        if ($request->user()->isSuspended()) {
+            abort(403, 'Votre compte a été suspendu par un administrateur.');
+        }
+
         // Vérifie que l'utilisateur authentifié possède le rôle 'admin'.
         // isAdmin() est défini sur le modèle User : return $this->role === 'admin'
         if (! $request->user()->isAdmin()) {

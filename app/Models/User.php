@@ -92,6 +92,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'rgpd_consent_at',
         'marketing_consent',
         'last_login_at',
+        'suspended_at',
     ];
 
     /**
@@ -123,12 +124,21 @@ class User extends Authenticatable implements MustVerifyEmail
             'password'          => 'hashed',     // Auto-hashes on set (Laravel 10+)
             'deleted_at'        => 'datetime',   // Carbon instance (soft delete)
             'last_login_at'     => 'datetime',   // Carbon instance
+            'suspended_at'      => 'datetime',   // Carbon instance
         ];
     }
 
     // =========================================================================
     // HELPER METHODS
     // =========================================================================
+
+    /**
+     * Check if this user's account is suspended.
+     */
+    public function isSuspended(): bool
+    {
+        return $this->suspended_at !== null;
+    }
 
     /**
      * Check if this user is a super-administrator (Legacy isAdmin alias).
@@ -146,7 +156,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'super-admin';
+        return in_array($this->role, ['admin', 'super-admin']);
     }
 
     /**
@@ -155,7 +165,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function isStaff(): bool
     {
-        return in_array($this->role, ['super-admin', 'operator', 'marketing']);
+        return in_array($this->role, ['admin', 'super-admin', 'operator', 'marketing']);
     }
 
     /**

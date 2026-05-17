@@ -19,6 +19,10 @@ class EnsureIsStaff
             return redirect()->route('login');
         }
 
+        if ($request->user()->isSuspended()) {
+            abort(403, 'Votre compte a été suspendu par un administrateur.');
+        }
+
         if (! $request->user()->isStaff()) {
             abort(403, 'Accès réservé aux membres de l\'équipe (Staff).');
         }

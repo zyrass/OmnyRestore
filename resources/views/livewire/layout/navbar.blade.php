@@ -166,6 +166,10 @@ new class extends Component
                        class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 transition-colors border-b border-white/5">
                         Transparence Salariale
                     </a>
+                    <a href="{{ route('admin.team.roles') }}" wire:navigate
+                       class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 transition-colors border-b border-white/5">
+                        Gestion de l'Équipe
+                    </a>
                     @endif
                     <a href="{{ route('admin.moderation.lexicon') }}" wire:navigate
                        class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-red-400 hover:bg-red-900/10 transition-colors border-b border-white/5">

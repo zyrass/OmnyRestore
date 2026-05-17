@@ -6,6 +6,24 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [0.27.2] — 2026-05-17 — Gestion de l'Équipe (Phase 1.5) & Suspension RBAC
+
+### ✨ Nouveautés & Améliorations
+
+- **Gestion de l'Équipe & Rôles** (`/admin/team/roles`) :
+  - Création d'une interface d'administration premium et exclusive au Super-Admin pour piloter les comptes collaborateurs.
+  - **Widget de Licence (Quota 10 Sièges)** : Barre de progression dorée et indicateur en temps réel pour suivre le quota strict des 10 sièges collaborateurs actifs (hors clients), avec blocage automatique des invitations en cas de dépassement.
+  - **Matrice de Permissions Auditable (RBAC)** : Tableau visuel haut de gamme récapitulant les droits applicatifs de chaque rôle (Super-Admin, Opérateur, Marketing) pour une conformité et traçabilité maximales.
+  - **Tableau de Bord de l'Équipe** : Liste détaillée des collaborateurs avec recherche en temps réel, filtres par rôle, affichage de la dernière connexion et statut actif/suspendu.
+- **Suspension Active des Accès** :
+  - Ajout de la colonne `suspended_at` et du helper `isSuspended()` sur le modèle `User`.
+  - Durcissement des middlewares `EnsureIsStaff` et `EnsureIsAdmin` pour intercepter et rejeter instantanément tout utilisateur suspendu avec une erreur 403.
+  - Actions interactives de suspension et réactivation d'un clic depuis la liste d'équipe.
+- **Suppression RGPD & Anonymisation (Art. 17)** :
+  - Intégration d'un flux de suppression définitive avec anonymisation non réversible : remplacement du nom par un tag unique (`Ex-Collaborateur [UUID]`) et purge de l'email, blocage définitif de l'authentification et application d'un soft-delete pour conserver la cohérence historique de l'audit trail.
+
+---
+
 ## [0.27.1] — 2026-05-17 — Ajustements UI & Master Plan
 
 ### 🛠️ Maintenance & Ergonomie

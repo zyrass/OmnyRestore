@@ -90,6 +90,10 @@ Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.'
         Volt::route('/compliance', 'pages.admin.compliance')
             ->name('compliance');
 
+        // ─── Team / Roles Management ──────────────────────────────────────────
+        Volt::route('/team/roles', 'pages.admin.team.roles')
+            ->name('team.roles');
+
         // ─── Chiffre d'Affaire ───────────────────────────────────────────────
         // GET /admin/revenue — CA mensuel avec graphes Chart.js
         Volt::route('/revenue', 'pages.admin.revenue.index')

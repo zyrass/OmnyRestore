@@ -165,7 +165,6 @@ Dernière étape technique pour parfaire l'écosystème : stabiliser définitive
 ---
 
 ## 🚀 Prochaines Étapes Suggérées (Roadmap)
-1. ✅ **Phase 1 (Base Collaborative)** : Migrations DB `operator_id`, Middlewares `EnsureIsStaff`/`EnsureIsAdmin`, Dashboard de Transparence Salariale et Assignation terminés.
-2. ⏳ **Gestion de l'Équipe (Phase 1.5)** : Créer l'interface `/admin/team/roles` pour inviter des collaborateurs et gérer les 10 sièges.
-3. ⏳ **Prototype IA (Phase 4)** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.
-4. ⏳ **Hardening IA (Phase 7)** : Reprendre la résolution du bug d'automatisation de l'IA.
+1. ✅ **Phase 1 & 1.5 (Base Collaborative & Gestion d'Équipe)** : Migrations DB, Middlewares de sécurité (EnsureIsStaff/EnsureIsAdmin), Dashboard de Transparence Salariale, et interface premium d'administration de l'équipe (`/admin/team/roles`) avec quota de 10 sièges et anonymisation RGPD 100% opérationnels.
+2. ⏳ **Prototype IA (Phase 4)** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.
+3. ⏳ **Hardening IA (Phase 7)** : Reprendre la résolution du bug d'automatisation de l'IA.
