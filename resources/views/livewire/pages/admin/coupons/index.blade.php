@@ -320,19 +320,25 @@ class extends Component
                     </td>
                     <td class="px-4 py-3.5">
                         @if ($isValid)
-                        <span class="inline-flex items-center gap-1 text-xs text-emerald-400 bg-emerald-900/30 border border-emerald-500/25 px-2 py-0.5 rounded-full">
-                            <span class="w-1 h-1 bg-emerald-400 rounded-full"></span> Actif
+                        <span class="inline-flex px-2 py-0.5 text-[11px] font-medium border rounded-full bg-emerald-900/40 text-emerald-400 border-emerald-500/30">
+                            Actif
                         </span>
                         @elseif ($isFuture)
-                        <span class="inline-flex items-center gap-1 text-xs text-blue-400 bg-blue-900/30 border border-blue-500/25 px-2 py-0.5 rounded-full">
-                            <span class="w-1 h-1 bg-blue-400 rounded-full"></span> {{ $coupon->is_seasonal ? 'En attente' : 'Planifié' }}
+                        <span class="inline-flex px-2 py-0.5 text-[11px] font-medium border rounded-full bg-blue-900/40 text-blue-400 border-blue-500/30">
+                            {{ $coupon->is_seasonal ? 'En attente' : 'Planifié' }}
                         </span>
                         @elseif (! $coupon->is_active)
-                        <span class="text-xs text-[#7A6E5E] bg-[#1A1510] border border-[#C9A84C]/10 px-2 py-0.5 rounded-full">Désactivé</span>
+                        <span class="inline-flex px-2 py-0.5 text-[11px] font-medium border rounded-full bg-[#1A1510] text-[#7A6E5E] border-[#7A6E5E]/20">
+                            Désactivé
+                        </span>
                         @elseif ($coupon->expires_at?->isPast())
-                        <span class="text-xs text-red-400 bg-red-900/20 border border-red-500/20 px-2 py-0.5 rounded-full">Expiré</span>
+                        <span class="inline-flex px-2 py-0.5 text-[11px] font-medium border rounded-full bg-red-900/40 text-red-400 border-red-500/30">
+                            Expiré
+                        </span>
                         @else
-                        <span class="text-xs text-orange-400 bg-orange-900/20 border border-orange-500/20 px-2 py-0.5 rounded-full">Épuisé</span>
+                        <span class="inline-flex px-2 py-0.5 text-[11px] font-medium border rounded-full bg-orange-900/40 text-orange-400 border-orange-500/30">
+                            Épuisé
+                        </span>
                         @endif
                     </td>
                     <td class="px-4 py-3.5 text-right">

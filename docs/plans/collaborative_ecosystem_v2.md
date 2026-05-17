@@ -173,10 +173,17 @@ Dernière étape technique pour parfaire l'écosystème : stabiliser définitive
 ---
 
 ## 🚀 Prochaines Étapes Suggérées (Roadmap)
+
 1. ✅ **Phase 1, 1.5 & 1.6 (Base Collaborative, Gestion d'Équipe & E-mail Sécurisé)** : Migrations DB, Middlewares de sécurité (EnsureIsStaff/EnsureIsAdmin), Dashboard de Transparence Salariale, interface premium d'administration de l'équipe (`/admin/team/roles`) avec quota de 10 sièges, anonymisation RGPD, et routage de sécurité avec e-mail de contact réel (`contact_email`) 100% opérationnels.
+
 2. ✅ **Phase 1.7 (Tabs & Diagrammes de Cycle de Vie Super-Admin)** : Organisation par onglets (`Membres`, `Matrice RBAC`, `Cycle de vie & Diagrammes`) et intégration visuelle interactive du cycle de vie des collaborateurs et workflow opérationnel au sein de la page `/admin/team/roles` 100% opérationnels.
+
 3. ✅ **Phase 1.8 (Espace RH & Transparence Intégrée)** : Création d'un espace personnel pour chaque membre du staff (`/admin/hr-profile`), intégration de la validation SMIC 2026, du graphique KPI salarial CSS, et inclusion de l'encart de Transparence Salariale au sein de l'espace. Refonte complète des actions d'équipe via une fenêtre modale 100% opérationnels.
+
 4. ✅ **Phase 1.9 (Gouvernance RH Confidentielle)** : Création d'un espace sécurisé "Notes & Avis RH", persistance des onglets, fiabilisation de l'UI des diagrammes de cycle de vie et consolidation du stockage des notes RH avec badge de tracking.
+
 5. ✅ **Phase 2 (Accès Lecture Seule Marketing)** : Consultation globale des commandes (`/admin/orders`) et détails en lecture seule pour le rôle `marketing` avec masquage UI, désactivation des notes, bouton "Commandes" dans la navbar et blocage strict 403 en écriture 100% opérationnels.
+
 6. ✅ **Phase 4 (Prototype IA OmnyScribe)** : Intégration du premier bouton de correction "OmnyScribe" sur les tickets de support, avec filtrage de sécurité et optimisation du ton de réponse 100% opérationnels.
+
 7. ⏳ **Hardening IA (Phase 7)** : Reprendre la résolution du bug d'automatisation de l'IA.

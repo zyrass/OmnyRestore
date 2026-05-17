@@ -612,13 +612,11 @@ class extends Component
                         {{-- Statut --}}
                         <td class="py-4 px-6">
                             @if($col->isSuspended())
-                            <span class="inline-flex items-center gap-1.5 text-xs text-red-400 font-bold bg-red-950/20 border border-red-800/30 px-2 py-1 rounded-full">
-                                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                            <span class="inline-flex px-2 py-0.5 text-[11px] font-medium border rounded-full bg-[#1A1510] text-[#7A6E5E] border-[#7A6E5E]/20">
                                 Suspendu
                             </span>
                             @else
-                            <span class="inline-flex items-center gap-1.5 text-xs text-emerald-400 font-bold bg-emerald-950/20 border border-emerald-800/30 px-2 py-1 rounded-full">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span class="inline-flex px-2 py-0.5 text-[11px] font-medium border rounded-full bg-emerald-900/40 text-emerald-400 border-emerald-500/30">
                                 Actif
                             </span>
                             @endif
