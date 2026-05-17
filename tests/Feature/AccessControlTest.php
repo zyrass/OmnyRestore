@@ -114,16 +114,21 @@ class AccessControlTest extends TestCase
             'user_id'        => $client->id,
             'description'    => 'Commande test',
             'photo_count'    => 1,
-            'status'         => 'PENDING',
-            'payment_status' => 'pending',
+            'status'         => 'PAID',
+            'payment_status' => 'paid',
+            'paid_at'        => now(),
         ]);
 
         // 1. Le marketing a le droit de voir le détail d'une commande
-        $this->actingAs($marketing)
+        $response = $this->actingAs($marketing)
             ->get("/admin/orders/{$order->id}")
             ->assertSuccessful();
 
-        // 2. Le marketing ne peut pas modifier la commande (ex: takeCharge via Livewire)
+        // 2. Le marketing ne doit pas voir le bouton de livraison ni le bouton de facture
+        $response->assertDontSee("Renvoyer l'email de livraison");
+        $response->assertDontSee("Télécharger la facture PDF");
+
+        // 3. Le marketing ne peut pas modifier la commande (ex: takeCharge via Livewire)
         $this->actingAs($marketing);
         $component = \Livewire\Livewire::test('pages.admin.orders.show', ['order' => $order]);
 

@@ -863,6 +863,7 @@ class extends Component
                         </div>
                     </div>
 
+                    @if (auth()->user()->role !== 'marketing')
                     <p class="text-[#7A6E5E] text-xs mb-3 leading-relaxed">
                         Renvoyez au client le mail contenant son lien de téléchargement (photos HD) et sa facture PDF.
                         <span class="text-[#C9A84C]/60 block mt-0.5">Limite à 1 envoi toutes les 5 minutes.</span>
@@ -885,6 +886,7 @@ class extends Component
                             Renvoi en cours...
                         </span>
                     </button>
+                    @endif
 
                     @if ($order->status === 'DELIVERED' && $order->delivered_at)
                     <div class="flex items-center justify-center gap-1.5 mt-3">
@@ -1023,6 +1025,7 @@ class extends Component
                     </div>
                     @if ($order->paid_at)
                     <div class="flex justify-between border-t border-[#C9A84C]/5 pt-2 mt-2"><dt class="text-[#7A6E5E]">Payé le</dt><dd class="text-emerald-400 text-xs">{{ $order->paid_at->format('d/m/Y H:i') }}</dd></div>
+                    @if (auth()->user()->role !== 'marketing')
                     <div class="mt-4 pt-4 border-t border-[#C9A84C]/10">
                         <a href="{{ route('admin.orders.invoice', $order) }}" target="_blank"
                            class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#C9A84C]/10 hover:bg-[#C9A84C]/20 border border-[#C9A84C]/30 text-[#C9A84C] hover:text-[#E8C97A] text-xs font-medium rounded-sm transition-colors">
@@ -1030,6 +1033,7 @@ class extends Component
                             Télécharger la facture PDF
                         </a>
                     </div>
+                    @endif
                     @endif
                 </dl>
             </div>
