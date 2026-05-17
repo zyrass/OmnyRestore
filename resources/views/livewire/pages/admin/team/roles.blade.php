@@ -500,6 +500,13 @@ class extends Component
                                         Contact : {{ $col->contact_email }}
                                     </p>
                                     @endif
+
+                                    @if($col->hr_notes && in_array(Auth::user()->role, ['super-admin', 'rh']))
+                                    <p class="text-purple-400/90 text-[10px] font-normal mt-2 flex items-start gap-1.5 bg-purple-900/10 border border-purple-800/30 px-2 py-1.5 rounded-sm w-full whitespace-normal">
+                                        <svg class="w-3.5 h-3.5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                                        <span class="leading-relaxed">{{ $col->hr_notes }}</span>
+                                    </p>
+                                    @endif
                                 </div>
                             </div>
                         </td>
