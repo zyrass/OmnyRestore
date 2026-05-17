@@ -586,6 +586,9 @@ class extends Component
                         Actif --> Anonymisé : Suppression RGPD (Art. 17)
                         Anonymisé --> [*]
                 </div>
+                <p class="text-center text-[#7A6E5E] text-xs mt-4 italic">
+                    Ce diagramme illustre les <strong class="font-bold text-[#F5F0E8]">états successifs</strong> d'un compte collaborateur, de l'<strong class="font-bold text-[#F5F0E8]">invitation</strong> jusqu'à l'<strong class="font-bold text-[#F5F0E8]">anonymisation RGPD</strong>.
+                </p>
             </div>
 
             {{-- 2. Sequence Diagram / Workflow Commande --}}
@@ -612,6 +615,9 @@ class extends Component
                         S->>C: Envoie l'email de paiement
                         S->>S: Incrémente KPI (Completed) pour Opérateur O
                 </div>
+                <p class="text-center text-[#7A6E5E] text-xs mt-4 italic">
+                    Cette cinématique détaille le <strong class="font-bold text-[#F5F0E8]">workflow opérationnel</strong> d'une commande, de sa <strong class="font-bold text-[#F5F0E8]">création</strong> jusqu'au <strong class="font-bold text-[#F5F0E8]">paiement</strong> final.
+                </p>
             </div>
 
             {{-- 3. Flowchart / Processus Marketing --}}
@@ -632,6 +638,9 @@ class extends Component
                         F -->|Oui| G[Envoi via Assistant IA]
                         F -->|Non| H[Exclure du listing]
                 </div>
+                <p class="text-center text-[#7A6E5E] text-xs mt-4 italic">
+                    Ce flux représente la <strong class="font-bold text-[#F5F0E8]">logique de segmentation</strong> automatisée pour l'envoi de campagnes marketing en <strong class="font-bold text-[#F5F0E8]">conformité RGPD</strong>.
+                </p>
             </div>
         </div>
     </div>
