@@ -87,6 +87,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'name',
         'email',
+        'contact_email',
         'password',
         'role',
         'rgpd_consent_at',
@@ -118,6 +119,7 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',   // Carbon instance
+            'contact_email'     => 'string',     // Cast string
             'rgpd_consent_at'   => 'datetime',   // Carbon instance
             'anonymized_at'     => 'datetime',   // Carbon instance — audit RGPD
             'marketing_consent' => 'boolean',    // true/false (not 1/0)
@@ -186,6 +188,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasVerifiedEmail(): bool
     {
         return $this->email_verified_at !== null;
+    }
+
+    /**
+     * Route notifications for the mail channel.
+     * If a secure contact email is defined, route all notifications there.
+     */
+    public function routeNotificationForMail($notification = null): string
+    {
+        return $this->contact_email ?? $this->email;
     }
 
     // =========================================================================

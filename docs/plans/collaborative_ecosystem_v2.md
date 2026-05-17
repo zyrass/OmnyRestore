@@ -35,8 +35,11 @@ stateDiagram-v2
 ```
 
 ### Implémentation Technique
-*   **Migration `users`** : Ajout d'une colonne `role` (enum) et `last_active_at`.
-*   **Interface RBAC** : Une nouvelle page `/admin/team/roles` affichant une matrice de permissions interactive.
+*   **Migration `users`** : Ajout d'une colonne `role` (enum), `last_active_at`, `suspended_at`, et d'une colonne `contact_email` (nullable string) pour séparer l'identifiant de connexion de l'e-mail de notification réel.
+*   **Séparation des E-mails de Connexion & Contact (Sécurité)** :
+    *   L'adresse `email` principale sert uniquement de clé d'authentification (peut être une adresse fictive ou interne, ex: `collab1@omny.internal`).
+    *   L'adresse `contact_email` optionnelle reçoit toutes les notifications applicatives réelles (réinitialisations de mot de passe, invitations, alertes de sécurité) en surchargeant `routeNotificationForMail()` dans le modèle `User`.
+*   **Interface RBAC** : Une nouvelle page `/admin/team/roles` affichant une matrice de permissions interactive, permettant l'ajout et l'édition rapide de l'adresse de contact sécurisée sous forme de badge `🛡️ Contact`.
 *   **Garde-fou "10 Sièges"** : 
     *   Logique de validation bloquant l'ajout d'un nouvel utilisateur si le quota de 10 (hors clients) est atteint.
     *   Widget visuel "Licence" indiquant l'occupation des sièges.
@@ -165,6 +168,6 @@ Dernière étape technique pour parfaire l'écosystème : stabiliser définitive
 ---
 
 ## 🚀 Prochaines Étapes Suggérées (Roadmap)
-1. ✅ **Phase 1 & 1.5 (Base Collaborative & Gestion d'Équipe)** : Migrations DB, Middlewares de sécurité (EnsureIsStaff/EnsureIsAdmin), Dashboard de Transparence Salariale, et interface premium d'administration de l'équipe (`/admin/team/roles`) avec quota de 10 sièges et anonymisation RGPD 100% opérationnels.
+1. ✅ **Phase 1, 1.5 & 1.6 (Base Collaborative, Gestion d'Équipe & E-mail Sécurisé)** : Migrations DB, Middlewares de sécurité (EnsureIsStaff/EnsureIsAdmin), Dashboard de Transparence Salariale, interface premium d'administration de l'équipe (`/admin/team/roles`) avec quota de 10 sièges, anonymisation RGPD, et routage de sécurité avec e-mail de contact réel (`contact_email`) 100% opérationnels.
 2. ⏳ **Prototype IA (Phase 4)** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.
 3. ⏳ **Hardening IA (Phase 7)** : Reprendre la résolution du bug d'automatisation de l'IA.

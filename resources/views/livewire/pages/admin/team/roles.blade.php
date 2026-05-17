@@ -30,16 +30,19 @@ class extends Component
     public bool $showCreateModal = false;
     public string $newMemberName = '';
     public string $newMemberEmail = '';
+    public string $newMemberContactEmail = '';
     public string $newMemberRole = 'operator';
     public string $newMemberPassword = '';
 
     // Édition rapide
     public ?string $editingUserId = null;
     public string $editingRole = '';
+    public string $editingContactEmail = '';
 
     protected $rules = [
         'newMemberName' => 'required|string|min:2|max:50',
         'newMemberEmail' => 'required|email|unique:users,email',
+        'newMemberContactEmail' => 'nullable|email',
         'newMemberRole' => 'required|in:super-admin,operator,marketing',
         'newMemberPassword' => 'required|string|min:8',
     ];
@@ -47,6 +50,7 @@ class extends Component
     protected $validationAttributes = [
         'newMemberName' => 'nom complet',
         'newMemberEmail' => 'adresse e-mail',
+        'newMemberContactEmail' => 'e-mail de contact (sécurité)',
         'newMemberRole' => 'rôle',
         'newMemberPassword' => 'mot de passe',
     ];
@@ -78,6 +82,7 @@ class extends Component
         $user = User::create([
             'name' => $this->newMemberName,
             'email' => $this->newMemberEmail,
+            'contact_email' => $this->newMemberContactEmail ?: null,
             'password' => $this->newMemberPassword, // Hashé automatiquement par le cast du modèle
             'role' => $this->newMemberRole,
             'email_verified_at' => now(), // validé d'office par l'admin
@@ -87,7 +92,7 @@ class extends Component
         Log::info("RBAC: Collaborateur créé par Admin " . Auth::id() . " -> id={$user->id}, rôle={$user->role}");
 
         // 3. Reset du formulaire & Fermeture du modal
-        $this->reset(['newMemberName', 'newMemberEmail', 'newMemberRole', 'newMemberPassword', 'showCreateModal']);
+        $this->reset(['newMemberName', 'newMemberEmail', 'newMemberContactEmail', 'newMemberRole', 'newMemberPassword', 'showCreateModal']);
         session()->flash('success', '✅ Collaborateur ajouté avec succès.');
     }
 
@@ -123,6 +128,7 @@ class extends Component
         $user = User::findOrFail($userId);
         $this->editingUserId = $userId;
         $this->editingRole = $user->role;
+        $this->editingContactEmail = $user->contact_email ?? '';
     }
 
     /**
@@ -135,7 +141,7 @@ class extends Component
         // Interdire de changer son propre rôle pour éviter le lockout accidentel
         if ($this->editingUserId === Auth::id()) {
             session()->flash('error', '❌ Vous ne pouvez pas modifier votre propre rôle pour préserver les accès Admin.');
-            $this->reset(['editingUserId', 'editingRole']);
+            $this->reset(['editingUserId', 'editingRole', 'editingContactEmail']);
             return;
         }
 
@@ -144,14 +150,23 @@ class extends Component
             return;
         }
 
+        $this->validate([
+            'editingContactEmail' => 'nullable|email'
+        ], [
+            'editingContactEmail.email' => 'L\'adresse e-mail de contact doit être valide.'
+        ]);
+
         $user = User::findOrFail($this->editingUserId);
         $oldRole = $user->role;
-        $user->update(['role' => $this->editingRole]);
+        $user->update([
+            'role' => $this->editingRole,
+            'contact_email' => $this->editingContactEmail ?: null,
+        ]);
 
-        Log::info("RBAC: Rôle modifié par Admin -> id={$user->id}, ancien={$oldRole}, nouveau={$user->role}");
-        session()->flash('success', "🎭 Le rôle de {$user->name} a été mis à jour.");
+        Log::info("RBAC: Rôle et e-mail de contact modifiés par Admin -> id={$user->id}, ancien_role={$oldRole}, nouveau_role={$user->role}");
+        session()->flash('success', "🎭 Le compte de {$user->name} a été mis à jour.");
 
-        $this->reset(['editingUserId', 'editingRole']);
+        $this->reset(['editingUserId', 'editingRole', 'editingContactEmail']);
     }
 
     /**
@@ -327,7 +342,16 @@ class extends Component
                                 </div>
                                 <div class="min-w-0">
                                     <p class="font-bold truncate text-[#F5F0E8]">{{ $col->name }}</p>
-                                    <p class="text-[#7A6E5E] text-xs font-mono truncate mt-0.5">{{ $col->email }}</p>
+                                    <p class="text-[#7A6E5E] text-xs font-mono truncate mt-0.5 flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5 text-[#7A6E5E]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                                        {{ $col->email }}
+                                    </p>
+                                    @if($col->contact_email)
+                                    <p class="text-[#C9A84C]/95 text-[10px] font-bold font-mono truncate mt-1 flex items-center gap-1 bg-[#C9A84C]/5 border border-[#C9A84C]/15 px-1.5 py-0.5 rounded-sm max-w-max">
+                                        <svg class="w-3 h-3 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.965 11.965 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                        Contact : {{ $col->contact_email }}
+                                    </p>
+                                    @endif
                                 </div>
                             </div>
                         </td>
@@ -335,15 +359,30 @@ class extends Component
                         {{-- Rôle (éditable ou badge) --}}
                         <td class="py-4 px-6 font-mono text-xs">
                             @if($editingUserId === $col->id)
-                            <div class="flex items-center gap-2">
-                                <select wire:model="editingRole"
-                                        class="bg-[#0F0C08] border border-[#C9A84C]/30 text-[#F5F0E8] px-2 py-1.5 rounded-sm focus:outline-none focus:border-[#C9A84C] text-xs">
-                                    <option value="super-admin">Super Admin</option>
-                                    <option value="operator">Opérateur</option>
-                                    <option value="marketing">Marketing</option>
-                                </select>
-                                <button wire:click="saveRole" class="px-2 py-1.5 bg-[#C9A84C] text-[#0D0B08] font-bold rounded-sm text-xs hover:bg-[#E5C158]">✓</button>
-                                <button wire:click="$reset(['editingUserId', 'editingRole'])" class="px-2 py-1.5 border border-[#3A3028] text-[#7A6E5E] rounded-sm text-xs hover:text-[#F5F0E8]">✕</button>
+                            <div class="flex flex-col gap-2 bg-[#1A1510]/50 p-2 border border-[#C9A84C]/15 rounded-sm">
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[9px] uppercase tracking-wider text-[#7A6E5E] font-bold">Rôle</label>
+                                    <select wire:model="editingRole"
+                                            class="bg-[#0F0C08] border border-[#C9A84C]/30 text-[#F5F0E8] px-2 py-1.5 rounded-sm focus:outline-none focus:border-[#C9A84C] text-xs font-mono">
+                                        <option value="super-admin">Super Admin</option>
+                                        <option value="operator">Opérateur</option>
+                                        <option value="marketing">Marketing</option>
+                                    </select>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <label class="text-[9px] uppercase tracking-wider text-[#7A6E5E] font-bold">E-mail de Contact (Réel)</label>
+                                    <input type="email"
+                                           wire:model="editingContactEmail"
+                                           placeholder="alain@gmail.com (optionnel)"
+                                           class="bg-[#0F0C08] border border-[#C9A84C]/30 text-[#F5F0E8] px-2 py-1.5 rounded-sm focus:outline-none focus:border-[#C9A84C] text-xs font-mono w-full" />
+                                    @error('editingContactEmail')
+                                    <span class="text-red-400 text-[10px] font-mono mt-0.5">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                                <div class="flex items-center gap-1.5 mt-1 border-t border-[#C9A84C]/10 pt-2">
+                                    <button wire:click="saveRole" class="px-2.5 py-1.5 bg-[#C9A84C] text-[#0D0B08] font-black rounded-sm text-[10px] uppercase hover:bg-[#E5C158]">✓ Sauver</button>
+                                    <button wire:click="$reset(['editingUserId', 'editingRole', 'editingContactEmail'])" class="px-2.5 py-1.5 border border-[#3A3028] text-[#7A6E5E] rounded-sm text-[10px] uppercase hover:text-[#F5F0E8]">✕</button>
+                                </div>
                             </div>
                             @else
                             <div class="flex items-center gap-2">
@@ -358,7 +397,7 @@ class extends Component
                                 @if($col->id !== Auth::id())
                                 <button wire:click="startEditRole('{{ $col->id }}')" 
                                         class="text-[#7A6E5E] hover:text-[#C9A84C] transition-colors p-1"
-                                        title="Modifier le rôle">
+                                        title="Modifier le collaborateur">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                 </button>
                                 @endif
@@ -543,12 +582,27 @@ class extends Component
 
                     {{-- Email --}}
                     <div>
-                        <label class="block text-[10px] text-[#7A6E5E] font-bold uppercase tracking-widest mb-1.5">Adresse E-mail</label>
+                        <label class="block text-[10px] text-[#7A6E5E] font-bold uppercase tracking-widest mb-1.5">Adresse E-mail de Connexion (Fictive ou Interne)</label>
                         <input type="email" 
                                wire:model="newMemberEmail"
-                               placeholder="Ex: alain@omnyrestore.com"
+                               placeholder="Ex: collab1@omny.internal"
                                class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs px-3 py-2.5 rounded-sm focus:outline-none focus:border-[#C9A84C] transition-all font-mono" />
+                        <span class="text-[10px] text-[#7A6E5E] mt-1 block">Sert uniquement d'identifiant pour se connecter.</span>
                         @error('newMemberEmail') <span class="text-red-400 text-[10px] mt-1 block font-mono">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- Contact Email --}}
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="block text-[10px] text-[#7A6E5E] font-bold uppercase tracking-widest">Adresse E-mail de Sécurité (Réelle)</label>
+                            <span class="text-[9px] text-[#C9A84C] font-bold">Optionnel</span>
+                        </div>
+                        <input type="email" 
+                               wire:model="newMemberContactEmail"
+                               placeholder="Ex: alain.guillon.contact@gmail.com"
+                               class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs px-3 py-2.5 rounded-sm focus:outline-none focus:border-[#C9A84C] transition-all font-mono" />
+                        <span class="text-[10px] text-[#7A6E5E] mt-1 block">Reçoit toutes les notifications réelles (réinitialisation, invitations) pour éviter toute compromission.</span>
+                        @error('newMemberContactEmail') <span class="text-red-400 text-[10px] mt-1 block font-mono">{{ $message }}</span> @enderror
                     </div>
 
                     {{-- Rôle --}}
