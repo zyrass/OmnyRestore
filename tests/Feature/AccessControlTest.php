@@ -94,4 +94,40 @@ class AccessControlTest extends TestCase
             ->get("/client/orders/{$order->id}")
             ->assertSuccessful();
     }
+
+    /** @test */
+    public function marketing_cannot_access_orders_or_tickets(): void
+    {
+        $marketing = User::factory()->create(['role' => 'marketing', 'email_verified_at' => now()]);
+
+        $this->actingAs($marketing)->get('/admin/orders')->assertForbidden();
+        $this->actingAs($marketing)->get('/admin/tickets')->assertForbidden();
+    }
+
+    /** @test */
+    public function operator_cannot_access_coupons_or_testimonials(): void
+    {
+        $operator = User::factory()->create(['role' => 'operator', 'email_verified_at' => now()]);
+
+        $this->actingAs($operator)->get('/admin/coupons')->assertForbidden();
+        $this->actingAs($operator)->get('/admin/testimonials')->assertForbidden();
+    }
+
+    /** @test */
+    public function operator_can_access_orders_and_tickets(): void
+    {
+        $operator = User::factory()->create(['role' => 'operator', 'email_verified_at' => now()]);
+
+        $this->actingAs($operator)->get('/admin/orders')->assertSuccessful();
+        $this->actingAs($operator)->get('/admin/tickets')->assertSuccessful();
+    }
+
+    /** @test */
+    public function marketing_can_access_coupons_and_testimonials(): void
+    {
+        $marketing = User::factory()->create(['role' => 'marketing', 'email_verified_at' => now()]);
+
+        $this->actingAs($marketing)->get('/admin/coupons')->assertSuccessful();
+        $this->actingAs($marketing)->get('/admin/testimonials')->assertSuccessful();
+    }
 }

@@ -13,7 +13,7 @@ class EnsureIsStaff
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, Closure $next, ?string $forbiddenRole = null): Response
     {
         if (! $request->user()) {
             return redirect()->route('login');
@@ -25,6 +25,10 @@ class EnsureIsStaff
 
         if (! $request->user()->isStaff()) {
             abort(403, 'Accès réservé aux membres de l\'équipe (Staff).');
+        }
+
+        if ($forbiddenRole && $request->user()->role === $forbiddenRole) {
+            abort(403, 'Vous n\'avez pas les privilèges suffisants pour accéder à cette ressource.');
         }
 
         return $next($request);

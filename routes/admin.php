@@ -12,9 +12,9 @@ use Livewire\Volt\Volt;
 
 Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.')->group(function () {
 
-    // ─── ROUTES STAFF (Accès Opérateurs & Marketing) ──────────────────────
+    // ─── ROUTES COMMUNES (Tous les membres du Staff) ──────────────────────
 
-    // GET /admin/dashboard — KPIs + file d'attente des commandes PENDING
+    // GET /admin/dashboard — KPIs
     Volt::route('/dashboard', 'pages.admin.dashboard')
         ->name('dashboard');
 
@@ -22,64 +22,75 @@ Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.'
     Volt::route('/transparency', 'pages.admin.transparency.index')
         ->name('transparency.index');
 
-    // ─── Order Management ─────────────────────────────────────────────────
-    // GET /admin/orders — Liste toutes les commandes (filtrables)
-    Volt::route('/orders', 'pages.admin.orders.index')
-        ->name('orders.index');
-
-    // GET /admin/orders/{order} — Détail + actions admin (prise en charge, upload, prix)
-    Volt::route('/orders/{order}', 'pages.admin.orders.show')
-        ->name('orders.show');
-
-    // PATCH /admin/orders/{order}/status — Transition de statut (via Livewire actions)
-    Route::patch('/orders/{order}/status',
-        \App\Http\Controllers\Admin\OrderController::class . '@updateStatus'
-    )->name('orders.status');
-
-    // GET /admin/orders/{order}/invoice — Télécharger la facture PDF
-    Route::get('/orders/{order}/invoice',
-        [\App\Http\Controllers\Admin\AdminInvoiceController::class, 'download']
-    )->name('orders.invoice');
-
-    // POST /admin/orders/{order}/auto-restore — Restauration IA automatique (Phase 8)
-    Route::post('/orders/{order}/auto-restore',
-        \App\Http\Controllers\Admin\OrderAutoRestoreController::class . '@dispatch'
-    )->name('orders.auto-restore');
-
-    // ─── Support Tickets ──────────────────────────────────────────────────
-    // GET /admin/tickets — Liste tous les tickets (filtrables par statut)
-    Volt::route('/tickets', 'pages.admin.tickets.index')
-        ->name('tickets.index');
-
-    // GET /admin/tickets/{ticket} — Fil de conversation + réponse admin
-    Volt::route('/tickets/{ticket}', 'pages.admin.tickets.show')
-        ->name('tickets.show');
-
-    // ─── Codes de réduction (Coupons) ───────────────────────────────────
-    // GET /admin/coupons — Liste + création des codes de réduction
-    Volt::route('/coupons', 'pages.admin.coupons.index')
-        ->name('coupons.index');
-
-    // ─── Clients ─────────────────────────────────────────────────────────
     // GET /admin/clients — Liste complète des clients avec CA payé
     Volt::route('/clients', 'pages.admin.clients.index')
         ->name('clients');
 
-    // ─── Témoignages (modération) ─────────────────────────────────────────
-    // GET /admin/testimonials — Modération (publier / rejeter / supprimer)
-    Volt::route('/testimonials', 'pages.admin.testimonials.index')
-        ->name('testimonials.index');
-
-    // ─── Photos sécurisées ────────────────────────────────────────────────
-    // GET /admin/orders/{order}/photos/{media}
-    // Sert les photos retouched/originals depuis le disk privé (non public).
-    Route::get('/orders/{order}/photos/{media}',
-        [\App\Http\Controllers\Admin\AdminSecurePhotoController::class, 'show']
-    )->name('orders.photo.show');
-
-    // ─── Modération IA ────────────────────────────────────────────────────
+    // GET /admin/moderation/lexicon — Modération Lexique IA
     Volt::route('/moderation/lexicon', 'pages.admin.moderation.lexicon')
         ->name('moderation.lexicon');
+
+
+    // ─── ROUTES OPÉRATEURS & ADMINS (Pas de Marketing) ───────────────────
+    Route::middleware(['staff:marketing'])->group(function () {
+
+        // ─── Order Management ─────────────────────────────────────────────
+        // GET /admin/orders — Liste toutes les commandes (filtrables)
+        Volt::route('/orders', 'pages.admin.orders.index')
+            ->name('orders.index');
+
+        // GET /admin/orders/{order} — Détail + actions admin (prise en charge, upload, prix)
+        Volt::route('/orders/{order}', 'pages.admin.orders.show')
+            ->name('orders.show');
+
+        // PATCH /admin/orders/{order}/status — Transition de statut (via Livewire actions)
+        Route::patch('/orders/{order}/status',
+            \App\Http\Controllers\Admin\OrderController::class . '@updateStatus'
+        )->name('orders.status');
+
+        // GET /admin/orders/{order}/invoice — Télécharger la facture PDF
+        Route::get('/orders/{order}/invoice',
+            [\App\Http\Controllers\Admin\AdminInvoiceController::class, 'download']
+        )->name('orders.invoice');
+
+        // POST /admin/orders/{order}/auto-restore — Restauration IA automatique (Phase 8)
+        Route::post('/orders/{order}/auto-restore',
+            \App\Http\Controllers\Admin\OrderAutoRestoreController::class . '@dispatch'
+        )->name('orders.auto-restore');
+
+        // ─── Photos sécurisées ────────────────────────────────────────────
+        // GET /admin/orders/{order}/photos/{media}
+        // Sert les photos retouched/originals depuis le disk privé (non public).
+        Route::get('/orders/{order}/photos/{media}',
+            [\App\Http\Controllers\Admin\AdminSecurePhotoController::class, 'show']
+        )->name('orders.photo.show');
+
+        // ─── Support Tickets ──────────────────────────────────────────────
+        // GET /admin/tickets — Liste tous les tickets (filtrables par statut)
+        Volt::route('/tickets', 'pages.admin.tickets.index')
+            ->name('tickets.index');
+
+        // GET /admin/tickets/{ticket} — Fil de conversation + réponse admin
+        Volt::route('/tickets/{ticket}', 'pages.admin.tickets.show')
+            ->name('tickets.show');
+
+    });
+
+
+    // ─── ROUTES MARKETING & ADMINS (Pas d'Opérateurs) ────────────────────
+    Route::middleware(['staff:operator'])->group(function () {
+
+        // ─── Codes de réduction (Coupons) ─────────────────────────────────
+        // GET /admin/coupons — Liste + création des codes de réduction
+        Volt::route('/coupons', 'pages.admin.coupons.index')
+            ->name('coupons.index');
+
+        // ─── Témoignages (modération) ─────────────────────────────────────
+        // GET /admin/testimonials — Modération (publier / rejeter / supprimer)
+        Volt::route('/testimonials', 'pages.admin.testimonials.index')
+            ->name('testimonials.index');
+
+    });
 
 
     // ─── ROUTES SUPER-ADMIN (Pilotage & Finances) ─────────────────────────
