@@ -66,7 +66,7 @@ new class extends Component
                 <a href="{{ route('admin.dashboard') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-all whitespace-nowrap font-medium border border-[#C9A84C]/20 
                           {{ request()->routeIs('admin.dashboard') ? 'text-[#C9A84C] bg-[#C9A84C]/10 border-[#C9A84C]/40' : 'text-[#C9A84C]/80 hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 hover:border-[#C9A84C]/40' }}">
-                    Panel Staff
+                    {{ Auth::user()->role === 'super-admin' ? 'Espace Admin' : (Auth::user()->role === 'operator' ? 'Espace Opérateur' : (Auth::user()->role === 'rh' ? 'Espace RH' : 'Espace Marketing')) }}
                 </a>
                 <a href="{{ route('admin.orders.index') }}" wire:navigate
                    class="px-4 py-2 text-sm rounded-sm transition-colors whitespace-nowrap {{ request()->routeIs('admin.orders.*') ? 'text-[#C9A84C] bg-[#C9A84C]/10' : 'text-[#7A6E5E] hover:text-[#F5F0E8]' }}">
@@ -140,7 +140,7 @@ new class extends Component
                 <span class="text-[#7A6E5E] text-sm">{{ Auth::user()->name }}</span>
                 @if (Auth::user()->isStaff())
                 <span class="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 bg-emerald-900/30 text-emerald-400 border border-emerald-700/40 rounded-full">
-                    {{ Auth::user()->role === 'super-admin' ? 'Super Admin' : (Auth::user()->role === 'operator' ? 'Opérateur' : 'Marketing') }}
+                    {{ Auth::user()->role === 'super-admin' ? 'Super Admin' : (Auth::user()->role === 'operator' ? 'Opérateur' : (Auth::user()->role === 'rh' ? 'RH' : 'Marketing')) }}
                 </span>
                 @endif
             </div>
@@ -162,9 +162,9 @@ new class extends Component
                     @if (Auth::user()->isStaff())
 
                     {{-- Outils communs à tout le staff --}}
-                    <a href="{{ route('admin.transparency.index') }}" wire:navigate
+                    <a href="{{ route('admin.hr-profile') }}" wire:navigate
                        class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-[#C9A84C] hover:bg-[#C9A84C]/5 transition-colors border-b border-white/5">
-                        Transparence Salariale
+                        {{ Auth::user()->role === 'super-admin' ? 'Mon Espace Admin' : (Auth::user()->role === 'operator' ? 'Mon Espace Opérateur' : (Auth::user()->role === 'rh' ? 'Mon Espace RH' : 'Mon Espace Marketing')) }}
                     </a>
                     <a href="{{ route('admin.moderation.lexicon') }}" wire:navigate
                        class="flex items-center px-4 py-2.5 text-sm text-[#7A6E5E] hover:text-red-400 hover:bg-red-900/10 transition-colors border-b border-white/5">

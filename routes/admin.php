@@ -22,6 +22,10 @@ Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.'
     Volt::route('/transparency', 'pages.admin.transparency.index')
         ->name('transparency.index');
 
+    // GET /admin/hr-profile — Espace Personnel RH
+    Volt::route('/hr-profile', 'pages.staff.hr-profile')
+        ->name('hr-profile');
+
     // GET /admin/clients — Liste complète des clients avec CA payé
     Volt::route('/clients', 'pages.admin.clients.index')
         ->name('clients');

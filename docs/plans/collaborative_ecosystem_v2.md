@@ -19,6 +19,7 @@ L'administration doit avoir une visibilité totale sur qui peut faire quoi.
 
 ### Structure des Rôles
 *   **Super-Admin** : Propriétaire. Accès total (Configuration, Pilotage stratégique, Crise, Logs).
+*   **RH (Ressources Humaines)** : Focus sur le recrutement, le simulateur de trésorerie (Runway), l'édition des contrats et la préparation des éléments variables de paie (EVP).
 *   **Collaborateur (Opérateur)** : Focus sur le traitement des photos et le support client.
 *   **Marketing** : Focus sur l'acquisition, les coupons et les avis clients. A également accès en **Lecture Seule (Read-Only)** à la liste et aux fiches détaillées des commandes (sans aucune possibilité de modification opérationnelle ou financière) afin de pouvoir authentifier ou justifier les avis positifs/négatifs des clients.
 *   **Transparence Légale (Loi Européenne)** : *Tous les rôles ci-dessus* ont accès en lecture à un **Dashboard de Transparence Salariale** centralisant les revenus et performances de tous les collègues, par honnêteté et conformité légale.
@@ -39,10 +40,13 @@ stateDiagram-v2
 *   **Séparation des E-mails de Connexion & Contact (Sécurité)** :
     *   L'adresse `email` principale sert uniquement de clé d'authentification (peut être une adresse fictive ou interne, ex: `collab1@omny.internal`).
     *   L'adresse `contact_email` optionnelle reçoit toutes les notifications applicatives réelles (réinitialisations de mot de passe, invitations, alertes de sécurité) en surchargeant `routeNotificationForMail()` dans le modèle `User`.
-*   **Interface RBAC** : Une nouvelle page `/admin/team/roles` affichant une matrice de permissions interactive, permettant l'ajout et l'édition rapide de l'adresse de contact sécurisée sous forme de badge `🛡️ Contact`.
-*   **Garde-fou "10 Sièges"** : 
-    *   Logique de validation bloquant l'ajout d'un nouvel utilisateur si le quota de 10 (hors clients) est atteint.
-    *   Widget visuel "Licence" indiquant l'occupation des sièges.
+*   **Interface RBAC & HR** : Une nouvelle page `/admin/team/roles` affichant une matrice de permissions interactive, permettant l'ajout et l'édition rapide des infos de contact, du Salaire Net, du Type de contrat et de la Date d'entrée.
+*   **Garde-fou "10 Licences"** : 
+    *   Logique de validation bloquant l'ajout d'un nouvel utilisateur si le quota de 10 (incluant le propriétaire) est atteint.
+    *   Widget visuel "Licences Actives" indiquant l'occupation des sièges.
+*   **Simulateur RH & Trésorerie (Runway)** : Interface de calcul de viabilité.
+    *   Calcul du nombre de mois restants (`Trésorerie / (Masse Salariale + Frais Fixes)`).
+    *   *Vision Future* : Génération des contrats de travail et intégration d'une API externe (ex: PayFit) pour l'automatisation des fiches de paie françaises.
 
 ---
 
@@ -171,6 +175,7 @@ Dernière étape technique pour parfaire l'écosystème : stabiliser définitive
 ## 🚀 Prochaines Étapes Suggérées (Roadmap)
 1. ✅ **Phase 1, 1.5 & 1.6 (Base Collaborative, Gestion d'Équipe & E-mail Sécurisé)** : Migrations DB, Middlewares de sécurité (EnsureIsStaff/EnsureIsAdmin), Dashboard de Transparence Salariale, interface premium d'administration de l'équipe (`/admin/team/roles`) avec quota de 10 sièges, anonymisation RGPD, et routage de sécurité avec e-mail de contact réel (`contact_email`) 100% opérationnels.
 2. ✅ **Phase 1.7 (Tabs & Diagrammes de Cycle de Vie Super-Admin)** : Organisation par onglets (`Membres`, `Matrice RBAC`, `Cycle de vie & Diagrammes`) et intégration visuelle interactive du cycle de vie des collaborateurs et workflow opérationnel au sein de la page `/admin/team/roles` 100% opérationnels.
-3. ✅ **Phase 2 (Accès Lecture Seule Marketing)** : Consultation globale des commandes (`/admin/orders`) et détails en lecture seule pour le rôle `marketing` avec masquage UI, désactivation des notes, bouton "Commandes" dans la navbar et blocage strict 403 en écriture 100% opérationnels.
-4. ⏳ **Prototype IA (Phase 4)** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.
-5. ⏳ **Hardening IA (Phase 7)** : Reprendre la résolution du bug d'automatisation de l'IA.
+3. ✅ **Phase 1.8 (Espace RH & Transparence Intégrée)** : Création d'un espace personnel pour chaque membre du staff (`/admin/hr-profile`), intégration de la validation SMIC 2026, du graphique KPI salarial CSS, et inclusion de l'encart de Transparence Salariale au sein de l'espace. Refonte complète des actions d'équipe via une fenêtre modale 100% opérationnels.
+4. ✅ **Phase 2 (Accès Lecture Seule Marketing)** : Consultation globale des commandes (`/admin/orders`) et détails en lecture seule pour le rôle `marketing` avec masquage UI, désactivation des notes, bouton "Commandes" dans la navbar et blocage strict 403 en écriture 100% opérationnels.
+5. ⏳ **Prototype IA (Phase 4)** : Intégrer le premier bouton de correction "OmnyScribe" sur les tickets de support.
+6. ⏳ **Hardening IA (Phase 7)** : Reprendre la résolution du bug d'automatisation de l'IA.

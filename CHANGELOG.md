@@ -6,6 +6,22 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [2.3.0] — 2026-05-17 — Espace RH, Actions d'Équipe & Transparence Intégrée
+
+- **Espace Collaborateur RH (`/admin/hr-profile`)** :
+  - Création d'une page de profil RH personnelle (Mon Espace Personnel) accessible depuis le menu de navigation.
+  - **Affichage Légal** : Visibilité du type de contrat, de la date d'entrée, et de la date de fin (pour les CDD).
+  - **KPI Rémunération** : Graphique d'évolution salariale en barres purement CSS (sans librairie externe).
+  - **Alerte de Conformité SMIC** : Validation automatique du salaire net des CDI par rapport au seuil estimé du SMIC 2026 (1 460 €).
+- **Refonte des Actions d'Équipe (`/admin/team/roles`)** :
+  - Migration de toutes les actions de gestion d'équipe vers une **Fenêtre Modale Alpine/Livewire** propre et centralisée (plus de boutons éparpillés).
+  - Ajout conditionnel fluide du champ "Date de fin de contrat" lors de la création ou l'édition d'un contrat CDD.
+- **Intégration de la Transparence Salariale** :
+  - Transfert logique du lien de "Transparence Salariale" : suppression du menu déroulant global au profit d'un encart d'action esthétique dans la colonne droite de l'Espace RH.
+  - Ajout de la colonne "Salaire Net" dans le tableau de transparence, garantissant l'alignement sur la législation européenne sur l'équité salariale.
+  - Inclusion correcte des membres du rôle "RH" dans le tableau de classement et d'équité.
+  - Ajout d'un bouton de retour rapide avec `wire:navigate` depuis le tableau de bord de transparence vers l'Espace RH.
+
 ## [2.2.0] — 2026-05-17 — Accès Lecture Seule Marketing & Rétablissement Suite de Tests 100% Verte
 
 - **Autorisation de Consultation (Liste & Détails)** :

@@ -94,6 +94,9 @@ class User extends Authenticatable implements MustVerifyEmail
         'marketing_consent',
         'last_login_at',
         'suspended_at',
+        'hire_date',
+        'contract_type',
+        'net_salary',
     ];
 
     /**
@@ -127,6 +130,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'deleted_at'        => 'datetime',   // Carbon instance (soft delete)
             'last_login_at'     => 'datetime',   // Carbon instance
             'suspended_at'      => 'datetime',   // Carbon instance
+            'hire_date'         => 'date',       // Date instance
+            'net_salary'        => 'decimal:2',  // Decimal for currency
         ];
     }
 
@@ -162,12 +167,20 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Check if this user is part of the staff (Operator, Marketing, or Super-Admin).
+     * Check if this user is part of the staff (Operator, Marketing, HR, or Super-Admin).
      * Has access to the main dashboard, orders, and tickets.
      */
     public function isStaff(): bool
     {
-        return in_array($this->role, ['admin', 'super-admin', 'operator', 'marketing']);
+        return in_array($this->role, ['admin', 'super-admin', 'operator', 'marketing', 'rh']);
+    }
+
+    /**
+     * Check if this user is an HR Manager.
+     */
+    public function isRH(): bool
+    {
+        return $this->role === 'rh';
     }
 
     /**
@@ -250,5 +263,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function testimonials(): HasMany
     {
         return $this->hasMany(Testimonial::class, 'user_id');
+    }
+
+    /**
+     * Historique des salaires de l'utilisateur.
+     *
+     * @return HasMany<SalaryHistory, $this>
+     */
+    public function salaryHistories(): HasMany
+    {
+        return $this->hasMany(SalaryHistory::class, 'user_id');
     }
 }

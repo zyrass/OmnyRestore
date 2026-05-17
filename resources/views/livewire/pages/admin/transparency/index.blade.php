@@ -33,7 +33,7 @@ class extends Component {
         $endOfMonth = Carbon::now()->endOfMonth();
 
         // Récupérer tout le staff
-        $staff = User::whereIn('role', ['super-admin', 'operator', 'marketing'])->get();
+        $staff = User::whereIn('role', ['super-admin', 'operator', 'marketing', 'rh'])->get();
 
         foreach ($staff as $user) {
             // Commandes assignées à cet opérateur, marquées comme LIVRÉES ce mois-ci
@@ -47,12 +47,13 @@ class extends Component {
             $volume = $orders->count();
             
             $this->stats[] = [
-                'id'      => $user->id,
-                'name'    => $user->name,
-                'email'   => $user->email,
-                'role'    => $user->role,
-                'volume'  => $volume,
-                'revenue' => $revenue
+                'id'         => $user->id,
+                'name'       => $user->name,
+                'email'      => $user->email,
+                'role'       => $user->role,
+                'net_salary' => $user->net_salary,
+                'volume'     => $volume,
+                'revenue'    => $revenue
             ];
 
             $this->totalRevenue += $revenue;
@@ -66,6 +67,13 @@ class extends Component {
 ?>
 
 <div>
+    <div class="mb-6">
+        <a href="{{ route('admin.hr-profile') }}" wire:navigate class="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#7A6E5E] hover:text-[#C9A84C] transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            Retour à l'Espace Personnel
+        </a>
+    </div>
+
     <div class="flex items-center justify-between mb-8">
         <div>
             <div class="flex items-center gap-3">
@@ -111,6 +119,7 @@ class extends Component {
                         <th class="px-6 py-4 text-[#7A6E5E] font-medium text-xs uppercase tracking-wider">Collaborateur</th>
                         <th class="px-6 py-4 text-[#7A6E5E] font-medium text-xs uppercase tracking-wider text-center">Rôle</th>
                         <th class="px-6 py-4 text-[#7A6E5E] font-medium text-xs uppercase tracking-wider text-center">Volume</th>
+                        <th class="px-6 py-4 text-[#7A6E5E] font-medium text-xs uppercase tracking-wider text-center">Salaire Net</th>
                         <th class="px-6 py-4 text-[#7A6E5E] font-medium text-xs uppercase tracking-wider text-right">CA Généré (TTC)</th>
                     </tr>
                 </thead>
@@ -147,12 +156,14 @@ class extends Component {
                         <td class="px-6 py-4 text-center">
                             @php
                                 $roleColors = [
-                                    'super-admin' => 'bg-red-500/10 text-red-400 border-red-500/30',
-                                    'operator'    => 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-                                    'marketing'   => 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+                                    'super-admin' => 'bg-[#C9A84C]/10 text-[#C9A84C] border-[#C9A84C]/30',
+                                    'rh'          => 'bg-purple-900/20 text-purple-400 border-purple-800/40',
+                                    'operator'    => 'bg-blue-900/10 text-blue-400 border-blue-800/30',
+                                    'marketing'   => 'bg-emerald-900/10 text-emerald-400 border-emerald-800/30',
                                 ];
                                 $roleLabels = [
                                     'super-admin' => 'Super Admin',
+                                    'rh'          => 'RH',
                                     'operator'    => 'Opérateur',
                                     'marketing'   => 'Marketing',
                                 ];
@@ -164,6 +175,13 @@ class extends Component {
                         <td class="px-6 py-4 text-center">
                             <span class="text-[#F5F0E8] font-medium">{{ $stat['volume'] }}</span>
                             <span class="text-[#7A6E5E] text-xs ml-1">cmd{{ $stat['volume'] > 1 ? 's' : '' }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-center">
+                            @if($stat['net_salary'])
+                                <span class="text-[#C9A84C] font-mono font-bold">{{ number_format($stat['net_salary'], 0, ',', ' ') }} €</span>
+                            @else
+                                <span class="text-[#7A6E5E] font-mono italic">--</span>
+                            @endif
                         </td>
                         <td class="px-6 py-4 text-right">
                             <span class="text-[#C9A84C] font-bold text-lg">
