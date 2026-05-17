@@ -96,11 +96,11 @@ class AccessControlTest extends TestCase
     }
 
     /** @test */
-    public function marketing_cannot_access_orders_or_tickets(): void
+    public function marketing_cannot_access_tickets_but_can_access_orders(): void
     {
         $marketing = User::factory()->create(['role' => 'marketing', 'email_verified_at' => now()]);
 
-        $this->actingAs($marketing)->get('/admin/orders')->assertForbidden();
+        $this->actingAs($marketing)->get('/admin/orders')->assertSuccessful();
         $this->actingAs($marketing)->get('/admin/tickets')->assertForbidden();
     }
 

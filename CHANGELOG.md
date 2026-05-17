@@ -8,9 +8,8 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ## [2.2.0] — 2026-05-17 — Accès Lecture Seule Marketing & Rétablissement Suite de Tests 100% Verte
 
-### 🔑 Rôle Marketing en Lecture Seule (Détail Commande)
-- **Autorisation de Consultation** :
-  - Ajustement des middlewares de sécurité pour permettre aux utilisateurs de type `marketing` d'accéder individuellement aux fiches de commandes sans compromettre le blocage des tickets et de la liste globale des commandes.
+- **Autorisation de Consultation (Liste & Détails)** :
+  - Ajustement des middlewares de sécurité pour permettre aux utilisateurs de type `marketing` d'accéder à la liste globale des commandes (`/admin/orders`) ainsi qu'aux fiches individuelles de détails, sans compromettre le blocage des tickets.
 - **Sécurisation Multi-Couche de l'Interface** :
   - Intégration de contrôles stricts de sécurité côté backend (`abort_if(..., 403)`) bloquant toutes les actions d'écriture et de mutation sur le composant Livewire (ex. prise en charge, annulation, uploader les photos, modifier les notes internes, signaler CSAM/NSFW, rembourser Stripe).
   - Masquage intelligent dans l'interface utilisateur (UI) de tous les boutons et zones d'action pour préserver l'intégrité opérationnelle.

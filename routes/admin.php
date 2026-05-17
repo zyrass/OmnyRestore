@@ -30,6 +30,10 @@ Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.'
     Volt::route('/moderation/lexicon', 'pages.admin.moderation.lexicon')
         ->name('moderation.lexicon');
 
+    // GET /admin/orders — Liste toutes les commandes (filtrables)
+    Volt::route('/orders', 'pages.admin.orders.index')
+        ->name('orders.index');
+
     // GET /admin/orders/{order} — Détail + actions admin (prise en charge, upload, prix)
     Volt::route('/orders/{order}', 'pages.admin.orders.show')
         ->name('orders.show');
@@ -44,9 +48,6 @@ Route::middleware(['auth', 'verified', 'staff'])->prefix('admin')->name('admin.'
     Route::middleware(['staff:marketing'])->group(function () {
 
         // ─── Order Management ─────────────────────────────────────────────
-        // GET /admin/orders — Liste toutes les commandes (filtrables)
-        Volt::route('/orders', 'pages.admin.orders.index')
-            ->name('orders.index');
 
         // PATCH /admin/orders/{order}/status — Transition de statut (via Livewire actions)
         Route::patch('/orders/{order}/status',
