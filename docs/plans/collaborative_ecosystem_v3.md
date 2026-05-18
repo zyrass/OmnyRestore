@@ -13,6 +13,96 @@ Ce document détaille la stratégie complète et actualisée pour stabiliser le 
 
 ---
 
+## 🏗️ 1. Diagramme d'Architecture Technique Global
+
+Voici l'architecture de traitement et de distribution d'OmnyRestore v3.0 intégrant la Solution 3 :
+
+```mermaid
+flowchart TB
+    subgraph ClientSpace ["Espace Client (Frontend / Livewire)"]
+        Upload[Dépose des photos] -->|1. Analyse instantanée| Analyzer[PhotoDamageAnalyzer GPT-4o Vision]
+        Analyzer -->|2. Prix estimé 1€ à 3€ TTC| Display[Affiche Tarif & Résumé]
+        Display -->|3. Soumission Commande| CreateOrder[Commande créée PENDING]
+    end
+
+    subgraph LaravelQueue ["Queue Laravel (Traitement Asynchrone 24/7)"]
+        CreateOrder -->|4. Déclenchement automatique| AutoRestoreJob[AutoRestoreOrderPhotosJob]
+        AutoRestoreJob -->|5. Bascule statut IN_PROGRESS| Process[Traitement IA Solution 3]
+        
+        subgraph Solution3 ["Pipeline Restauration IA (Solution 3)"]
+            Process -->|A. Prompt de Précision| SDXL[SDXL Image-to-Image + ControlNet]
+            SDXL -->|B. Correction Visages| CodeFormer[CodeFormer / GFPGAN]
+            CodeFormer -->|C. Super-Résolution 8K| RealESRGAN[Real-ESRGAN]
+        end
+        
+        RealESRGAN -->|6. Enregistrement collection 'retouched'| Watermark[Filigrane de prévisualisation]
+        Watermark -->|7. Passage statut DONE| DoneState[Commande prête pour client]
+    end
+
+    subgraph PaymentFlow ["Tunnel de Paiement Stripe"]
+        DoneState -->|8. Notification Email| ClientView[Client examine la preview filigranée]
+        ClientView -->|9. Paiement Stripe| Checkout[Session Stripe Checkout]
+        Checkout -->|10. Webhook Stripe checkout.completed| PaidState[Commande marquée PAID]
+    end
+
+    subgraph ZipDelivery ["Job de Conditionnement final"]
+        PaidState -->|11. Déclenchement| ZipJob[GenerateOrderZipJob]
+        ZipJob -->|A. Anonymisation stricte| Rename[Fichiers renommés en REFERENCE-INDEX-HD.ext]
+        Rename -->|B. Archive ZIP créée| Store[Storage local sécurisé]
+        Store -->|12. Passage statut DELIVERED| Delivered[Email automatique contenant le lien de téléchargement]
+    end
+```
+
+---
+
+## 🔄 2. Diagramme de Séquence Temporel & États (Week-end 24/7)
+
+Ce diagramme décrit la chronologie exacte des événements depuis l'upload du client le samedi soir jusqu'à la livraison automatique :
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client
+    participant App as Laravel Frontend
+    participant Queue as Queue Worker (Laravel)
+    participant IA as Pipeline Restauration (Solution 3)
+    participant Stripe as Stripe API
+    actor Staff as RH / Admin (Lecture seule)
+
+    Note over Client, App: Samedi 23:00 - Soumission
+    Client->>App: Dépose les photos originales
+    App->>Queue: Lance PhotoDamageAnalyzer (GPT-4o Vision)
+    Queue-->>App: Retourne le niveau (Light/Medium/Heavy) et fige le prix (1€ à 3€)
+    Client->>App: Valide la commande
+    App-->>Client: Redirige vers la page d'attente (Statut: PENDING)
+
+    Note over App, Queue: Traitement automatique en tâche de fond
+    App->>Queue: Dispatch AutoRestoreOrderPhotosJob
+    Queue->>App: Bascule le statut à IN_PROGRESS
+    Queue->>IA: Applique le Prompt de Précision + CodeFormer + Real-ESRGAN
+    IA-->>Queue: Retourne l'image 8K ultra-nette
+    Queue->>App: Enregistre l'image, applique le Watermark, bascule statut à DONE
+    App-->>Client: Envoie l'email "Aperçu de vos photos restaurées prêt !"
+
+    Note over Client, Stripe: Paiement (Ex: Dimanche matin)
+    Client->>App: Se connecte et examine les aperçus filigranés
+    Client->>App: Clique sur "Payer" (Stripe Checkout)
+    App->>Stripe: Crée la session de paiement
+    Client->>Stripe: Renseigne sa CB et valide le paiement
+    Stripe-->>App: Webhook checkout.session.completed reçu
+    App->>App: Marque la commande PAID
+
+    Note over App, Queue: Livraison automatique
+    App->>Queue: Dispatch GenerateOrderZipJob
+    Queue->>Queue: Renomme les photos en [REFERENCE]-[INDEX]-HD.[ext] (sans filigrane)
+    Queue->>Queue: Compresse dans un ZIP sécurisé
+    Queue->>App: Bascule le statut à DELIVERED
+    App-->>Client: Envoie l'email de livraison finale avec lien de téléchargement ZIP
+    Staff->>App: Consulte le Dashboard de Transparence Salariale & KPIs
+```
+
+---
+
 ## 🗺️ État d'Avancement des Phases
 
 | Phase | Description | Statut | Détails |
@@ -23,7 +113,7 @@ Ce document détaille la stratégie complète et actualisée pour stabiliser le 
 | **Phase 1.9** | Gouvernance RH Confidentielle | **100% ACCOMPLI** | Notes RH persistées avec badges de sécurité et tracking. |
 | **Phase 2 (Mkt)**| Lecture Seule Marketing | **100% ACCOMPLI** | Rôle `marketing` restreint aux vues de commandes sans actions d'écriture (403 strict). |
 | **Phase 4** | Assistant IA OmnyScribe | **100% ACCOMPLI** | Premier prototype de correction de ton intégré sur le support client. |
-| **Phase 7** | **Chirurgie IA (Fidélité Visages)** | 🔴 **À FAIRE (URGENT)** | Remplacer/compléter le pipeline DALL-E par les restaurateurs dédiés. |
+| **Phase 7** | **Chirurgie IA (Fidélité Visages)** | 🔴 **À FAIRE (URGENT)** | Intégrer la Solution 3 (SDXL + CodeFormer) dans `PhotoRestorationService.php`. |
 | **Phase 2 (KPIs)**| Tracking KPIs Opérateurs complet | 🟡 **À FAIRE** | Persister le CA par opérateur, le volume et le feedback en DB. |
 | **Phase 3** | Marketing, Coupons, Mobile App | 🟡 **À FAIRE** | Mass Mailer, coupons actifs et utilitaires mobiles iOS/Android. |
 | **Phase 5** | Reporting PDF & Projection SASU | 🟡 **À FAIRE** | Génération de fiches mensuelles collaborateurs PDF et onglet projection SASU. |
