@@ -526,7 +526,6 @@ class extends Component
                             <span>Le tarif est estim&eacute; automatiquement selon le niveau de restauration d&eacute;tect&eacute;. Notre &eacute;quipe peut r&eacute;viser ce tarif apr&egrave;s examen manuel si vous le contestez.</span>
                         </div>
                         @endif
-                    </div>
                     @endif
                 </div>
 

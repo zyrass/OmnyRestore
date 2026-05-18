@@ -12,8 +12,8 @@
 [![Stripe](https://img.shields.io/badge/Stripe-Cashier-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com)
 
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
-[![Tests](https://img.shields.io/badge/Tests-76%2F76%20%E2%9C%85-22c55e?style=for-the-badge&logo=php&logoColor=white)](tests/)
-[![Version](https://img.shields.io/badge/Version-2.4.3-6366f1?style=for-the-badge)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/Tests-78%2F78%20%E2%9C%85-22c55e?style=for-the-badge&logo=php&logoColor=white)](tests/)
+[![Version](https://img.shields.io/badge/Version-2.5.0-6366f1?style=for-the-badge)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
 </div>
@@ -617,7 +617,8 @@ git commit -m "feat(tickets): interface admin tickets support" \
 - [x] `v2.4.0` — **Assistant de Communication IA OmnyScribe**
 - [x] `v2.4.1` — **Hardening UI & Sécurisation Markdown Mermaid**
 - [x] `v2.4.2` — **Gouvernance HR : Notes & Avis Confidentiels**
-- [x] `v2.4.3` — **Harmonisation UI : Badges de Statuts** ← *actuel*
+- [x] `v2.4.3` — **Harmonisation UI : Badges de Statuts**
+- [x] `v2.5.0` — **Aperçu HD Client & Unification Financière (TTC)** ← *actuel*
 - [ ] `v3.0.0` — Multi-prestataires + messagerie avancée
 
 ---

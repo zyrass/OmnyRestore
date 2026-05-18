@@ -105,11 +105,10 @@ class extends Component
                         <span class="text-[#F5F0E8] font-semibold">{{ $client->orders_count }}</span>
                     </td>
 
-                    {{-- CA payé TTC (HT × 1,20) --}}
+                    {{-- CA payé TTC --}}
                     <td class="px-4 py-3.5 text-right">
                         @php
-                            $htCents  = $client->total_spent_cents ?? 0;
-                            $ttcCents = $htCents + (int) round($htCents * 0.20);
+                            $ttcCents = $client->total_spent_cents ?? 0;
                         @endphp
                         <span class="{{ $ttcCents > 0 ? 'text-[#C9A84C] font-semibold' : 'text-[#7A6E5E]' }}">
                             {{ number_format($ttcCents / 100, 2, ',', ' ') }} €

@@ -42,7 +42,7 @@ class extends Component
             ->get();
             
         if ($recentOrders->count() > 0) {
-            $totalCaTtc = $recentOrders->sum(fn($o) => $o->total_price_cents + round($o->total_price_cents * 0.2));
+            $totalCaTtc = $recentOrders->sum('total_price_cents');
             
             // Si le cache ne contient pas les valeurs techniques, on les calcule
             $this->averageOrderPrice = $settings['averageOrderPrice'] ?? round(($totalCaTtc / 100) / $recentOrders->count(), 2);

@@ -193,16 +193,31 @@ class extends Component
     public function saveNotes(): void
     {
         abort_if(auth()->user()->role === 'marketing', 403, 'Action non autorisée pour le rôle marketing.');
-        $this->validate([
-            'finalPrice' => ['required', 'numeric', 'min:0'],
+        
+        $rules = [
             'adminNotes' => ['nullable', 'string', 'max:2000'],
-        ]);
-        $this->order->update([
-            'total_price_cents' => (int) round((float) $this->finalPrice * 100),
-            'admin_notes'       => $this->adminNotes ?: null,
-        ]);
-        session()->flash('success', 'Notes et prix TTC sauvegardés.');
+        ];
+
+        // Le prix ne peut être édité qu'AVANT que la commande passe en DONE / PAID / DELIVERED / CANCELLED
+        $canEditPrice = !in_array($this->order->status, ['DONE', 'PAID', 'DELIVERED', 'CANCELLED']);
+        if ($canEditPrice) {
+            $rules['finalPrice'] = ['required', 'numeric', 'min:0'];
+        }
+
+        $this->validate($rules);
+
+        $updateData = [
+            'admin_notes' => $this->adminNotes ?: null,
+        ];
+
+        if ($canEditPrice) {
+            $updateData['total_price_cents'] = (int) round((float) $this->finalPrice * 100);
+        }
+
+        $this->order->update($updateData);
+        session()->flash('success', $canEditPrice ? 'Notes et prix TTC sauvegardés.' : 'Notes sauvegardées.');
     }
+
 
     /** Annuler la commande */
     public function cancelOrder(AuditService $audit): void
@@ -391,6 +406,8 @@ class extends Component
             abort(403, 'Notification non disponible pour ce statut.');
         }
 
+        $transitioned = false;
+
         // Si on est encore en IN_PROGRESS, on valide d'abord la commande
         if ($this->order->status === 'IN_PROGRESS') {
              if ($this->order->getMedia('retouched')->isEmpty()) {
@@ -401,6 +418,7 @@ class extends Component
              $previous = $this->order->status;
              $this->order->markAsDone();
              $audit->orderStatusChanged($this->order, $previous, 'DONE');
+             $transitioned = true;
         }
 
         $sessionKey = "admin_resend_{$this->order->id}";
@@ -415,8 +433,12 @@ class extends Component
             return;
         }
 
-        \Illuminate\Support\Facades\Mail::to($this->order->user->email)
-            ->send(new \App\Mail\OrderReadyForPayment($this->order));
+        // Si le statut a transitionné vers DONE, l'OrderObserver a déjà envoyé le mail automatiquement.
+        // On ne l'envoie manuellement ici que s'il s'agit d'un renvoi (déjà en statut DONE).
+        if (!$transitioned) {
+            \Illuminate\Support\Facades\Mail::to($this->order->user->email)
+                ->send(new \App\Mail\OrderReadyForPayment($this->order));
+        }
 
         session()->put($sessionKey, now());
         session()->flash('success', "📧 Email de notification envoyé à {$this->order->user->email}. Statut : Aperçu prêt.");
@@ -473,6 +495,7 @@ class extends Component
 
         if ($fresh->status === 'PAID') {
             $this->order = $fresh->load(['user', 'media', 'delivery', 'auditLogs', 'testimonial']);
+            $this->finalPrice = number_format($this->order->getAmountTtcCents() / 100, 2, '.', '');
             $this->dispatch('payment-received');
         }
     }
@@ -702,7 +725,7 @@ class extends Component
                                     <a href="{{ route('admin.orders.photo.show', [$order, $media]) }}" 
                                        target="_blank"
                                        class="block bg-[#C9A84C]/10 hover:bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/25 hover:border-[#C9A84C]/45 rounded-sm p-1.5 transition-all duration-200"
-                                       title="Ouvrir la photo originale en HD">
+                                       title="Voir la photo originale">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                                     </a>
                                 </div>
@@ -1078,7 +1101,7 @@ class extends Component
                     {{-- Calcul des prix unifié via le modèle ou la saisie en cours --}}
                     @php
                         // Priorité à la saisie en cours dans le formulaire (réactivité)
-                        if (isset($finalPrice) && is_numeric($finalPrice) && $finalPrice > 0) {
+                        if (!in_array($order->status, ['DONE', 'PAID', 'DELIVERED', 'CANCELLED']) && isset($finalPrice) && is_numeric($finalPrice) && $finalPrice > 0) {
                             $ttcC = (int) round((float)$finalPrice * 100);
                         } else {
                             $ttcC = $order->getAmountTtcCents();
@@ -1115,7 +1138,7 @@ class extends Component
                 <textarea wire:model="adminNotes" rows="4" placeholder="Notes visibles uniquement par l'équipe…" {{ auth()->user()->role === 'marketing' ? 'disabled' : '' }}
                           class="w-full bg-[#1A1510] border border-[#C9A84C]/20 text-[#F5F0E8] text-xs rounded-sm px-3 py-2 placeholder-[#7A6E5E]/50 resize-none focus:outline-none focus:border-[#C9A84C]/60 transition-all mb-3 {{ auth()->user()->role === 'marketing' ? 'opacity-50 cursor-not-allowed' : '' }}">
                 </textarea>
-                @if (!in_array($order->status, ['PAID', 'DELIVERED', 'CANCELLED']) && auth()->user()->role !== 'marketing')
+                @if (!in_array($order->status, ['DONE', 'PAID', 'DELIVERED', 'CANCELLED']) && auth()->user()->role !== 'marketing')
                 <div class="mb-3">
                     <div class="flex gap-2 mb-1">
                         <input wire:model="finalPrice" type="number" step="0.01" placeholder="Prix TTC (€)"
@@ -1129,6 +1152,14 @@ class extends Component
                         TTC net client (TVA 20% incluse)
                     </p>
                 </div>
+                @else
+                @if (auth()->user()->role !== 'marketing')
+                <div class="flex justify-end mb-3">
+                    <button wire:click="saveNotes" class="px-4 py-2 text-xs bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/30 hover:bg-[#C9A84C]/30 rounded-sm transition-all font-semibold">
+                        Sauver les notes
+                    </button>
+                </div>
+                @endif
                 @endif
             </div>
 

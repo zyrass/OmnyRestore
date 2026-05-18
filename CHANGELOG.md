@@ -6,6 +6,22 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [2.5.0] — 2026-05-19 — Aperçu HD Client & Unification Financière (TTC)
+
+- **Expérience Client (Aperçu Unique & Zoom HD)** :
+  - **Aperçu HD Unique** : Remplacement de l'ancienne modale d'avant/après complexe par une modale affichant uniquement l'image restaurée en haute définition pour éviter d'imposer un scroll au client.
+  - **Gestion Résiliente des Images Rejetées** : Affichage d'un placeholder de type SVG élégant (œil barré) pour les photos marquées comme rejetées (`is_rejected`), évitant ainsi de tenter de charger une URL d'image inexistante (résolution définitive des erreurs console 404).
+  - **Actions Cohérentes** : Option exclusive "Réintégrer" affichée sur les lignes de photos rejetées dans l'espace client.
+- **Unification Financière & Résolution Double TVA (20%)** :
+  - **Unification TTC en Base de Données** : Suppression complète de la double application de la TVA sur les commandes payées suite au basculement du modèle de données vers le TTC net.
+  - **Espace Client (Liste des commandes)** : Recalcul simplifié via `$order->getAmountTtcCents()` pour correspondre exactement au montant payé (ex: `16,00 €`).
+  - **Gouvernance RH (Admin Clients)** : Affichage direct du Chiffre d'Affaires payé TTC réel via la somme brute des transactions.
+  - **Pilotage Financier & Simulateur** : Somme directe de `total_price_cents` pour le chiffre d'affaires cumulé et calcul inverse pour le CA Hors Taxes via `getAmountHtCents()`, garantissant une parfaite cohérence des tableaux de bord financiers.
+- **Synchronisation & Verrouillage Admin (Sécurité de l'état)** :
+  - **Verrouillage de l'Édition** : Blocage total de la modification manuelle des prix sur les notes de commande une fois le statut `DONE` ou supérieur atteint.
+  - **Sidebar Réactive** : Calcul des totaux s'appuyant strictement sur `$order->getAmountTtcCents()` au statut `DONE` ou supérieur.
+  - **Synchronisation en Direct** : Mise à jour en direct de la propriété Livewire `$finalPrice` lors du polling de détection du paiement Stripe.
+
 ## [2.4.3] — 2026-05-17 — Harmonisation UI : Badges de Statuts
 
 - **UI & Expérience Utilisateur** :

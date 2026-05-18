@@ -288,46 +288,6 @@ class extends Component
     }
 
     /**
-     * Client supprime définitivement une photo restaurée (irréversible).
-     * La photo doit être préalablement retirée (is_rejected) pour activer ce droit.
-     * On s'assure qu'il reste au moins 1 photo active avant de supprimer.
-     * 
-     * <strong>Transparence tarifaire :</strong> Le tarif est ajusté automatiquement selon le niveau de restauration détecté pour chaque photo (standard, avancé ou complet).
-     * Le coût d'analyse technique est intégré au tarif global et non facturé séparément.
-     */
-    public function deletePhoto(int $mediaId): void
-    {
-        abort_if($this->order->user_id !== auth()->id(), 403);
-        abort_if($this->order->status !== 'DONE', 403);
-
-        $media = $this->order->getMedia('retouched')->firstWhere('id', $mediaId);
-        abort_if(! $media, 404);
-        abort_if(! $media->getCustomProperty('is_rejected', false), 403, 'Retirez la photo avant de la supprimer.');
-
-        // Garde-fou : la commande doit garder au moins 1 photo (active ou non)
-        // car on ne peut pas avoir une commande vide.
-        $totalCount = $this->order->getMedia('retouched')->count();
-
-        if ($totalCount <= 1) {
-            session()->flash('error', 'Impossible de supprimer la dernière photo de la commande.');
-            return;
-        }
-
-        \Illuminate\Support\Facades\Log::info(
-            "Client delete media#{$mediaId} on order {$this->order->reference} by user#{auth()->id()}"
-        );
-
-        $media->delete();
-
-        // Mise à jour du compteur total de la commande
-        $this->order->decrement('photo_count');
-
-        $this->recalcPriceFromActivePhotos();
-        session()->flash('success', 'Photo supprimée définitivement de votre commande.');
-        $this->order->refresh()->load(['media', 'delivery']);
-    }
-
-    /**
      * Recalcule total_price_cents d'après les photos ACTIVES (non rejetées).
      *
      * IMPORTANT : chaque photo peut avoir un niveau de dommage différent,
@@ -382,9 +342,32 @@ class extends Component
     Toast Alpine.js — notification live « ZIP prêt »
     Déclenché par l'event Livewire 'zip-ready' (via wire:poll + pollDelivery)
 --}}
-<div x-data="{ showZipToast: false, showStatusToast: false, showInvoice: false }"
+<div x-data="{
+         showZipToast: false,
+         showStatusToast: false,
+         showInvoice: false,
+         compareOpen: false,
+         compareMediaId: null,
+         compareFileName: '',
+         compareOriginalUrl: '',
+         compareRetouchedUrl: '',
+         compareIsRejected: false,
+         compareSliderPos: 50,
+         compareDragging: false,
+         openCompare(id, name, orig, ret, isRejected) {
+             this.compareMediaId = id;
+             this.compareFileName = name;
+             this.compareOriginalUrl = orig;
+             this.compareRetouchedUrl = ret;
+             this.compareIsRejected = isRejected;
+             this.compareSliderPos = 50;
+             this.compareDragging = false;
+             this.compareOpen = true;
+         }
+     }"
      @zip-ready.window="showZipToast = true"
      @status-ready.window="showStatusToast = true"
+     @omr-view-compare.window="openCompare($event.detail.id, $event.detail.name, $event.detail.original, $event.detail.retouched, $event.detail.isRejected)"
      class="contents">
 
     {{-- Toast positioenné en haut à droite via Teleport --}}
@@ -464,6 +447,78 @@ class extends Component
         </div>
     </template>
 
+    {{-- Modal : Comparateur Avant / Après --}}
+    <template x-teleport="body">
+        <div x-show="compareOpen" x-cloak
+             class="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 md:p-10"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-250"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0">
+             
+            {{-- Backdrop --}}
+            <div class="absolute inset-0 bg-[#070503]/98 backdrop-blur-md" @click="compareOpen = false"></div>
+            
+            {{-- Container --}}
+            <div class="relative z-10 w-fit min-w-[320px] md:min-w-[550px] max-w-[90vw] bg-[#0F0C08] border border-[#C9A84C]/25 rounded-sm shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
+                 x-transition:enter="transition ease-out duration-300 translate-y-4 scale-98"
+                 x-transition:enter-start="opacity-0 translate-y-4 scale-98"
+                 x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100 scale-100"
+                 x-transition:leave-end="opacity-0 translate-y-4 scale-98">
+                
+                {{-- Header --}}
+                <div class="px-6 py-4 border-b border-[#C9A84C]/15 flex items-center justify-between shrink-0 bg-[#0F0C08]">
+                    <div class="min-w-0 flex-1 mr-4">
+                        <p class="text-[10px] text-[#C9A84C] font-bold uppercase tracking-widest">Aperçu de la photo</p>
+                        <h3 class="text-[#F5F0E8] font-bold text-base truncate mt-0.5" x-text="compareFileName"></h3>
+                    </div>
+                    <button @click="compareOpen = false" class="text-[#7A6E5E] hover:text-[#F5F0E8] transition-colors p-2 -mr-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                
+                {{-- Content / Photo Preview --}}
+                <div class="p-4 flex-1 flex flex-col items-center justify-center min-h-0 bg-[#070503] overflow-hidden">
+                    
+                    {{-- Adaptive Image Container --}}
+                    <div class="relative max-h-full max-w-full select-none rounded-sm border border-[#C9A84C]/15 shadow-2xl flex items-center justify-center overflow-hidden bg-[#0F0C08]">
+                        {{-- Single HD Image --}}
+                        <img :src="compareRetouchedUrl" class="max-h-[60vh] max-w-full w-auto h-auto object-contain pointer-events-none select-none" />
+                        
+                        {{-- Label: Photo restaurée --}}
+                        <div class="absolute top-4 right-4 z-10 px-3 py-1 bg-[#C9A84C]/10 backdrop-blur-sm border border-[#C9A84C]/30 rounded-sm text-[10px] text-[#C9A84C] font-bold tracking-widest uppercase shadow-md select-none">
+                            Photo restaurée
+                        </div>
+                    </div>
+                </div>
+                
+                {{-- Footer with actions --}}
+                <div class="px-6 py-5 border-t border-[#C9A84C]/15 flex flex-col sm:flex-row items-center justify-between gap-4 bg-[#0F0C08] shrink-0">
+                    <p class="text-xs text-[#7A6E5E] text-center sm:text-left leading-relaxed flex-1 font-light">
+                        Cette photo ne vous convient pas ? Vous pouvez la retirer de la commande pour recalculer le prix total.
+                    </p>
+                    
+                    <div class="flex items-center gap-3 shrink-0">
+                        <button @click="compareOpen = false"
+                                class="px-5 py-2.5 text-xs text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all font-semibold uppercase tracking-wider">
+                            Fermer
+                        </button>
+                        
+                        <button @click="compareOpen = false; $dispatch('omr-reject', { id: compareMediaId })"
+                                class="px-5 py-2.5 text-xs bg-red-700 hover:bg-red-600 text-white rounded-sm transition-colors font-bold uppercase tracking-wider flex items-center gap-2">
+                            ✕ Retirer de la sélection
+                        </button>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+    </template>
+
     {{-- En-tête --}}
     <div class="flex items-center gap-4 mb-8">
         <a href="{{ route('client.orders.index') }}" wire:navigate class="text-[#7A6E5E] hover:text-[#C9A84C] transition-colors">
@@ -498,6 +553,7 @@ class extends Component
 
     @php
         $retouched      = $order->getMedia('retouched');
+        $originals      = $order->getMedia('originals')->values();
         $activePhotos   = $retouched->filter(fn($m) => ! $m->getCustomProperty('is_rejected', false));
         $rejectedPhotos = $retouched->filter(fn($m) => $m->getCustomProperty('is_rejected', false));
         
@@ -607,11 +663,9 @@ class extends Component
                 {{-- Grille sélection — hover Alpine + modals via $dispatch ── --}}
                 <div x-data="{
                         pendingId: null,
-                        confirmOpen: false,
-                        deleteOpen: false
+                        confirmOpen: false
                      }"
-                     @omr-reject.window="pendingId = $event.detail.id; confirmOpen = true"
-                     @omr-delete.window="pendingId = $event.detail.id; deleteOpen = true">
+                     @omr-reject.window="pendingId = $event.detail.id; confirmOpen = true">
 
                     {{-- ── Modal : Retirer (réversible) ── --}}
                     <div x-show="confirmOpen" 
@@ -643,40 +697,10 @@ class extends Component
                         </div>
                     </div>
 
-                    {{-- ── Modal : Suppression définitive ── --}}
-                    <div x-show="deleteOpen" 
-                         class="fixed inset-0 z-[9999] flex items-center justify-center"
-                         x-transition:enter="transition ease-out duration-150"
-                         x-transition:enter-start="opacity-0 scale-95"
-                         x-transition:enter-end="opacity-100 scale-100"
-                         x-transition:leave="transition ease-in duration-100"
-                         x-transition:leave-start="opacity-100"
-                         x-transition:leave-end="opacity-0"
-                         x-cloak>
-                        <div class="absolute inset-0 bg-black/85 backdrop-blur-sm" @click="deleteOpen = false"></div>
-                        <div class="relative z-10 w-full max-w-sm mx-4 bg-[#120F0A] border border-red-700/40 rounded-sm shadow-2xl p-6 text-center">
-                            <div class="w-12 h-12 border-2 border-red-600/50 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-900/30">
-                                <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                            </div>
-                            <h3 class="text-red-300 font-bold mb-1">Suppression définitive</h3>
-                            <p class="text-[#7A6E5E] text-xs mb-1 uppercase tracking-widest">Action irréversible</p>
-                            <p class="text-[#7A6E5E] text-sm mb-5 leading-relaxed mt-3">Cette photo sera <strong class="text-red-400">supprimée définitivement</strong> et ne pourra pas être récupérée.</p>
-                            <div class="flex gap-3 justify-center">
-                                <button @click="deleteOpen = false"
-                                        class="px-5 py-2 text-sm text-[#7A6E5E] border border-[#7A6E5E]/30 rounded-sm hover:border-[#C9A84C]/40 hover:text-[#F5F0E8] transition-all">
-                                    Annuler
-                                </button>
-                                <button @click="deleteOpen = false; $wire.deletePhoto(pendingId)"
-                                        class="px-5 py-2 text-sm bg-red-900 border border-red-600/50 text-red-200 rounded-sm hover:bg-red-800 transition-colors font-bold">
-                                    🗑️ Supprimer définitivement
-                                </button>
-                            </div>
-                        </div>
-                    </div>
 
                     {{-- ── Liste des photos en format Todo-List Premium ── --}}
                     <div class="p-5 space-y-3">
-                        @forelse ($retouched as $media)
+                        @forelse ($retouched as $index => $media)
                         @php
                             $isRejected  = $media->getCustomProperty('is_rejected', false);
                             $photoLevel  = $media->getCustomProperty('ai_level', $order->damage_level ?? 'light');
@@ -705,34 +729,70 @@ class extends Component
                                     'label' => 'Restauration Standard',
                                 ],
                             };
+                            
+                            $originalMedia = $originals[$index] ?? null;
+                            $originalUrl = $originalMedia ? route('client.orders.photo.show', [$order, $originalMedia]) : route('client.orders.photo.show', [$order, $media]);
+                            $retouchedUrl = route('client.orders.photo.show', [$order, $media]);
                         @endphp
 
                         <div class="relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-sm border transition-all duration-300 gap-4
                             {{ $isRejected ? 'bg-red-950/15 border-red-500/25 opacity-70' : 'bg-[#1A1510]/40 border-[#C9A84C]/15 hover:border-[#C9A84C]/45' }}">
                             
                             {{-- Thumbnail & Métadonnées --}}
-                            <div class="flex items-center gap-4 min-w-0 flex-1 w-full">
-                                <div class="w-16 h-16 shrink-0 aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/20 group relative">
-                                    <img src="{{ route('client.orders.photo.show', [$order, $media]) }}" 
-                                         alt="Photo restaurée" 
-                                         class="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
-                                         draggable="false">
-                                    
-                                    @if (!$isRejected)
-                                    <div class="absolute inset-0 pointer-events-none" style="box-shadow:inset 0 0 10px rgba(201,168,76,0.15);"></div>
+                            <div class="flex items-center gap-4 min-w-0 flex-1 w-full @if(!$isRejected) cursor-pointer group @endif"
+                                 @if(!$isRejected)
+                                 @click="$dispatch('omr-view-compare', {
+                                     id: {{ $media->id }},
+                                     name: '{{ addslashes($media->file_name) }}',
+                                     original: '{{ $originalUrl }}',
+                                     retouched: '{{ $retouchedUrl }}',
+                                     isRejected: false
+                                 })"
+                                 @endif>
+                                 
+                                <div class="w-16 h-16 shrink-0 aspect-square bg-[#1A1510] rounded-sm overflow-hidden border {{ $isRejected ? 'border-red-500/25 flex items-center justify-center' : 'border-[#C9A84C]/20 group relative' }}">
+                                    @if ($isRejected)
+                                        {{-- Crossed-eye secure placeholder to protect staff from illegal/sensitive images --}}
+                                        <svg class="w-6 h-6 text-red-500/35" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/>
+                                        </svg>
+                                    @else
+                                        <img src="{{ $retouchedUrl }}" 
+                                             alt="Photo restaurée" 
+                                             class="w-full h-full object-cover group-hover:scale-110 transition-all duration-500"
+                                             draggable="false">
+                                        
+                                        {{-- Hover zoom icon --}}
+                                        <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300">
+                                            <svg class="w-5 h-5 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                        </div>
+                                        
+                                        <div class="absolute inset-0 pointer-events-none" style="box-shadow:inset 0 0 10px rgba(201,168,76,0.15);"></div>
                                     @endif
                                 </div>
                                 
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center gap-2">
-                                        <p class="text-[#F5F0E8] text-sm font-semibold truncate">{{ $media->file_name }}</p>
+                                        <p class="text-[#F5F0E8] text-sm font-semibold truncate {{ $isRejected ? '' : 'group-hover:text-[#C9A84C] transition-colors' }}">
+                                            {{ $media->file_name }}
+                                        </p>
                                         <span class="text-[10px] text-[#7A6E5E] shrink-0 font-medium">({{ $media->human_readable_size }})</span>
+                                        
+                                        @if (!$isRejected)
+                                        <span class="inline-flex items-center gap-1 text-[9px] text-[#C9A84C]/80 bg-[#C9A84C]/5 border border-[#C9A84C]/25 rounded-full px-2 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            Agrandir
+                                        </span>
+                                        @endif
                                     </div>
                                     <p class="text-xs text-[#7A6E5E] mt-1 leading-relaxed">
                                         @if ($isRejected)
-                                            <span class="text-red-400 font-bold">⚠️ Cette photo a été retirée de la commande.</span>
+                                            <span class="text-red-400 font-bold">⚠️ Retirée de la commande — Non facturée</span>
                                         @else
-                                            Aperçu restauré en haute définition avec filigrane de sécurité temporaire.
+                                            Aperçu restauré en haute définition. Cliquer pour agrandir.
                                         @endif
                                     </p>
                                 </div>
@@ -775,12 +835,6 @@ class extends Component
                                                 title="Réintégrer cette photo"
                                                 class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/40 rounded-sm p-1.5 transition-all duration-200">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                        </button>
-                                        {{-- Supprimer --}}
-                                        <button @click="$dispatch('omr-delete', { id: {{ $media->id }} })"
-                                                title="Supprimer définitivement"
-                                                class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 rounded-sm p-1.5 transition-all duration-200">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                         </button>
                                     @else
                                         {{-- Désactiver / Retirer --}}

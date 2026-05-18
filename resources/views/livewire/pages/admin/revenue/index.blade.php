@@ -92,8 +92,8 @@ class extends Component
             ->get();
 
         $stats = [
-            'ht_cents'    => $orders->sum('total_price_cents'),
-            'ttc_cents'   => $orders->sum(fn($o) => $o->total_price_cents + round($o->total_price_cents * 0.2)),
+            'ttc_cents'   => $orders->sum('total_price_cents'),
+            'ht_cents'    => $orders->sum(fn($o) => $o->getAmountHtCents()),
             'count'       => $orders->count(),
             'photos'      => $orders->sum('photo_count'),
             'ai_cost'     => $orders->sum('photo_count') * 15,
@@ -106,7 +106,8 @@ class extends Component
         $prevHtCents = Order::where('payment_status', 'paid')
             ->whereNotNull('paid_at')
             ->whereBetween('paid_at', [$prevStart, $prevEnd])
-            ->sum('total_price_cents');
+            ->get()
+            ->sum(fn($o) => $o->getAmountHtCents());
 
         $growth = 0;
         if ($prevHtCents > 0) {

@@ -105,12 +105,7 @@ class extends Component
                     {{-- Montant : prévu (gris) + payé (blanc) si réglé --}}
                     <td class="px-6 py-4 hidden lg:table-cell">
                         @php
-                            // Montant prévu : total_price_cents (après coupon) → TTC
-                            // !== null obligatoire : 0 (coupon 100%) est falsy
-                            $mHt  = $order->total_price_cents !== null
-                                ? $order->total_price_cents
-                                : ($order->base_price_cents ?? null);
-                            $mTtc = $mHt !== null ? $mHt + round($mHt * 0.2) : null;
+                            $mTtc = $order->getAmountTtcCents();
                             $isPaid = in_array($order->status, ['PAID', 'DELIVERED']);
                         @endphp
 
