@@ -389,73 +389,109 @@ class extends Component
                             <svg class="animate-spin w-4 h-4 text-[#C9A84C] shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                             <div>
                                 <p class="text-[#C9A84C] text-sm font-medium">Analyse en cours&hellip;</p>
-                                <p class="text-[#7A6E5E] text-sm">Chaque photo est examin&eacute;e pour estimer le tarif selon son niveau de restauration.</p>
+                                <p class="text-[#7A6E5E] text-sm font-light">Chaque photo est examinée en temps réel pour estimer le tarif selon son niveau de restauration.</p>
                             </div>
                         </div>
                         @endif
 
-                        {{-- Grille des photos --}}
-                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {{-- Liste des photos en format Lignes Todo-List Premium --}}
+                        <div class="space-y-3">
                             @foreach ($photos as $i => $photo)
-                            <div class="relative group">
-                                {{-- Bouton supprimer --}}
-                                <button type="button" 
-                                        wire:click="removePhoto({{ $i }})"
-                                        class="absolute -top-2 -right-2 z-10 bg-red-500/80 hover:bg-red-500 text-white rounded-full p-1 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                </button>
-
-                                {{-- Miniature --}}
-                                <div class="aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/15">
-                                    <img src="{{ $photo->temporaryUrl() }}" alt="Photo {{ $i + 1 }}" class="w-full h-full object-cover">
-                                </div>
-
-                                {{-- Badge résultat IA --}}
-                                @if (isset($analysisResults[$i]))
-                                @php $result = $analysisResults[$i]; @endphp
-                                 @php
-                                 $lvlCfg = match($result['level']) {
-                                     'heavy'  => [
-                                         'bg'    => 'bg-orange-950/60 border border-orange-500/30',
-                                         'text'  => 'text-orange-400',
-                                         'bar'   => 'bg-orange-400',
-                                         'label' => '&#9888; Compl&egrave;te &middot; 3&euro;',
-                                     ],
-                                     'medium' => [
-                                         'bg'    => 'bg-amber-950/60 border border-amber-500/30',
-                                         'text'  => 'text-amber-400',
-                                         'bar'   => 'bg-amber-400',
-                                         'label' => '~ Avanc&eacute;e &middot; 2&euro;',
-                                     ],
-                                     default  => [
-                                         'bg'    => 'bg-emerald-950/60 border border-emerald-500/30',
-                                         'text'  => 'text-emerald-400',
-                                         'bar'   => 'bg-emerald-400',
-                                         'label' => '&#10003; Standard &middot; 1&euro;',
-                                     ],
-                                 };
-                                 @endphp
-                                 <div class="mt-1.5 px-2 py-1 rounded-sm text-center {{ $lvlCfg['bg'] }}">
-                                     <p class="text-xs font-semibold {{ $lvlCfg['text'] }}">{!! $lvlCfg['label'] !!}</p>
-                                    <p class="text-[10px] text-[#7A6E5E] mt-0.5 leading-tight">{{ $result['reason'] }}</p>
-                                    {{-- Barre de confiance --}}
-                                    <div class="mt-1 h-1 bg-[#1A1510] rounded-full overflow-hidden">
-                                        <div class="h-full rounded-full transition-all duration-500 {{ $lvlCfg['bar'] }}"
-                                             style="width: {{ $result['confidence'] }}%">
-                                        </div>
+                            <div class="relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-[#1A1510]/40 rounded-sm border border-[#C9A84C]/15 hover:border-[#C9A84C]/45 transition-all duration-300 gap-4">
+                                
+                                {{-- Thumbnail & Métadonnées --}}
+                                <div class="flex items-center gap-4 min-w-0 flex-1 w-full">
+                                    <div class="w-16 h-16 shrink-0 aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/20 group">
+                                        <img src="{{ $photo->temporaryUrl() }}" alt="Photo {{ $i + 1 }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                                     </div>
-                                    <p class="text-[10px] text-[#7A6E5E] mt-0.5">Confiance : {{ $result['confidence'] }}%
-                                        @if(!$result['ai_used']) <span class="text-yellow-500">⚡ heuristique</span> @endif
-                                    </p>
+                                    
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <p class="text-[#F5F0E8] text-sm font-semibold truncate">{{ $photo->getClientOriginalName() }}</p>
+                                            <span class="text-[10px] text-[#7A6E5E] shrink-0 font-medium">({{ round($photo->getSize() / 1024 / 1024, 2) }} Mo)</span>
+                                        </div>
+                                        @if (isset($analysisResults[$i]))
+                                            <p class="text-xs text-[#7A6E5E] mt-1 leading-relaxed">{{ $analysisResults[$i]['reason'] }}</p>
+                                        @elseif ($analyzing)
+                                            <div class="flex items-center gap-2 text-[#7A6E5E] text-xs mt-1">
+                                                <svg class="animate-spin w-3 h-3 text-[#C9A84C]" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                                <span class="italic">Estimation du tarif par l'IA en cours...</span>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
-                                @elseif ($analyzing)
-                                <div class="mt-1.5 px-2 py-1 bg-[#1A1510] rounded-sm border border-[#C9A84C]/15 text-center">
-                                    <svg class="animate-spin w-3 h-3 text-[#C9A84C] mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+
+                                {{-- Verdict IA, Jauge & Prix --}}
+                                <div class="shrink-0 flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-[#C9A84C]/10">
+                                    
+                                    {{-- Verdict & Jauge --}}
+                                    @if (isset($analysisResults[$i]))
+                                        @php $result = $analysisResults[$i]; @endphp
+                                        @php
+                                        $lvlCfg = match($result['level']) {
+                                            'heavy'  => [
+                                                'bg'    => 'bg-orange-950/40 border border-orange-500/20',
+                                                'text'  => 'text-orange-400',
+                                                'bar'   => 'bg-orange-400',
+                                                'label' => 'Restauration Complète',
+                                                'price' => '3,00 €',
+                                            ],
+                                            'medium' => [
+                                                'bg'    => 'bg-amber-950/40 border border-amber-500/20',
+                                                'text'  => 'text-amber-400',
+                                                'bar'   => 'bg-amber-400',
+                                                'label' => 'Restauration Avancée',
+                                                'price' => '2,00 €',
+                                            ],
+                                            default  => [
+                                                'bg'    => 'bg-emerald-950/40 border border-emerald-500/20',
+                                                'text'  => 'text-emerald-400',
+                                                'bar'   => 'bg-emerald-400',
+                                                'label' => 'Restauration Standard',
+                                                'price' => '1,00 €',
+                                            ],
+                                        };
+                                        @endphp
+                                        
+                                        <div class="flex flex-col items-start sm:items-end gap-1 min-w-[130px]">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[9px] font-semibold border tracking-wider uppercase {{ $lvlCfg['bg'] }} {{ $lvlCfg['text'] }}">
+                                                {{ $lvlCfg['label'] }}
+                                            </span>
+                                            
+                                            {{-- Confiance --}}
+                                            <div class="flex items-center gap-1.5 w-24">
+                                                <div class="h-1 bg-[#1A1510] rounded-full overflow-hidden flex-1">
+                                                    <div class="h-full rounded-full {{ $lvlCfg['bar'] }}" style="width: {{ $result['confidence'] }}%"></div>
+                                                </div>
+                                                <span class="text-[9px] text-[#7A6E5E] font-medium">{{ $result['confidence'] }}%</span>
+                                            </div>
+                                        </div>
+
+                                        {{-- Prix --}}
+                                        <div class="text-right min-w-[70px] pl-4 border-l border-[#C9A84C]/10">
+                                            <span class="text-base font-bold text-[#F5F0E8]">{{ $lvlCfg['price'] }}</span>
+                                            <span class="block text-[8px] text-[#7A6E5E] tracking-wider uppercase">TTC</span>
+                                        </div>
+                                    @else
+                                        <div class="text-right min-w-[70px]">
+                                            <span class="text-sm text-[#7A6E5E] italic">Calcul...</span>
+                                        </div>
+                                    @endif
+
+                                    {{-- Actions (Supprimer) --}}
+                                    <div class="pl-2">
+                                        <button type="button" 
+                                                wire:click="removePhoto({{ $i }})"
+                                                class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 rounded-sm p-1.5 transition-all duration-200"
+                                                title="Supprimer la photo">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </div>
                                 </div>
-                                @endif
                             </div>
                             @endforeach
                         </div>
+                    </div>
 
                         {{-- Verdict global IA --}}
                         @if ($analysisComplete)

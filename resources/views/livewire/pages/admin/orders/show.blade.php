@@ -609,33 +609,104 @@ class extends Component
                     @if ($order->getMedia('originals')->isEmpty())
                     <p class="text-[#7A6E5E] text-sm text-center py-6">Aucune photo originale attachée</p>
                     @else
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    <div class="space-y-3">
                         @foreach ($order->getMedia('originals') as $media)
-                        <div x-data="{ revealed: false }" class="group relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden border {{ $media->getCustomProperty('is_nsfw') ? 'border-red-500' : 'border-[#C9A84C]/10' }}">
-                            <img src="{{ route('admin.orders.photo.show', [$order, $media]) }}" alt="{{ $media->file_name }}" class="w-full h-full object-cover transition-all duration-300" :class="revealed ? '' : '{{ $media->getCustomProperty('is_nsfw') ? 'blur-2xl' : '' }}'">
+                        @php
+                            $aiLevel = $media->getCustomProperty('ai_level', $order->damage_level ?? 'light');
+                            $aiConfidence = $media->getCustomProperty('ai_confidence', 95);
+                            $lvlCfg = match($aiLevel) {
+                                'heavy'  => [
+                                    'bg'    => 'bg-orange-950/40 border border-orange-500/20',
+                                    'text'  => 'text-orange-400',
+                                    'bar'   => 'bg-orange-400',
+                                    'label' => 'Restauration Complète',
+                                    'price' => '3,00 €',
+                                ],
+                                'medium' => [
+                                    'bg'    => 'bg-amber-950/40 border border-amber-500/20',
+                                    'text'  => 'text-amber-400',
+                                    'bar'   => 'bg-amber-400',
+                                    'label' => 'Restauration Avancée',
+                                    'price' => '2,00 €',
+                                ],
+                                default  => [
+                                    'bg'    => 'bg-emerald-950/40 border border-emerald-500/20',
+                                    'text'  => 'text-emerald-400',
+                                    'bar'   => 'bg-emerald-400',
+                                    'label' => 'Restauration Standard',
+                                    'price' => '1,00 €',
+                                ],
+                            };
+                            $isNsfw = $media->getCustomProperty('is_nsfw', false);
+                        @endphp
+                        <div x-data="{ revealed: false }" 
+                             class="relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-[#1A1510]/40 rounded-sm border {{ $isNsfw ? 'border-red-500/50' : 'border-[#C9A84C]/15' }} hover:border-[#C9A84C]/45 transition-all duration-300 gap-4">
                             
-                            @if($media->getCustomProperty('is_nsfw'))
-                            <div x-show="!revealed" class="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-center p-2 z-10">
-                                <svg class="w-8 h-8 text-red-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                <span class="text-xs text-white font-bold">NSFW / CSAM</span>
-                                <button @click="revealed = true" type="button" class="mt-2 text-[10px] bg-red-600/80 hover:bg-red-600 px-2 py-1 rounded text-white">Révéler</button>
+                            {{-- Thumbnail & Métadonnées --}}
+                            <div class="flex items-center gap-4 min-w-0 flex-1 w-full">
+                                <div class="w-16 h-16 shrink-0 aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/20 group relative">
+                                    <img src="{{ route('admin.orders.photo.show', [$order, $media]) }}" 
+                                         alt="{{ $media->file_name }}" 
+                                         class="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+                                         :class="revealed || !{{ $isNsfw ? 'true' : 'false' }} ? '' : 'blur-2xl'">
+                                    
+                                    @if($isNsfw)
+                                    <div x-show="!revealed" class="absolute inset-0 flex flex-col items-center justify-center bg-black/55 text-center p-1 z-10">
+                                        <svg class="w-5 h-5 text-red-500 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                        <button @click.stop="revealed = true" type="button" class="text-[8px] bg-red-600/90 hover:bg-red-600 px-1.5 py-0.5 rounded text-white font-bold transition-all">Révéler</button>
+                                    </div>
+                                    @endif
+                                </div>
+                                
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-[#F5F0E8] text-sm font-semibold truncate">{{ $media->file_name }}</p>
+                                        <span class="text-[10px] text-[#7A6E5E] shrink-0 font-medium">({{ $media->human_readable_size }})</span>
+                                    </div>
+                                    <p class="text-xs text-[#7A6E5E] mt-1 leading-relaxed">
+                                        @if($isNsfw)
+                                            <span class="text-red-400 font-bold">⚠️ Contenu identifié comme sensible / NSFW.</span>
+                                        @else
+                                            Photo originale transmise par le client pour traitement numérique.
+                                        @endif
+                                    </p>
+                                </div>
                             </div>
-                            @endif
 
-                            <a x-show="revealed || !{{ $media->getCustomProperty('is_nsfw') ? 'true' : 'false' }}" href="{{ route('admin.orders.photo.show', [$order, $media]) }}" target="_blank"
-                               class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            </a>
-                            {{-- Propriétés IA si disponibles --}}
-                            @php $aiLevel = $media->getCustomProperty('ai_level', $order->damage_level ?? 'light'); @endphp
-                            @if ($aiLevel)
-                            <div class="absolute top-1 left-1">
-                                <span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold 
-                                    {{ $aiLevel === 'heavy' ? 'bg-orange-500 text-black' : ($aiLevel === 'medium' ? 'bg-[#C9A84C] text-black' : 'bg-emerald-500 text-black') }}">
-                                    {{ $aiLevel === 'heavy' ? '3 €' : ($aiLevel === 'medium' ? '2 €' : '1 €') }}
-                                </span>
+                            {{-- Verdict IA, Jauge & Prix --}}
+                            <div class="shrink-0 flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-[#C9A84C]/10">
+                                
+                                {{-- Verdict & Jauge --}}
+                                <div class="flex flex-col items-start sm:items-end gap-1 min-w-[130px]">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[9px] font-semibold border tracking-wider uppercase {{ $lvlCfg['bg'] }} {{ $lvlCfg['text'] }}">
+                                        {{ $lvlCfg['label'] }}
+                                    </span>
+                                    
+                                    {{-- Confiance --}}
+                                    <div class="flex items-center gap-1.5 w-24">
+                                        <div class="h-1 bg-[#1A1510] rounded-full overflow-hidden flex-1">
+                                            <div class="h-full rounded-full {{ $lvlCfg['bar'] }}" style="width: {{ $aiConfidence }}%"></div>
+                                        </div>
+                                        <span class="text-[9px] text-[#7A6E5E] font-medium">{{ $aiConfidence }}%</span>
+                                    </div>
+                                </div>
+
+                                {{-- Prix --}}
+                                <div class="text-right min-w-[70px] pl-4 border-l border-[#C9A84C]/10">
+                                    <span class="text-base font-bold text-[#F5F0E8]">{{ $lvlCfg['price'] }}</span>
+                                    <span class="block text-[8px] text-[#7A6E5E] tracking-wider uppercase">TTC</span>
+                                </div>
+
+                                {{-- Action --}}
+                                <div class="pl-2">
+                                    <a href="{{ route('admin.orders.photo.show', [$order, $media]) }}" 
+                                       target="_blank"
+                                       class="block bg-[#C9A84C]/10 hover:bg-[#C9A84C]/20 text-[#C9A84C] border border-[#C9A84C]/25 hover:border-[#C9A84C]/45 rounded-sm p-1.5 transition-all duration-200"
+                                       title="Ouvrir la photo originale en HD">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                    </a>
+                                </div>
                             </div>
-                            @endif
                         </div>
                         @endforeach
                     </div>

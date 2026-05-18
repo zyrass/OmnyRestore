@@ -26,11 +26,62 @@ new
 class extends Component
 {
     public Order $order;
+    public string $couponCode = '';
+    public ?array $couponResult = null;
 
     public function mount(Order $order): void
     {
         $this->authorize('view', $order);
         $this->order = $order->load(['media', 'delivery']);
+        if ($this->order->coupon_code) {
+            $this->couponCode = $this->order->coupon_code;
+            $this->couponResult = [
+                'valid' => true,
+                'message' => 'Code de réduction appliqué.',
+            ];
+        }
+    }
+
+    public function applyCoupon(\App\Services\CouponService $couponService): void
+    {
+        abort_if($this->order->user_id !== auth()->id(), 403);
+        abort_if($this->order->status !== 'DONE', 403);
+
+        $this->validate(
+            ['couponCode' => 'required|min:2'],
+            ['couponCode.required' => 'Veuillez saisir un code.', 'couponCode.min' => 'Le code doit contenir au moins :min caractères.']
+        );
+
+        $this->couponCode = strtoupper(trim($this->couponCode));
+        $result = $couponService->apply($this->couponCode, $this->order->getAmountTtcCents());
+
+        if ($result['valid']) {
+            $this->order->update([
+                'coupon_code' => $this->couponCode,
+            ]);
+            $this->recalcPriceFromActivePhotos();
+            $this->couponResult = $result;
+            session()->flash('success', 'Code appliqué avec succès !');
+        } else {
+            $this->couponResult = $result;
+        }
+        $this->order->refresh()->load(['media', 'delivery']);
+    }
+
+    public function removeCoupon(): void
+    {
+        abort_if($this->order->user_id !== auth()->id(), 403);
+        abort_if($this->order->status !== 'DONE', 403);
+
+        $this->order->update([
+            'coupon_code' => null,
+            'discount_cents' => 0,
+        ]);
+        $this->recalcPriceFromActivePhotos();
+        $this->couponCode = '';
+        $this->couponResult = null;
+        session()->flash('success', 'Code promo retiré.');
+        $this->order->refresh()->load(['media', 'delivery']);
     }
 
     /**
@@ -623,83 +674,127 @@ class extends Component
                         </div>
                     </div>
 
-                    {{-- ── Grille photos ── --}}
-                    <div class="p-5 grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {{-- ── Liste des photos en format Todo-List Premium ── --}}
+                    <div class="p-5 space-y-3">
                         @forelse ($retouched as $media)
                         @php
                             $isRejected  = $media->getCustomProperty('is_rejected', false);
                             $photoLevel  = $media->getCustomProperty('ai_level', $order->damage_level ?? 'light');
                             $photoPriceLabel = match($photoLevel) {
-                                'medium' => '2 €',
-                                'heavy'  => '3 €',
-                                default  => '1 €',
+                                'medium' => '2,00 €',
+                                'heavy'  => '3,00 €',
+                                default  => '1,00 €',
                             };
-                            $photoBadgeColor = match($photoLevel) {
-                                'medium' => 'text-amber-400 bg-amber-950/60 border-amber-500/30',
-                                'heavy'  => 'text-orange-400 bg-orange-950/60 border-orange-500/30',
-                                default  => 'text-emerald-400 bg-emerald-950/60 border-emerald-500/30',
+                            $lvlCfg = match($photoLevel) {
+                                'heavy'  => [
+                                    'bg'    => 'bg-orange-950/40 border border-orange-500/20',
+                                    'text'  => 'text-orange-400',
+                                    'bar'   => 'bg-orange-400',
+                                    'label' => 'Restauration Complète',
+                                ],
+                                'medium' => [
+                                    'bg'    => 'bg-amber-950/40 border border-amber-500/20',
+                                    'text'  => 'text-amber-400',
+                                    'bar'   => 'bg-amber-400',
+                                    'label' => 'Restauration Avancée',
+                                ],
+                                default  => [
+                                    'bg'    => 'bg-emerald-950/40 border border-emerald-500/20',
+                                    'text'  => 'text-emerald-400',
+                                    'bar'   => 'bg-emerald-400',
+                                    'label' => 'Restauration Standard',
+                                ],
                             };
                         @endphp
 
-                        {{-- Carte : hover géré par Alpine (pas de group-hover Tailwind) --}}
-                        <div x-data="{ h: false }"
-                             @mouseenter="h = true"
-                             @mouseleave="h = false"
-                             class="relative aspect-square bg-[#1A1510] rounded-sm overflow-hidden select-none cursor-default {{ $isRejected ? 'border-2 border-red-500/50' : 'border border-[#C9A84C]/15' }}"
-                             style="{{ $isRejected ? 'opacity:0.6' : '' }}">
-
-                            <img src="{{ route('client.orders.photo.show', [$order, $media]) }}"
-                                 alt="Photo restaurée"
-                                 class="w-full h-full object-cover pointer-events-none" draggable="false">
-
-                            {{-- Le vrai watermark est incrusté côté serveur (SecurePhotoController) --}}
-                            @if (! $isRejected)
-                            <div class="absolute inset-0 pointer-events-none" style="box-shadow:inset 0 0 20px rgba(201,168,76,0.12);"></div>
-                            @endif
-
-                            {{-- ── Overlay photo retirée ── --}}
-                            @if ($isRejected)
-                            <div class="absolute inset-0 bg-red-950/80 flex flex-col items-center justify-center p-4">
-                                <span class="text-red-200 text-[10px] font-bold uppercase tracking-widest mb-3">Photo retirée</span>
-                                <div class="flex gap-2">
-                                    {{-- Bouton Restaurer --}}
-                                    <button wire:click="restorePhoto({{ $media->id }})"
-                                            title="Réintégrer cette photo"
-                                            class="w-10 h-10 flex items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg hover:bg-emerald-500 transition-colors">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg>
-                                    </button>
-                                    {{-- Bouton Supprimer --}}
-                                    <button @click="$dispatch('omr-delete', { id: {{ $media->id }} })"
-                                            title="Supprimer définitivement"
-                                            class="w-10 h-10 flex items-center justify-center rounded-full bg-red-900 border border-red-600/50 text-red-200 shadow-lg hover:bg-red-800 transition-colors">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    </button>
+                        <div class="relative flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-sm border transition-all duration-300 gap-4
+                            {{ $isRejected ? 'bg-red-950/15 border-red-500/25 opacity-70' : 'bg-[#1A1510]/40 border-[#C9A84C]/15 hover:border-[#C9A84C]/45' }}">
+                            
+                            {{-- Thumbnail & Métadonnées --}}
+                            <div class="flex items-center gap-4 min-w-0 flex-1 w-full">
+                                <div class="w-16 h-16 shrink-0 aspect-square bg-[#1A1510] rounded-sm overflow-hidden border border-[#C9A84C]/20 group relative">
+                                    <img src="{{ route('client.orders.photo.show', [$order, $media]) }}" 
+                                         alt="Photo restaurée" 
+                                         class="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+                                         draggable="false">
+                                    
+                                    @if (!$isRejected)
+                                    <div class="absolute inset-0 pointer-events-none" style="box-shadow:inset 0 0 10px rgba(201,168,76,0.15);"></div>
+                                    @endif
+                                </div>
+                                
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-[#F5F0E8] text-sm font-semibold truncate">{{ $media->file_name }}</p>
+                                        <span class="text-[10px] text-[#7A6E5E] shrink-0 font-medium">({{ $media->human_readable_size }})</span>
+                                    </div>
+                                    <p class="text-xs text-[#7A6E5E] mt-1 leading-relaxed">
+                                        @if ($isRejected)
+                                            <span class="text-red-400 font-bold">⚠️ Cette photo a été retirée de la commande.</span>
+                                        @else
+                                            Aperçu restauré en haute définition avec filigrane de sécurité temporaire.
+                                        @endif
+                                    </p>
                                 </div>
                             </div>
-                            @else
-                            {{-- Bouton ✕ Retirer (haut-droit) --}}
-                            <button x-show="h"
-                                    x-transition:enter="transition ease-out duration-100"
-                                    x-transition:enter-start="opacity-0 scale-75"
-                                    x-transition:enter-end="opacity-100 scale-100"
-                                    @click="$dispatch('omr-reject', { id: {{ $media->id }} })"
-                                    title="Retirer cette photo"
-                                    class="absolute top-2 right-2 z-20 w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold bg-red-600 text-white shadow-lg hover:bg-red-500">
-                                ✕
-                            </button>
-                            @endif
 
-                            {{-- Badge prix individuel — en bas de la carte --}}
-                            <div class="absolute bottom-2 left-2 z-10">
-                                <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-bold rounded border
-                                    {{ $isRejected ? 'text-[#7A6E5E]/60 bg-[#1A1510]/80 border-[#7A6E5E]/20 line-through' : $photoBadgeColor }}">
-                                    {{ $photoPriceLabel }} TTC
-                                </span>
+                            {{-- Niveau IA, Prix et Actions --}}
+                            <div class="shrink-0 flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-[#C9A84C]/10">
+                                
+                                {{-- Niveau IA --}}
+                                <div class="flex flex-col items-start sm:items-end gap-1 min-w-[130px]">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-sm text-[9px] font-semibold border tracking-wider uppercase 
+                                        {{ $isRejected ? 'bg-[#1A1510] border-[#2A2520] text-[#7A6E5E] line-through' : ($lvlCfg['bg'] . ' ' . $lvlCfg['text']) }}">
+                                        {{ $lvlCfg['label'] }}
+                                    </span>
+                                    
+                                    {{-- Confiance --}}
+                                    @if (!$isRejected)
+                                    <div class="flex items-center gap-1.5 w-24">
+                                        <div class="h-1 bg-[#1A1510] rounded-full overflow-hidden flex-1">
+                                            <div class="h-full rounded-full {{ $lvlCfg['bar'] }}" style="width: 95%"></div>
+                                        </div>
+                                        <span class="text-[9px] text-[#7A6E5E] font-medium">95%</span>
+                                    </div>
+                                    @endif
+                                </div>
+
+                                {{-- Prix --}}
+                                <div class="text-right min-w-[70px] pl-4 border-l border-[#C9A84C]/10">
+                                    <span class="text-base font-bold {{ $isRejected ? 'text-[#7A6E5E]/60 line-through' : 'text-[#F5F0E8]' }}">
+                                        {{ $photoPriceLabel }}
+                                    </span>
+                                    <span class="block text-[8px] text-[#7A6E5E] tracking-wider uppercase">TTC</span>
+                                </div>
+
+                                {{-- Actions --}}
+                                <div class="pl-2 flex items-center gap-2">
+                                    @if ($isRejected)
+                                        {{-- Réintégrer --}}
+                                        <button wire:click="restorePhoto({{ $media->id }})"
+                                                title="Réintégrer cette photo"
+                                                class="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 hover:border-emerald-500/40 rounded-sm p-1.5 transition-all duration-200">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        </button>
+                                        {{-- Supprimer --}}
+                                        <button @click="$dispatch('omr-delete', { id: {{ $media->id }} })"
+                                                title="Supprimer définitivement"
+                                                class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 rounded-sm p-1.5 transition-all duration-200">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    @else
+                                        {{-- Désactiver / Retirer --}}
+                                        <button @click="$dispatch('omr-reject', { id: {{ $media->id }} })"
+                                                title="Retirer cette photo de la commande"
+                                                class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 rounded-sm p-1.5 transition-all duration-200">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        </button>
+                                    @endif
+                                </div>
                             </div>
-
                         </div>
                         @empty
-                        <div class="col-span-3 py-8 text-center text-[#7A6E5E] text-sm">Aucune photo disponible.</div>
+                        <div class="py-8 text-center text-[#7A6E5E] text-sm">Aucune photo disponible.</div>
                         @endforelse
                     </div>
                 </div>
@@ -711,29 +806,6 @@ class extends Component
                 </p>
                 @endif
 
-                {{-- CTA paiement --}}
-                <div class="p-5 border-t border-[#C9A84C]/10 bg-[#C9A84C]/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div>
-                        <p class="text-[#F5F0E8] text-sm font-medium">
-                            {{ $activePhotos->count() > 0 ? 'Satisfait de votre sélection ?' : 'Toutes les photos ont été retirées.' }}
-                        </p>
-                        <p class="text-[#7A6E5E] text-xs">
-                            @if ($activePhotos->count() > 0)
-                                {{ $activePhotos->count() }} photo{{ $activePhotos->count() > 1 ? 's' : '' }} · téléchargement HD sans filigrane après paiement.
-                            @else
-                                Réintégrez au moins une photo pour procéder au paiement.
-                            @endif
-                        </p>
-                    </div>
-                    @if ($activePhotos->count() > 0)
-                    <form action="{{ route('client.orders.checkout', $order) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="btn-gold whitespace-nowrap">
-                            Payer — {{ number_format($payTtc / 100, 2, ',', ' ') }} € TTC
-                        </button>
-                    </form>
-                    @endif
-                </div>
             </div>
             @endif {{-- fin @if (! $order->preview_unlocked_at) --}}
             </div>
@@ -1068,6 +1140,78 @@ class extends Component
                     @endif
                 </dl>
             </div>
+
+            {{-- Coupon & Paiement (Status DONE uniquement, après déverrouillage) --}}
+            @if ($order->status === 'DONE' && $order->preview_unlocked_at)
+                {{-- Code de réduction (Code de vérification) --}}
+                <div class="card-glass p-5">
+                    <h3 class="text-[#F5F0E8] font-semibold text-sm mb-3">Code de réduction</h3>
+
+                    @if ($couponResult && $couponResult['valid'])
+                        {{-- Coupon validé --}}
+                        <div class="flex items-center justify-between p-3 bg-emerald-900/20 border border-emerald-500/30 rounded-sm">
+                            <div>
+                                <p class="text-emerald-400 text-sm font-semibold">{{ strtoupper($couponCode) }}</p>
+                                <p class="text-emerald-400/70 text-xs">{{ $couponResult['message'] }}</p>
+                            </div>
+                            <button type="button" wire:click="removeCoupon"
+                                    class="text-[#7A6E5E] hover:text-red-400 transition-colors ml-3">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    @else
+                        @if ($couponResult && !$couponResult['valid'])
+                            {{-- Coupon invalide --}}
+                            <div class="mb-2 p-2 bg-red-900/20 border border-red-500/30 rounded-sm">
+                                <p class="text-red-400 text-xs">{{ $couponResult['message'] }}</p>
+                            </div>
+                        @endif
+
+                        <div class="flex gap-2">
+                            <input wire:model="couponCode"
+                                   type="text"
+                                   placeholder="BIENVENUE10"
+                                   class="flex-1 bg-[#0F0C08] border border-[#C9A84C]/20 text-[#F5F0E8] text-sm rounded-sm
+                                          px-3 py-2 placeholder-[#7A6E5E]/50 uppercase tracking-widest
+                                          focus:outline-none focus:border-[#C9A84C]/60 transition-all">
+                            <button type="button" wire:click="applyCoupon"
+                                    wire:loading.attr="disabled" wire:target="applyCoupon"
+                                    class="px-4 py-2 text-xs bg-[#C9A84C]/15 text-[#C9A84C] border border-[#C9A84C]/30
+                                           hover:bg-[#C9A84C]/25 rounded-sm transition-all whitespace-nowrap">
+                                <span wire:loading.remove wire:target="applyCoupon">Appliquer</span>
+                                <span wire:loading wire:target="applyCoupon">⧖</span>
+                            </button>
+                        </div>
+                        @error('couponCode')
+                            <p class="text-red-400 text-xs mt-1">{{ $message }}</p>
+                        @enderror
+                    @endif
+                </div>
+
+                {{-- Action Paiement --}}
+                @if ($activePhotos->count() > 0)
+                <div class="card-glass p-5 border-[#C9A84C]/30 bg-[#C9A84C]/5">
+                    <h3 class="text-[#F5F0E8] font-semibold text-sm mb-2">Procéder au paiement</h3>
+                    <p class="text-[#7A6E5E] text-xs leading-relaxed mb-4">
+                        Téléchargement immédiat de l'archive haute définition (sans filigrane) après validation du paiement.
+                    </p>
+                    <form action="{{ route('client.orders.checkout', $order) }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn-gold w-full justify-center py-3 text-sm font-bold tracking-wider">
+                            Payer — {{ number_format($payTtc / 100, 2, ',', ' ') }} € TTC
+                        </button>
+                    </form>
+                </div>
+                @else
+                <div class="card-glass p-5 border-red-500/20 bg-red-950/10">
+                    <p class="text-red-400 text-xs text-center">
+                        ⚠️ Réintégrez au moins une photo pour procéder au paiement.
+                    </p>
+                </div>
+                @endif
+            @endif
 
             {{-- Instructions --}}
             @if ($order->instructions)
