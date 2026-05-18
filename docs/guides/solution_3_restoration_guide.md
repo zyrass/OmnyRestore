@@ -440,3 +440,91 @@ Pour tester l'ensemble du flux sans frais d'API réels :
 4. Attendez le statut `DONE` de la commande. Connectez-vous en tant que client : vérifiez que les images restaurées possèdent le filigrane.
 5. Effectuez un paiement Stripe de test (mode Test).
 6. Téléchargez l'archive ZIP livrée : assurez-vous que les fichiers sont renommés de façon anonyme et possèdent le suffixe `-HD.jpg`.
+
+---
+
+## 🔄 6. Explication Visuelle & Parcours Étape par Étape (Automatique 24/7)
+
+Pour vous aider à visualiser la mécanique exacte qui régit la plateforme de façon 100% autonome le week-end, voici le diagramme de séquence complet suivi d'une explication pas-à-pas détaillée.
+
+### A. Diagramme de Séquence du Traitement
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client
+    participant App as Laravel Core (Livewire)
+    participant Ollama as Ollama Moondream (Local GPU)
+    participant Queue as Queue Laravel (Workers)
+    participant Python as Outil Externe (Python / CodeFormer)
+    participant Stripe as Stripe API
+
+    Note over Client, App: ÉTAPE 1 : Dépôt & Estimation (Samedi 23:00)
+    Client->>App: Dépose ses photos originales
+    App->>Ollama: Envoie l'image (Base64) pour analyse de prix
+    Ollama-->>App: Retourne le niveau de dégâts (light/medium/heavy) en 1s
+    App-->>Client: Affiche le prix et passe la commande en PENDING
+
+    Note over App, Queue: ÉTAPE 2 : Traitement Asynchrone Local
+    App->>Queue: Dispatch AutoRestoreOrderPhotosJob
+    Queue->>App: Passe le statut de la commande à IN_PROGRESS
+    Queue->>Python: Fait une requête HTTP interne vers CodeFormer (GPU Local)
+    Python-->>Queue: Renvoie la photo restaurée en 8K (PROPRE et sans filigrane)
+
+    Note over Queue, Client: ÉTAPE 3 : Enregistrement & Filigranage
+    Queue->>App: Sauvegarde l'image propre en DB (Collection 'retouched')
+    Note over App: Déclenchement automatique du filigranage (Watermark)
+    App->>App: Crée une copie filigranée transparente pour l'aperçu client
+    Queue->>App: Passe la commande à DONE
+    App-->>Client: Envoie l'e-mail : "Vos aperçus filigranés sont prêts !"
+
+    Note over Client, Stripe: ÉTAPE 4 : Consultation & Paiement (Dimanche)
+    Client->>App: Examine les aperçus filigranés sur son espace sécurisé
+    Client->>Stripe: Clique sur "Payer" et valide sa transaction
+    Stripe-->>App: Envoie le Webhook "checkout.session.completed"
+    App->>App: Passe le statut de la commande à PAID
+
+    Note over App, Client: ÉTAPE 5 : Anonymisation & Livraison ZIP
+    App->>Queue: Dispatch GenerateOrderZipJob
+    Queue->>Queue: Récupère l'image PROPRE (sans filigrane)
+    Queue->>Queue: Renomme de façon anonyme : [REF]-[INDEX]-HD.[ext]
+    Queue->>Queue: Compresse dans un ZIP et passe statut à DELIVERED
+    App-->>Client: Envoie l'e-mail final avec le lien de téléchargement du ZIP
+```
+
+### B. Parcours Pas-à-Pas Détaillé
+
+#### Étape 1 : Le Dépôt et l'Estimation Instantanée (Samedi soir à 23h00)
+1. **Dépôt** : Le client dépose ses vieilles photos physiques numérisées sur ton site.
+2. **Estimation de Prix** : Immédiatement, Livewire appelle ton service local `PhotoDamageAnalyzerLocal` qui envoie la photo en Base64 à **Ollama** (modèle **Moondream** ou **LLaVA**) installé sur ta propre machine.
+3. **Calcul de Prix & Création** : En **1 seconde**, Ollama analyse les déchirures et rayures, renvoie le niveau de dégâts, ce qui fige le prix (de 1 € à 3 €). La commande est créée en base de données avec le statut **`PENDING`**.
+
+#### Étape 2 : Le Traitement Neuronal Local (Job en arrière-plan)
+1. **Prise en charge** : La création de la commande déclenche instantanément le job `AutoRestoreOrderPhotosJob` dans la file d'attente (Queue) Laravel. Le statut de la commande passe à **`IN_PROGRESS`**.
+2. **Le Traitement IA (L'Outil Externe)** :
+   * Ton serveur de queue Laravel fait une requête HTTP interne sécurisée vers ton script Python local (**FastAPI/Docker CodeFormer**).
+   * Ce script externe utilise ton **GPU NVIDIA** pour redessiner la scène proprement via **SDXL**, puis corriger les visages pour verrouiller l'identité faciale réelle avec **CodeFormer**.
+   * Le script Python te renvoie l'image restaurée **8K ultra-nette, propre et sans aucun filigrane**.
+
+#### Étape 3 : L'Enregistrement et le Filigranage Automatique
+1. **Enregistrement** : Laravel reçoit l'image restaurée propre de l'outil externe Python et l'enregistre dans la collection Spatie `retouched`.
+2. **Création du Filigrane (Watermark)** :
+   * **C'est précisément à cet instant** qu'un écouteur d'événement (Listener) Laravel se déclenche. 
+   * Il intercepte l'ajout de l'image propre, génère à la volée une copie protégée par un filigrane semi-transparent (Watermark) destiné à l'affichage web, tout en gardant précieusement la version propre à l'abri sur le disque.
+3. **Notification** : Le statut de la commande passe à **`DONE`** (Prêt) et Laravel envoie **automatiquement** un e-mail au client : *"Vos aperçus de photos restaurées sont prêts !"*.
+
+#### Étape 4 : L'Aperçu Client et l'Attente du Paiement (Dimanche)
+1. Le client clique sur l'e-mail, arrive sur son espace client, et inspecte les visages restaurés.
+2. **Protection** : Les images affichées possèdent le filigrane transparent, ce qui empêche le client de faire un clic-droit pour enregistrer la photo gratuitement.
+3. **Paiement** : S'il est satisfait du résultat, il clique sur "Débloquer mes photos". Il est redirigé vers **Stripe Checkout** pour payer par carte bancaire.
+4. **L'Attente** : Ton serveur Laravel est en sommeil et attend le signal de Stripe.
+
+#### Étape 5 : La Livraison Finale Anonymisée (Dimanche à 23h05)
+1. **Webhook Stripe** : Dès que le paiement est validé par Stripe, celui-ci envoie une requête Webhook `checkout.session.completed` à ton serveur.
+2. **Passage à `PAID`** : Laravel valide la transaction, passe la commande au statut **`PAID`** et déclenche le job final `GenerateOrderZipJob`.
+3. **Archivage et Anonymisation** :
+   * Le job récupère les images restaurées **originales et propres (sans filigrane)**.
+   * Il les renomme pour masquer toute donnée sensible sous le format strict **`[REFERENCE]-[INDEX]-HD.[extension]`** (ex : `ORD5942-01-HD.jpg`).
+   * Il compresse le tout dans une archive ZIP sécurisée (`ORD5942-HD.zip`).
+4. **Livraison** : Le statut passe à **`DELIVERED`** (Livré) et Laravel envoie **automatiquement** l'e-mail de livraison finale contenant le lien de téléchargement direct du ZIP parfait.
+
