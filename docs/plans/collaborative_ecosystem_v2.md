@@ -14,18 +14,20 @@ Ce document détaille la stratégie complète pour transformer OmnyRestore en un
 
 ---
 
-## 🏗️ Phase 1 : Architecture RBAC & Gestion des Sièges (10 Max)
-L'administration doit avoir une visibilité totale sur qui peut faire quoi.
+## ~~🏗️ Phase 1 : Architecture RBAC & Gestion des Sièges (10 Max)~~ [ACCOMPLI]
 
-### Structure des Rôles
-*   **Super-Admin** : Propriétaire. Accès total (Configuration, Pilotage stratégique, Crise, Logs).
+~~L'administration doit avoir une visibilité totale sur qui peut faire quoi.~~
+
+### ~~Structure des Rôles~~
+~~*   **Super-Admin** : Propriétaire. Accès total (Configuration, Pilotage stratégique, Crise, Logs).
 *   **RH (Ressources Humaines)** : Focus sur le recrutement, le simulateur de trésorerie (Runway), l'édition des contrats et la préparation des éléments variables de paie (EVP).
 *   **Collaborateur (Opérateur)** : Focus sur le traitement des photos et le support client.
 *   **Marketing** : Focus sur l'acquisition, les coupons et les avis clients. A également accès en **Lecture Seule (Read-Only)** à la liste et aux fiches détaillées des commandes (sans aucune possibilité de modification opérationnelle ou financière) afin de pouvoir authentifier ou justifier les avis positifs/négatifs des clients.
-*   **Transparence Légale (Loi Européenne)** : *Tous les rôles ci-dessus* ont accès en lecture à un **Dashboard de Transparence Salariale** centralisant les revenus et performances de tous les collègues, par honnêteté et conformité légale.
+*   **Transparence Légale (Loi Européenne)** : *Tous les rôles ci-dessus* ont accès en lecture à un **Dashboard de Transparence Salariale** centralisant les revenus et performances de tous les collègues, par honnêteté et conformité légale.~~
 
-### Diagramme d'État : Cycle de Vie d'un Compte Staff
+### ~~Diagramme d'État : Cycle de Vie d'un Compte Staff~~
 ```mermaid
+%% State Diagram struck through as Phase 1 is fully accomplished %%
 stateDiagram-v2
     [*] --> Invitation : Envoi du lien (Admin)
     Invitation --> Actif : Inscription validée
@@ -35,8 +37,8 @@ stateDiagram-v2
     Anonymisé --> [*]
 ```
 
-### Implémentation Technique
-*   **Migration `users`** : Ajout d'une colonne `role` (enum), `last_active_at`, `suspended_at`, et d'une colonne `contact_email` (nullable string) pour séparer l'identifiant de connexion de l'e-mail de notification réel.
+### ~~Implémentation Technique~~
+~~*   **Migration `users`** : Ajout d'une colonne `role` (enum), `last_active_at`, `suspended_at`, et d'une colonne `contact_email` (nullable string) pour séparer l'identifiant de connexion de l'e-mail de notification réel.
 *   **Séparation des E-mails de Connexion & Contact (Sécurité)** :
     *   L'adresse `email` principale sert uniquement de clé d'authentification (peut être une adresse fictive ou interne, ex: `collab1@omny.internal`).
     *   L'adresse `contact_email` optionnelle reçoit toutes les notifications applicatives réelles (réinitialisations de mot de passe, invitations, alertes de sécurité) en surchargeant `routeNotificationForMail()` dans le modèle `User`.
@@ -46,7 +48,7 @@ stateDiagram-v2
     *   Widget visuel "Licences Actives" indiquant l'occupation des sièges.
 *   **Simulateur RH & Trésorerie (Runway)** : Interface de calcul de viabilité.
     *   Calcul du nombre de mois restants (`Trésorerie / (Masse Salariale + Frais Fixes)`).
-    *   *Vision Future* : Génération des contrats de travail et intégration d'une API externe (ex: PayFit) pour l'automatisation des fiches de paie françaises.
+    *   *Vision Future* : Génération des contrats de travail et intégration d'une API externe (ex: PayFit) pour l'automatisation des fiches de paie françaises.~~tégration d'une API externe (ex: PayFit) pour l'automatisation des fiches de paie françaises.
 
 ---
 
@@ -121,16 +123,17 @@ Développement d'utilitaires mobiles ultra-légers pour simplifier l'acquisition
 
 ---
 
-## 🤖 Phase 4 : Assistant de Communication IA "OmnyScribe"
-Garantir que chaque message envoyé par l'équipe est irréprochable.
+## ~~🤖 Phase 4 : Assistant de Communication IA "OmnyScribe"~~ [ACCOMPLI]
 
-### L'Assistant "OmnyScribe"
-*   **Correction Instantanée** : Bouton intégré aux formulaires de réponse.
+~~Garantir que chaque message envoyé par l'équipe est irréprochable.~~
+
+### ~~L'Assistant "OmnyScribe"~~
+~~*   **Correction Instantanée** : Bouton intégré aux formulaires de réponse.
 *   **Optimisation de Ton** :
     *   **Standard** : Clair et concis.
     *   **Empathique** : Pour les clients mécontents ou les problèmes techniques.
     *   **Directif** : Pour les demandes de pièces manquantes.
-*   **Sécurité** : Détection automatique des données sensibles (mots de passe, CB) avant l'envoi.
+*   **Sécurité** : Détection automatique des données sensibles (mots de passe, CB) avant l'envoi.~~
 
 ---
 
