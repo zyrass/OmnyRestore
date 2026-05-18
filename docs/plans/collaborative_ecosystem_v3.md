@@ -190,6 +190,69 @@ flowchart TD
    * Configuration de politiques SPF, DKIM et DMARC strictes au niveau des serveurs DNS pour éviter que les relances clients et campagnes marketing finissent dans les spams.
 2. **Anonymisation RGPD automatique** :
    * Lors du bannissement/suppression d'un collaborateur, sa fiche RH et ses données personnelles sont effacées, et ses actions de traitement historiques sont rattachées au label générique "Ex-Opérateur X" afin de préserver l'intégrité des statistiques financières de l'entreprise.
+3. **Mise à jour des Mentions Légales & RGPD (OpenAI API Compliance)** :
+   * Afin de respecter la transparence RGPD tout en rassurant vos clients, voici le paragraphe juridique précis à ajouter à vos **Mentions Légales / Politique de Confidentialité** :
+     > **Traitement des images par Intelligence Artificielle (API OpenAI) :**
+     > Dans le cadre de l'évaluation technique et tarifaire de vos clichés, notre plateforme utilise l'API sécurisée d'OpenAI. Conformément aux politiques strictes d'OpenAI pour les développeurs (API Policy), vos photos ne sont **JAMAIS** utilisées pour l'entraînement ou l'amélioration des modèles d'intelligence artificielle. Elles sont stockées de manière strictement temporaire et anonyme sur des serveurs sécurisés pour une durée maximale de 30 jours uniquement à des fins de contrôle de modération technique et de sécurité, avant d'être définitivement et automatiquement effacées.
+4. **Transition Souveraine "Vision Locale" (Remplacement de l'API OpenAI pour l'estimation de prix)** :
+   * Pour atteindre un niveau de sécurité et de souveraineté absolu (zéro transit vers l'étranger), vous pouvez migrer `PhotoDamageAnalyzer.php` sur un modèle de vision local open-source ultra-léger (**Moondream2** ou **LLaVA**) hébergé sur votre propre machine via **Ollama**.
+   
+   #### A. Lancement du modèle en local (Serveur d'analyse) :
+   ```bash
+   # Installer Ollama sur la machine locale
+   # Télécharger le modèle de vision ultra-performant et économe (1.8B params)
+   ollama run moondream
+   ```
+   
+   #### B. Implémentation du service local `PhotoDamageAnalyzerLocal.php` :
+   ```php
+   <?php
+
+   namespace App\Services;
+
+   use Illuminate\Support\Facades\Http;
+   use Illuminate\Support\Facades\Log;
+   use RuntimeException;
+
+   class PhotoDamageAnalyzerLocal
+   {
+       /**
+        * Analyse les dommages d'une photo en local avec Ollama (Moondream).
+        * 100% Souverain, Zéro données cloud.
+        */
+       public function analyze(string $filePath): string
+       {
+           Log::info("[Souveraineté Vision] Analyse locale de la photo : {$filePath}");
+
+           if (!file_exists($filePath)) {
+               throw new RuntimeException("Fichier image introuvable pour l'analyse locale.");
+           }
+
+           // Étape 1 : Encodage de l'image en base64
+           $base64Image = base64_encode(file_get_contents($filePath));
+
+           // Étape 2 : Requête à l'API locale d'Ollama
+           $response = Http::timeout(30)->post('http://localhost:11434/api/generate', [
+               'model' => 'moondream',
+               'prompt' => "Analyze this old damaged photograph. Focus on tears, scratches, dust, fading, or missing parts. Classify the overall damage strictly as one of these three words: 'light', 'medium', or 'heavy'. Respond with only one word, lowercased, nothing else.",
+               'images' => [$base64Image],
+               'stream' => false,
+           ]);
+
+           if ($response->failed()) {
+               Log::error("[Souveraineté Vision] Échec d'Ollama local : " . $response->body());
+               return 'medium'; // Valeur de repli sécurisée
+           }
+
+           $result = trim(strtolower($response->json()['response'] ?? ''));
+
+           // Étape 3 : Nettoyage et validation stricte du verdict
+           if (str_contains($result, 'light')) return 'light';
+           if (str_contains($result, 'heavy')) return 'heavy';
+           return 'medium';
+       }
+   }
+   ```
 
 ---
 
