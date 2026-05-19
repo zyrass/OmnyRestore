@@ -149,8 +149,32 @@ class extends Component
         );
         $this->couponResult = $couponService->apply(
             $this->couponCode,
-            $this->baseHtCents()
+            $this->baseHtCents(),
+            auth()->user()
         );
+    }
+
+    /**
+     * Applique automatiquement un coupon de fidélité sélectionné.
+     */
+    public function selectLoyaltyCoupon(string $code): void
+    {
+        $this->couponCode = $code;
+        $this->couponResult = app(CouponService::class)->apply(
+            $code,
+            $this->baseHtCents(),
+            auth()->user()
+        );
+    }
+
+    /**
+     * Récupère tous les coupons de fidélité disponibles de l'utilisateur.
+     */
+    public function getAvailableCoupons()
+    {
+        return auth()->check()
+            ? app(\App\Services\LoyaltyService::class)->getAvailableCoupons(auth()->user())
+            : collect();
     }
 
     /**
@@ -644,6 +668,25 @@ class extends Component
                 @if ($analysisComplete)
                 <div class="card-glass p-5">
                     <h3 class="text-[#F5F0E8] font-semibold text-sm mb-3">Code de réduction</h3>
+
+                    {{-- Suggestions de bons de fidélité disponibles --}}
+                    @php
+                        $myCoupons = $this->getAvailableCoupons();
+                    @endphp
+                    @if ($myCoupons->isNotEmpty() && !($couponResult && $couponResult['valid']))
+                    <div class="mb-4 space-y-2">
+                        <p class="text-[11px] text-[#7A6E5E] font-medium tracking-wide uppercase">Vos bons disponibles :</p>
+                        @foreach ($myCoupons as $item)
+                        <button type="button" wire:click="selectLoyaltyCoupon('{{ $item->code }}')"
+                                class="w-full text-left bg-[#C9A84C]/5 border border-[#C9A84C]/20 hover:border-[#C9A84C]/50 px-3 py-2 rounded-sm flex items-center justify-between text-xs transition-all group">
+                            <span class="text-[#C9A84C] font-semibold font-serif">🎁 Bon Privilège −50%</span>
+                            <span class="px-2 py-0.5 bg-[#C9A84C]/15 text-[#C9A84C] font-mono font-bold rounded-sm text-[10px] group-hover:bg-[#C9A84C] group-hover:text-[#0D0B08] transition-colors">
+                                Appliquer
+                            </span>
+                        </button>
+                        @endforeach
+                    </div>
+                    @endif
 
                     @if ($couponResult && $couponResult['valid'])
                     {{-- Coupon validé --}}

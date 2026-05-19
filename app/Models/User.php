@@ -275,4 +275,33 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(SalaryHistory::class, 'user_id');
     }
+
+    /**
+     * Tous les coupons personnels de l'utilisateur.
+     *
+     * @return HasMany<Coupon, $this>
+     */
+    public function coupons(): HasMany
+    {
+        return $this->hasMany(Coupon::class, 'user_id');
+    }
+
+    /**
+     * Nombre de commandes payées/livrées d'au moins 10€ TTC éligibles à la fidélité.
+     */
+    public function eligibleOrdersCount(): int
+    {
+        return $this->orders()
+            ->whereIn('status', ['PAID', 'DELIVERED'])
+            ->where('total_price_cents', '>=', 1000)
+            ->count();
+    }
+
+    /**
+     * Progression dans le cycle de fidélité actuel (0, 1 ou 2 sur 3).
+     */
+    public function loyaltyProgress(): int
+    {
+        return $this->eligibleOrdersCount() % 3;
+    }
 }

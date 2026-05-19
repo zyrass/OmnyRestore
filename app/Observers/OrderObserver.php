@@ -67,6 +67,18 @@ class OrderObserver
                     'status'    => $newStatus,
                 ]);
             }
+
+            // Déclencher le système de fidélisation si la commande est payée/livrée
+            if (in_array($newStatus, ['PAID', 'DELIVERED'])) {
+                try {
+                    app(\App\Services\LoyaltyService::class)->checkAndReward($order->user);
+                } catch (\Throwable $e) {
+                    Log::error("OrderObserver: échec de vérification fidélité pour {$userEmail}", [
+                        'error' => $e->getMessage(),
+                        'user_id' => $order->user_id,
+                    ]);
+                }
+            }
         } catch (\Throwable $e) {
             Log::error("OrderObserver: échec envoi email {$newStatus} → {$userEmail}", [
                 'error'     => $e->getMessage(),

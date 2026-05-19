@@ -19,6 +19,7 @@ Ce document détaille la stratégie complète pour transformer OmnyRestore en un
 ~~L'administration doit avoir une visibilité totale sur qui peut faire quoi.~~
 
 ### ~~Structure des Rôles~~
+
 ~~*   **Super-Admin** : Propriétaire. Accès total (Configuration, Pilotage stratégique, Crise, Logs).
 *   **RH (Ressources Humaines)** : Focus sur le recrutement, le simulateur de trésorerie (Runway), l'édition des contrats et la préparation des éléments variables de paie (EVP).
 *   **Collaborateur (Opérateur)** : Focus sur le traitement des photos et le support client.

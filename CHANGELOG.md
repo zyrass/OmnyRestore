@@ -6,6 +6,22 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [2.6.0] — 2026-05-19 — Système de Fidélisation Gamifié & Bons Privilèges
+
+- **Boucle de Fidélité Automatique (Moteur de Règles)** :
+  - **Détection Intelligente** : Conception et intégration de la logique métier calculant le volume de commandes éligibles (statut `PAID` ou `DELIVERED` avec un montant supérieur ou égal à 10,00 € TTC) pour chaque client.
+  - **Mécanisme Modulo** : Suivi de la progression du client via un cycle de 3 commandes. À la 3ème commande, le système déclenche automatiquement l'émission d'un bon privilège personnel de 50% de réduction (valide 1 mois) et réinitialise la jauge de progression.
+  - **Système Auto-Correcteur (Self-Healing)** : Conception résiliente comparant les coupons réels par rapport aux commandes théoriques éligibles pour éviter tout doublon ou désynchronisation lors des recalculs ou remboursements.
+- **Expérience Utilisateur & Gamification (Espace Client)** :
+  - **Jauge Interactive et Dynamic CSS** : Ajout d'un indicateur de progression visuel (jauge dorée animée de 0/3 à 3/3 avec confettis) dans l'Espace Personnel du client pour encourager les réachats.
+  - **Portefeuille de Bons** : Affichage transparent de l'historique complet des bons de fidélité obtenus par le client (disponibles, expirés ou déjà utilisés).
+  - **Application en un Clic au Checkout** : Intégration d'une boîte de suggestion intelligente lors de la création d'une commande. Le client peut appliquer son bon privilège disponible instantanément d'un seul clic sur la page de paiement.
+- **Emails Transactionnels & Notification** :
+  - **Notification de Récompense** : Création d'un mailable élégant et personnalisé `LoyaltyRewardEarned` envoyé dès l'obtention du bon, contenant le code promo unique et sa date d'expiration.
+  - **Durcissement de Sécurité & Scoping** : Les bons de fidélité personnels sont strictement isolés au niveau du `CouponService` ; seul le propriétaire authentifié du coupon peut l'appliquer lors de la commande.
+- **Couverture de Tests (Pest & PHPUnit)** :
+  - Écriture d'une suite complète de tests fonctionnels (`tests/Feature/LoyaltySystemTest.php`) garantissant une couverture à 100% de la jauge, de l'émission, du self-healing, de la sécurité d'application des coupons et des déclencheurs transactionnels (OrderObserver).
+
 ## [2.5.0] — 2026-05-19 — Aperçu HD Client & Unification Financière (TTC)
 
 - **Expérience Client (Aperçu Unique & Zoom HD)** :

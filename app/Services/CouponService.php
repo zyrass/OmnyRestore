@@ -26,9 +26,20 @@ class CouponService
      *   message: string
      * }
      */
-    public function apply(string $code, int $amountHtCents): array
+    public function apply(string $code, int $amountHtCents, ?\App\Models\User $user = null): array
     {
-        $coupon = Coupon::valid()->where('code', strtoupper(trim($code)))->first();
+        $query = Coupon::valid()->where('code', strtoupper(trim($code)));
+
+        if ($user) {
+            $query->where(function ($q) use ($user) {
+                $q->whereNull('user_id')
+                  ->orWhere('user_id', $user->id);
+            });
+        } else {
+            $query->whereNull('user_id');
+        }
+
+        $coupon = $query->first();
 
         if (! $coupon) {
             return [

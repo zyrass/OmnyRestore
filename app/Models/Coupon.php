@@ -22,9 +22,9 @@ use Illuminate\Database\Eloquent\Model;
 class Coupon extends Model
 {
     protected $fillable = [
-        'code', 'description', 'type', 'value',
+        'user_id', 'code', 'description', 'type', 'value',
         'min_order_cents', 'max_uses', 'used_count',
-        'starts_at', 'expires_at', 'is_active', 'is_seasonal',
+        'starts_at', 'expires_at', 'is_active', 'is_seasonal', 'is_loyalty',
     ];
 
     protected $casts = [
@@ -32,11 +32,17 @@ class Coupon extends Model
         'expires_at' => 'datetime',
         'is_active'  => 'boolean',
         'is_seasonal' => 'boolean',
+        'is_loyalty' => 'boolean',
         'value'      => 'integer',
         'min_order_cents' => 'integer',
         'max_uses'   => 'integer',
         'used_count' => 'integer',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     // ── Scopes ──────────────────────────────────────────────────────────────
 
