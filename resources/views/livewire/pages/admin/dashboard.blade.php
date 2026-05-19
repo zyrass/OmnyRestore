@@ -177,10 +177,13 @@ class extends Component
                         @foreach ($pending_orders as $order)
                         <div class="px-5 py-3.5 flex items-center justify-between hover:bg-[#C9A84C]/3 transition-colors {{ $order->status === 'FLAGGED' ? 'bg-red-950/20 border-l-4 border-red-500' : '' }}">
                             <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2">
-                                    <span class="font-mono text-[#C9A84C] text-xs">{{ $order->reference }}</span>
-                                    <span class="text-[#7A6E5E] text-xs">·</span>
-                                    <span class="text-[#7A6E5E] text-xs truncate">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
+                                <div class="flex items-start gap-3">
+                                    <span class="font-mono text-[#C9A84C] text-xs mt-0.5">{{ $order->reference }}</span>
+                                    <span class="text-[#7A6E5E] text-xs mt-0.5">·</span>
+                                    <div class="flex flex-col min-w-0">
+                                        <span class="text-[#F5F0E8] text-xs font-medium truncate">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
+                                        <span class="text-[#9A8F7E] text-[11px] truncate">{{ $order->user?->email ?? '—' }}</span>
+                                    </div>
                                 </div>
                                 <div class="flex items-center gap-3 mt-0.5">
                                     <span class="text-[#F5F0E8] text-xs">{{ $order->photo_count }} photo{{ $order->photo_count > 1 ? 's' : '' }}</span>
@@ -217,11 +220,15 @@ class extends Component
                     @else
                     <div class="divide-y divide-[#C9A84C]/8">
                         @foreach ($in_progress_orders as $order)
-                        <div class="px-5 py-3 flex items-center justify-between hover:bg-[#C9A84C]/3 transition-colors">
-                            <div>
-                                <span class="font-mono text-[#C9A84C] text-xs">{{ $order->reference }}</span>
-                                <span class="text-[#7A6E5E] text-xs ml-2">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
-                                <p class="text-[#7A6E5E] text-xs mt-0.5">{{ $order->photo_count }} photo{{ $order->photo_count > 1 ? 's' : '' }} · mis à jour {{ $order->updated_at->diffForHumans() }}</p>
+                        <div class="px-5 py-3.5 flex items-center justify-between hover:bg-[#C9A84C]/3 transition-colors">
+                            <div class="flex items-start gap-3 min-w-0 flex-1">
+                                <span class="font-mono text-[#C9A84C] text-xs mt-0.5">{{ $order->reference }}</span>
+                                <span class="text-[#7A6E5E] text-xs mt-0.5">·</span>
+                                <div class="flex flex-col min-w-0">
+                                    <span class="text-[#F5F0E8] text-xs font-medium truncate">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
+                                    <span class="text-[#9A8F7E] text-[11px] truncate mb-1">{{ $order->user?->email ?? '—' }}</span>
+                                    <p class="text-[#7A6E5E] text-xs">{{ $order->photo_count }} photo{{ $order->photo_count > 1 ? 's' : '' }} · mis à jour {{ $order->updated_at->diffForHumans() }}</p>
+                                </div>
                             </div>
                             <a href="{{ route('admin.orders.show', $order) }}" wire:navigate
                                class="ml-3 px-3 py-1.5 text-xs border border-[#C9A84C]/25 text-[#C9A84C] hover:border-[#C9A84C]/60 rounded-sm transition-all shrink-0">
@@ -247,11 +254,15 @@ class extends Component
                         @else
                         <div class="divide-y divide-[#C9A84C]/8">
                             @foreach ($recent_paid as $order)
-                            <div class="px-5 py-3 flex items-center justify-between">
-                                <div>
-                                    <span class="font-mono text-emerald-400 text-xs">{{ $order->reference }}</span>
-                                    <span class="text-[#7A6E5E] text-xs ml-2">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
-                                    <p class="text-[#7A6E5E] text-xs mt-0.5">{{ $order->paid_at?->format('d/m/Y H:i') }}</p>
+                            <div class="px-5 py-3.5 flex items-center justify-between hover:bg-[#C9A84C]/3 transition-colors">
+                                <div class="flex items-start gap-3 min-w-0 flex-1">
+                                    <span class="font-mono text-emerald-400 text-xs mt-0.5">{{ $order->reference }}</span>
+                                    <span class="text-[#7A6E5E] text-xs mt-0.5">·</span>
+                                    <div class="flex flex-col min-w-0">
+                                        <span class="text-[#F5F0E8] text-xs font-medium truncate">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</span>
+                                        <span class="text-[#9A8F7E] text-[11px] truncate mb-1">{{ $order->user?->email ?? '—' }}</span>
+                                        <p class="text-[#7A6E5E] text-xs">{{ $order->paid_at?->format('d/m/Y H:i') }}</p>
+                                    </div>
                                 </div>
                                 <span class="text-emerald-400 font-semibold text-sm">
                                     +{{ number_format($order->getAmountTtcCents() / 100, 2, ',', ' ') }} € TTC
