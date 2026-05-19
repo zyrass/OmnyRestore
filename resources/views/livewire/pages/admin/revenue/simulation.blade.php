@@ -456,14 +456,18 @@ class extends Component
                     </div>
 
                     <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
-                        <span class="text-[#7A6E5E] text-sm">Frais de Structure & Matelas de Sécurité</span>
-                        <span class="text-red-400 font-mono">- {{ number_format($safeFixedCosts + $safeSecurityReserve, 2, ',', ' ') }} €</span>
+                        <span class="text-[#7A6E5E] text-sm">
+                            {{ $isSasu ? 'Frais de Structure (Serveurs, BFR)' : 'Frais de Structure & Matelas de Sécurité' }}
+                        </span>
+                        <span class="text-red-400 font-mono">
+                            - {{ number_format($isSasu ? $safeFixedCosts : ($safeFixedCosts + $safeSecurityReserve), 2, ',', ' ') }} €
+                        </span>
                     </div>
 
                     @if($collabTotalCost > 0)
                         <div class="flex items-center justify-between pl-4 border-l-2 border-blue-500/30">
                             <span class="text-[#7A6E5E] text-sm">{{ $isCollabSalaried ? 'Salaire Brut Collaborateur (CDI)' : 'Facture Collaborateur (Freelance)' }}</span>
-                            <span class="text-blue-400 font-mono">- {{ number_format($collabBrut, 2, ',', ' ') }} €</span>
+                            <span class="text-blue-400 font-mono">- {{ number_format($isCollabSalaried ? $collabBrut : $collabTotalCost, 2, ',', ' ') }} €</span>
                         </div>
                         @if($isCollabSalaried && $collabPatronales > 0)
                             <div class="flex items-center justify-between pl-4 border-l-2 border-red-500/30">
@@ -492,12 +496,20 @@ class extends Component
                 {{-- Résultat Final --}}
                 <div class="mt-6 p-6 bg-[#C9A84C] rounded-xl flex items-center justify-between shadow-[0_10px_40px_rgba(201,168,76,0.2)]">
                     <div class="flex flex-col">
-                        <span class="text-[#120F0A] text-[10px] uppercase tracking-[0.2em] font-black">Revenu Net Final</span>
-                        <span class="text-[#120F0A] font-bold text-lg">Salaire disponible pour le Dirigeant</span>
+                        <span class="text-[#120F0A] text-[10px] uppercase tracking-[0.2em] font-black">
+                            {{ $isSasu ? 'Bénéfice Net Restant (Société)' : 'Revenu Net Final' }}
+                        </span>
+                        <span class="text-[#120F0A] font-bold text-lg">
+                            {{ $isSasu ? 'Trésorerie nette après IS (Matelas)' : 'Salaire disponible pour le Dirigeant' }}
+                        </span>
                     </div>
                     <div class="text-right">
-                        <span class="text-[#120F0A] font-black text-4xl block leading-none">{{ number_format($safeTargetNetDirigeant, 2, ',', ' ') }} €</span>
-                        <span class="text-[#120F0A]/60 text-[9px] uppercase tracking-widest font-bold">Net après toutes charges</span>
+                        <span class="text-[#120F0A] font-black text-4xl block leading-none">
+                            {{ number_format($isSasu ? $safeSecurityReserve : $safeTargetNetDirigeant, 2, ',', ' ') }} €
+                        </span>
+                        <span class="text-[#120F0A]/60 text-[9px] uppercase tracking-widest font-bold">
+                            {{ $isSasu ? 'Conservé sur le compte pro' : 'Net après toutes charges' }}
+                        </span>
                     </div>
                 </div>
             </div>
