@@ -77,7 +77,7 @@ class extends Component
                         Encore 1 étape avant votre cadeau !
                     @endif
                 </h3>
-                <p class="text-[#7A6E5E] text-xs mt-1 max-w-md">
+                <p class="text-[#7A6E5E] text-xs md:text-sm mt-1 max-w-md">
                     @if ($loyaltyProgress == 0)
                         Effectuez votre première commande d'un minimum de 10 € TTC pour débuter votre jauge de fidélité.
                     @elseif ($loyaltyProgress == 1)
@@ -113,12 +113,12 @@ class extends Component
                     </div>
                 </div>
 
-                <div class="text-[11px] text-[#7A6E5E]">
-                    <span class="text-[#C9A84C] font-semibold">{{ $eligibleOrdersCount }}</span> commande{{ $eligibleOrdersCount > 1 ? 's' : '' }} éligible{{ $eligibleOrdersCount > 1 ? 's' : '' }} au total.
+                <div class="text-xs md:text-sm text-[#7A6E5E]">
+                    <span class="text-[#C9A84C] font-bold">{{ $eligibleOrdersCount }}</span> commande{{ $eligibleOrdersCount > 1 ? 's' : '' }} éligible{{ $eligibleOrdersCount > 1 ? 's' : '' }} au total.
                 </div>
             </div>
         </div>
-
+ 
         {{-- Portefeuille de Coupons --}}
         <div class="card-glass p-6 flex flex-col justify-between relative overflow-hidden group">
             <div class="absolute -right-16 -bottom-16 w-36 h-36 rounded-full bg-[#C9A84C]/2 blur-3xl"></div>
@@ -128,32 +128,32 @@ class extends Component
                     <span class="text-xs font-semibold tracking-widest text-[#C9A84C] uppercase">Mes Golden Tickets</span>
                     <span class="text-xs font-semibold text-[#C9A84C]/80">{{ $availableCoupons->count() }} disponible{{ $availableCoupons->count() > 1 ? 's' : '' }}</span>
                 </div>
-
+ 
                 @if ($availableCoupons->isEmpty())
                     <div class="flex flex-col items-center justify-center text-center py-6">
                         <svg class="w-10 h-10 text-[#7A6E5E]/30 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>
                         <p class="text-[#7A6E5E] text-xs">Aucun bon disponible pour l'instant.</p>
-                        <p class="text-[10px] text-[#7A6E5E]/60 mt-1 font-serif">Complétez votre cycle pour débloquer votre premier bon d'achat !</p>
+                        <p class="text-xs text-[#7A6E5E]/60 mt-1 font-serif">Complétez votre cycle pour débloquer votre premier bon d'achat !</p>
                     </div>
                 @else
                     <div class="space-y-3">
                         @foreach ($availableCoupons as $coupon)
                         <div class="relative bg-[#0F0C08] border border-[#C9A84C]/30 hover:border-[#C9A84C]/60 rounded p-3 flex items-center justify-between shadow-md transition-all group/ticket">
                             {{-- Ligne pointillée style ticket --}}
-                            <div class="absolute left-20 top-0 bottom-0 border-l border-dashed border-[#C9A84C]/20"></div>
+                            <div class="absolute left-24 top-0 bottom-0 border-l border-dashed border-[#C9A84C]/20"></div>
                             
                             {{-- Partie gauche : Remise --}}
-                            <div class="pr-4 z-10 flex flex-col justify-center">
-                                <span class="text-2xl font-black font-serif text-[#C9A84C] leading-none">-50%</span>
-                                <span class="text-[9px] text-[#7A6E5E] uppercase tracking-wider mt-1">Cadeau</span>
+                            <div class="pr-6 z-10 flex flex-col justify-center">
+                                <span class="text-2xl md:text-3xl font-black font-serif text-[#C9A84C] leading-none">-50%</span>
+                                <span class="text-[10px] md:text-xs text-[#7A6E5E] uppercase tracking-wider mt-1">Cadeau</span>
                             </div>
-
+ 
                             {{-- Partie droite : Info et code --}}
                             <div class="pl-4 flex-1 text-right z-10">
-                                <div class="text-[11px] font-mono text-[#F5F0E8] font-bold select-all cursor-pointer group-hover/ticket:text-[#C9A84C] transition-colors" title="Cliquer pour copier">
+                                <div class="text-xs md:text-sm font-mono text-[#F5F0E8] font-bold select-all cursor-pointer group-hover/ticket:text-[#C9A84C] transition-colors" title="Cliquer pour copier">
                                     {{ $coupon->code }}
                                 </div>
-                                <div class="text-[9px] text-[#7A6E5E] mt-1">
+                                <div class="text-[10px] md:text-xs text-[#7A6E5E] mt-1">
                                     Expire le {{ $coupon->expires_at->format('d/m/Y') }}
                                 </div>
                             </div>
@@ -162,17 +162,17 @@ class extends Component
                     </div>
                 @endif
             </div>
-
+ 
             {{-- Historique des réductions utilisées --}}
             @if ($loyaltyHistory->isNotEmpty())
             <div class="mt-4 pt-3 border-t border-[#C9A84C]/10" x-data="{ open: false }">
-                <button @click="open = !open" class="flex items-center justify-between w-full text-[10px] text-[#7A6E5E] hover:text-[#C9A84C] transition-colors">
+                <button @click="open = !open" class="flex items-center justify-between w-full text-xs text-[#7A6E5E] hover:text-[#C9A84C] transition-colors">
                     <span>Historique des bons</span>
                     <svg class="w-3 h-3 transform transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 <div x-show="open" x-collapse class="mt-2 space-y-1.5 max-h-24 overflow-y-auto pr-1">
                     @foreach ($loyaltyHistory as $item)
-                        <div class="flex items-center justify-between text-[10px] bg-[#1A1510]/30 px-2 py-1 rounded">
+                        <div class="flex items-center justify-between text-xs bg-[#1A1510]/30 px-2 py-1 rounded">
                             <span class="font-mono text-[#7A6E5E]/80">{{ $item->code }}</span>
                             @if ($item->used_count >= 1)
                                 <span class="text-emerald-400/80 font-medium">Utilisé ✓</span>
