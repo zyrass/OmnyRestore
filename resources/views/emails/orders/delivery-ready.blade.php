@@ -54,12 +54,12 @@
         $photoCount = $order->getActivePhotosCount();
     @endphp
 
-    <div class="header">
-        <div class="logo">
-            <img src="{{ $message->embed(public_path('images/logo.png')) }}" alt="OmnyRestore" style="height: 45px; width: auto;">
+    <div class="header" style="text-align: center;">
+        <div class="logo" style="text-align: center; margin-bottom: 24px;">
+            <img src="{{ $message->embed(public_path('images/logo.png')) }}" alt="OmnyRestore" style="height: 45px; width: auto; display: inline-block; margin: 0 auto;">
         </div>
-        <div class="badge">Livraison Disponible</div>
-        <h1>Vos photos sont prêtes<br>à télécharger ✨</h1>
+        <div class="badge" style="display: inline-block; background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.25); color: #34D399; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; padding: 6px 16px; border-radius: 100px; margin-bottom: 24px; text-align: center;">Livraison Disponible</div>
+        <h1 style="text-align: center; font-family: Georgia, 'Times New Roman', serif; font-size: 28px; color: #F5F0E8; font-weight: normal; line-height: 1.3; margin-bottom: 12px; margin-top: 0;">Vos photos sont prêtes<br>à télécharger ✨</h1>
     </div>
 
     <div class="email-body">

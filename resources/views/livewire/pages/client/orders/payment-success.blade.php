@@ -94,8 +94,8 @@ class extends Component
                     </div>
                 </div>
 
-                <h2 class="text-[#F5F0E8] text-2xl font-bold mb-3">Paiement confirmé !</h2>
-                <p class="text-emerald-400 text-sm font-medium mb-6">
+                <h2 class="text-[#F5F0E8] text-2xl font-bold mb-3 text-center w-full">Paiement confirmé !</h2>
+                <p class="text-emerald-400 text-sm font-medium mb-6 text-center w-full">
                     Merci pour votre confiance, {{ $order->user->name }}.
                 </p>
 

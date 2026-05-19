@@ -27,13 +27,13 @@
 </head>
 <body>
 <div class="container">
-    <div class="header">
-        <div class="logo">
-            <img src="{{ $message->embed(public_path('images/logo.png')) }}" alt="OmnyRestore" style="height: 60px; width: auto;">
+    <div class="header" style="text-align: center;">
+        <div class="logo" style="text-align: center; font-size: 11px; letter-spacing: 4px; color: #C9A84C; text-transform: uppercase; margin-bottom: 24px;">
+            <img src="{{ $message->embed(public_path('images/logo.png')) }}" alt="OmnyRestore" style="height: 60px; width: auto; display: inline-block; margin: 0 auto;">
         </div>
-        <div class="icon">✉️</div>
-        <h1>Bienvenue sur OmnyRestore !<br>Vérifiez votre adresse email</h1>
-        <p>Plus qu'une étape avant de restaurer vos photos</p>
+        <div class="icon" style="font-size: 40px; margin-bottom: 16px; color: #C9A84C; text-align: center;">✉️</div>
+        <h1 style="text-align: center; font-size: 22px; color: #F5F0E8; font-weight: normal; line-height: 1.4; margin-top: 0; margin-bottom: 12px; font-family: Georgia, 'Times New Roman', serif;">Bienvenue sur OmnyRestore !<br>Vérifiez votre adresse email</h1>
+        <p style="color: #C9A84C; font-size: 13px; margin-top: 8px; letter-spacing: 1px; opacity: 0.8; text-align: center;">Plus qu'une étape avant de restaurer vos photos</p>
     </div>
 
     <div class="body">

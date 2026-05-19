@@ -51,12 +51,12 @@
         $photoCount = $order->getActivePhotosCount();
     @endphp
 
-    <div class="header">
-        <div class="logo">
-            <img src="{{ $message->embed(public_path('images/logo.png')) }}" alt="OmnyRestore" style="height: 45px; width: auto;">
+    <div class="header" style="text-align: center;">
+        <div class="logo" style="text-align: center; margin-bottom: 24px;">
+            <img src="{{ $message->embed(public_path('images/logo.png')) }}" alt="OmnyRestore" style="height: 45px; width: auto; display: inline-block; margin: 0 auto;">
         </div>
-        <h1>Vos photos restaurées<br>sont prêtes</h1>
-        <p>{{ $isFree ? 'Votre coupon a été appliqué — téléchargement disponible' : 'Aperçu disponible — paiement requis pour télécharger' }}</p>
+        <h1 style="text-align: center; font-family: Georgia, 'Times New Roman', serif; font-size: 28px; color: #F5F0E8; font-weight: normal; line-height: 1.3; margin-bottom: 12px; margin-top: 0;">Vos photos restaurées<br>sont prêtes</h1>
+        <p style="color: #8F8073; font-size: 14px; margin-top: 8px; text-align: center;">{{ $isFree ? 'Votre coupon a été appliqué — téléchargement disponible' : 'Aperçu disponible — paiement requis pour télécharger' }}</p>
     </div>
 
     <div class="email-body">
