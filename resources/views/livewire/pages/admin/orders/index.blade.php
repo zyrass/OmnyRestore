@@ -134,9 +134,9 @@ class extends Component
             <thead>
                 <tr class="border-b border-[#C9A84C]/10">
                     @foreach(['Référence', 'Client', 'Photos', 'Statut', 'IA', 'Montant TTC', 'Date', ''] as $h)
-                    <th class="text-left text-[#7A6E5E] text-xs tracking-widest uppercase px-5 py-4 font-medium
-                               {{ in_array($h, ['IA', 'Montant TTC']) ? 'hidden lg:table-cell' : '' }}
-                               {{ $h === '' ? '' : '' }}">{{ $h }}</th>
+                    <th class="text-[#7A6E5E] text-xs tracking-widest uppercase px-5 py-4 font-medium
+                               {{ in_array($h, ['Photos', 'Statut', 'IA', 'Montant TTC', 'Date']) ? 'text-center' : ($h === '' ? 'text-right' : 'text-left') }}
+                               {{ in_array($h, ['IA', 'Montant TTC']) ? 'hidden lg:table-cell' : '' }}">{{ $h }}</th>
                     @endforeach
                 </tr>
             </thead>
@@ -161,20 +161,20 @@ class extends Component
                     <td class="px-5 py-3.5"><span class="font-mono text-[#C9A84C] text-xs {{ $isUserDeleted ? 'opacity-50' : '' }}">{{ $order->reference }}</span></td>
                     <td class="px-5 py-3.5">
                         <p class="{{ $isUserDeleted ? 'text-[#7A6E5E]' : 'text-[#F5F0E8]' }} text-xs font-medium">{{ $order->user?->name ?? 'Utilisateur supprimé' }}</p>
-                        <p class="text-[#9A8F7E] text-xs">{{ $order->user?->email ?? '—' }}</p>
+                        <p class="text-[#7A6E5E] text-xs">{{ $order->user?->email ?? '—' }}</p>
                     </td>
-                    <td class="px-5 py-3.5 text-[#7A6E5E]">{{ $order->photo_count }}</td>
-                    <td class="px-5 py-3.5">
+                    <td class="px-5 py-3.5 text-[#7A6E5E] text-center">{{ $order->photo_count }}</td>
+                    <td class="px-5 py-3.5 text-center">
                         <span class="inline-flex px-2 py-0.5 text-[11px] font-bold border rounded-full {{ $badges[$order->status] ?? 'bg-gray-900/40 text-gray-400 border-gray-500/30' }}">
                             {{ $labels[$order->status] ?? $order->status }}
                         </span>
                     </td>
-                    <td class="px-5 py-3.5 hidden lg:table-cell">
+                    <td class="px-5 py-3.5 hidden lg:table-cell text-center">
                         <span class="text-[10px] {{ $order->damage_level === 'heavy' ? 'text-orange-400' : 'text-emerald-400' }}">
                             {{ $order->damage_level === 'heavy' ? '⚠ Complète' : ($order->damage_level === 'medium' ? '⚠ Avancée' : '✓ Standard') }}
                         </span>
                     </td>
-                    <td class="px-5 py-3.5 text-[#F5F0E8] hidden lg:table-cell">
+                    <td class="px-5 py-3.5 text-[#F5F0E8] hidden lg:table-cell text-center">
                         @php
                             $ttcCents = $order->getAmountTtcCents();
                         @endphp
@@ -188,7 +188,7 @@ class extends Component
                             <span class="text-[#7A6E5E]">—</span>
                         @endif
                     </td>
-                    <td class="px-5 py-3.5 text-[#7A6E5E] text-xs">{{ $order->created_at->format('d/m/Y') }}</td>
+                    <td class="px-5 py-3.5 text-[#7A6E5E] text-xs text-center">{{ $order->created_at->format('d/m/Y') }}</td>
                     <td class="px-5 py-3.5 text-right">
                         <svg class="w-4 h-4 text-[#7A6E5E]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     </td>
