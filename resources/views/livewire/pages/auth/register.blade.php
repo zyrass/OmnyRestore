@@ -118,9 +118,9 @@ new #[Layout('layouts.guest')] class extends Component
                               checked:bg-[#C9A84C] focus:ring-[#C9A84C]/30 focus:ring-offset-[#0D0B08] shrink-0">
                 <span class="text-[#7A6E5E] text-xs leading-relaxed">
                     J'accepte la
-                    <a href="{{ route('legal.privacy') }}" wire:navigate target="_blank" class="text-[#C9A84C] hover:text-[#E8C97A] transition-colors underline">politique de confidentialité</a>
+                    <a href="{{ route('legal.privacy') }}" wire:navigate class="text-[#C9A84C] hover:text-[#E8C97A] transition-colors underline">politique de confidentialité</a>
                     et les
-                    <a href="{{ route('legal.cgv') }}" wire:navigate target="_blank" class="text-[#C9A84C] hover:text-[#E8C97A] transition-colors underline">conditions générales de vente</a>.
+                    <a href="{{ route('legal.cgv') }}" wire:navigate class="text-[#C9A84C] hover:text-[#E8C97A] transition-colors underline">conditions générales de vente</a>.
                     Mes photos seront supprimées 6 mois après livraison.
                 </span>
             </label>

@@ -44,7 +44,7 @@ class AutoRestoreOrderPhotosJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(PhotoRestorationService $service): void
+    public function handle(PhotoRestorationService $service, \App\Services\AuditService $audit): void
     {
         $originals = $this->order->getMedia('originals');
 
@@ -107,6 +107,13 @@ class AutoRestoreOrderPhotosJob implements ShouldQueue
         $this->order->update([
             'admin_notes' => ($this->order->admin_notes ? $this->order->admin_notes . "\n" : '') . $summary,
         ]);
+
+        // Marquer la commande comme terminée (DONE) pour la retirer de la file des traitements actifs
+        if ($this->order->status === 'IN_PROGRESS') {
+            $this->order->markAsDone();
+            $audit->orderStatusChanged($this->order, 'IN_PROGRESS', 'DONE');
+            Log::info("[Restoration] Commande {$this->order->reference} marquée comme terminée (DONE).");
+        }
 
         Log::info("[Restoration] Commande {$this->order->reference} terminée — {$successCount}/{$originals->count()} photos.");
     }

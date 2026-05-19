@@ -339,29 +339,78 @@ class extends Component
                 </div>
             </div>
 
+            {{-- Styles de repli pour l'affichage garanti des flèches --}}
+            <style>
+                .flow-arrow-desktop { display: block !important; }
+                .flow-arrow-mobile { display: none !important; }
+                @media (max-width: 767px) {
+                    .flow-arrow-desktop { display: none !important; }
+                    .flow-arrow-mobile { display: block !important; }
+                }
+            </style>
+
             {{-- Résultat Net avec Plafond de Sécurité --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {{-- Plafond (Rappel) --}}
-                <div class="card-glass p-8 bg-red-500/5 border border-red-500/20 flex items-center justify-between">
+            <div class="flex flex-col md:flex-row items-stretch gap-4 md:gap-3">
+                {{-- Bénéfice Net --}}
+                <div class="flex-1 card-glass p-6 border border-[#C9A84C]/15 bg-[#C9A84C]/5 flex flex-col justify-between text-center">
                     <div>
-                        <h3 class="text-red-400 font-bold text-sm mb-1 uppercase tracking-widest">Plafond de Sécurité</h3>
-                        <p class="text-[#7A6E5E] text-xs">Trésorerie bloquée en banque</p>
+                        <p class="text-[#C9A84C] text-[14px] uppercase tracking-widest mb-1">Bénéfice Net</p>
+                        <p class="text-[#7A6E5E] text-[12px]">CA HT - Coûts IA - URSSAF</p>
                     </div>
-                    <p class="text-red-400 text-2xl font-black whitespace-nowrap">{{ number_format($securityReserve, 0, ',', ' ') }} €</p>
+                    <div class="mt-5">
+                        <p class="text-[#F5F0E8] text-3xl font-black">{{ number_format($stats['net'] / 100, 2, ',', ' ') }} €</p>
+                        <p class="text-[#7A6E5E] text-xs mt-1">Bénéfice réel de la période</p>
+                    </div>
                 </div>
 
-                {{-- Disponible Réel --}}
-                <div class="card-glass p-8 bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-between shadow-lg shadow-emerald-900/20">
+                {{-- Flèche 1 --}}
+                <div class="flex items-center justify-center shrink-0 py-1 md:py-0">
+                    <!-- Desktop: à droite -->
+                    <svg class="flow-arrow-desktop w-6 h-6 text-[#C9A84C]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
+                    <!-- Mobile: en bas -->
+                    <svg class="flow-arrow-mobile w-6 h-6 text-[#C9A84C]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+
+                {{-- Plafond de Sécurité --}}
+                <div class="flex-1 card-glass p-6 bg-red-500/5 border border-red-500/20 flex flex-col justify-between text-center">
                     <div>
-                        <h3 class="text-emerald-400 font-bold text-lg mb-1">Disponible Réel</h3>
-                        <p class="text-[#7A6E5E] text-xs">Ce que vous pouvez réellement utiliser</p>
+                        <p class="text-red-400 text-[14px] uppercase tracking-widest mb-1">Plafond de Sécurité</p>
+                        <p class="text-[#7A6E5E] text-[12px]">Trésorerie de précaution</p>
                     </div>
-                    <div class="text-right">
+                    <div class="mt-5">
+                        <p class="text-red-400 text-3xl font-black">{{ number_format($securityReserve, 0, ',', ' ') }} €</p>
+                        <p class="text-[#7A6E5E] text-xs mt-1">À maintenir en banque</p>
+                    </div>
+                </div>
+
+                {{-- Flèche 2 --}}
+                <div class="flex items-center justify-center shrink-0 py-1 md:py-0">
+                    <!-- Desktop: à droite -->
+                    <svg class="flow-arrow-desktop w-6 h-6 text-[#C9A84C]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                    </svg>
+                    <!-- Mobile: en bas -->
+                    <svg class="flow-arrow-mobile w-6 h-6 text-[#C9A84C]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </div>
+
+                {{-- Disponibilité --}}
+                <div class="flex-1 card-glass p-6 bg-emerald-500/10 border border-emerald-500/40 flex flex-col justify-between shadow-lg shadow-emerald-900/20 text-center">
+                    <div>
+                        <p class="text-emerald-400 text-[14px] uppercase tracking-widest mb-1">Disponibilité</p>
+                        <p class="text-[#7A6E5E] text-[12px]">Bénéfice net - Plafond</p>
+                    </div>
+                    <div class="mt-5">
                         @php $disponibleReel = ($stats['net'] / 100) - $securityReserve; @endphp
-                        <p class="text-emerald-400 text-3xl font-black whitespace-nowrap {{ $disponibleReel < 0 ? 'text-red-500' : '' }}">
+                        <p class="text-emerald-400 text-3xl font-black {{ $disponibleReel < 0 ? 'text-red-500' : '' }}">
                             {{ number_format($disponibleReel, 2, ',', ' ') }} €
                         </p>
-                        <p class="text-[#7A6E5E] text-[10px] mt-1 uppercase tracking-widest">Après déduction du plafond</p>
+                        <p class="text-[#7A6E5E] text-xs mt-1">Trésorerie libre d'utilisation</p>
                     </div>
                 </div>
             </div>

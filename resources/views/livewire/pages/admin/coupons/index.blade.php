@@ -26,16 +26,36 @@ class extends Component
     public string $starts_at   = '';
     public bool   $is_seasonal = false;
     public bool   $showForm    = false;
+    public string $activeTab   = 'loyalty';
 
     // ── Données ────────────────────────────────────────────────────────────
     public function with(): array
     {
+        $query = Coupon::query()->with(['user' => fn($u) => $u->withTrashed()]);
+
+        if ($this->activeTab === 'loyalty') {
+            $query->where('is_loyalty', true);
+        } elseif ($this->activeTab === 'seasonal') {
+            $query->where('is_seasonal', true)->where('is_loyalty', false);
+        } else {
+            $query->where('is_seasonal', false)->where('is_loyalty', false);
+        }
+
         return [
-            'coupons' => Coupon::latest()->get(),
+            'coupons'        => $query->latest()->get(),
+            'loyalty_count'  => Coupon::where('is_loyalty', true)->count(),
+            'seasonal_count' => Coupon::where('is_seasonal', true)->where('is_loyalty', false)->count(),
+            'promo_count'    => Coupon::where('is_seasonal', false)->where('is_loyalty', false)->count(),
         ];
     }
 
     // ── Actions ───────────────────────────────────────────────────────────────
+
+    public function openForm(): void
+    {
+        $this->showForm = true;
+        $this->is_seasonal = ($this->activeTab === 'seasonal');
+    }
 
     public function createCoupon(): void
     {
@@ -55,6 +75,8 @@ class extends Component
             'expires_at.after'=> 'La date d\'expiration doit être dans le futur.',
         ]);
 
+        $is_seasonal_saved = $this->is_seasonal;
+
         Coupon::create([
             'code'            => strtoupper(trim($this->code)),
             'description'     => $this->description ?: null,
@@ -65,13 +87,15 @@ class extends Component
             'starts_at'       => $this->starts_at ?: null,
             'expires_at'      => $this->expires_at ?: null,
             'is_active'       => true,
-            'is_seasonal'     => $this->is_seasonal,
+            'is_seasonal'     => $is_seasonal_saved,
+            'is_loyalty'      => false,
         ]);
 
         $this->reset(['code', 'description', 'type', 'value', 'min_order', 'max_uses', 'expires_at', 'starts_at', 'is_seasonal']);
         $this->type = 'percentage';
         $this->value = 10;
         $this->showForm = false;
+        $this->activeTab = $is_seasonal_saved ? 'seasonal' : 'promo';
 
         session()->flash('success', 'Code de réduction créé avec succès.');
     }
@@ -106,9 +130,18 @@ class extends Component
     <div class="flex items-center justify-between mb-8">
         <div>
             <h1 class="text-2xl font-bold text-[#F5F0E8]">Codes de réduction</h1>
-            <p class="text-[#7A6E5E] text-sm mt-1">{{ $coupons->count() }} code{{ $coupons->count() > 1 ? 's' : '' }} au total</p>
+            <p class="text-[#7A6E5E] text-sm mt-1">
+                @if ($activeTab === 'loyalty')
+                    {{ $loyalty_count }} bon{{ $loyalty_count > 1 ? 's' : '' }} fidélité (auto)
+                @elseif ($activeTab === 'seasonal')
+                    {{ $seasonal_count }} bon{{ $seasonal_count > 1 ? 's' : '' }} saisonnier{{ $seasonal_count > 1 ? 's' : '' }}
+                @else
+                    {{ $promo_count }} code{{ $promo_count > 1 ? 's' : '' }} promo
+                @endif
+                au total
+            </p>
         </div>
-        <button wire:click="$set('showForm', true)"
+        <button wire:click="openForm"
                 class="px-4 py-2 text-sm font-semibold bg-[#C9A84C] text-black rounded-sm hover:bg-[#D4B55F] transition-colors">
             + Nouveau code
         </button>
@@ -238,11 +271,39 @@ class extends Component
     </div>
     @endif
 
+    {{-- Onglets --}}
+    <div class="flex gap-2 p-1 bg-[#1A1510]/60 border border-[#C9A84C]/10 rounded-sm w-fit mb-6">
+        <button wire:click="$set('activeTab', 'loyalty')"
+                class="px-4 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2
+                       {{ $activeTab === 'loyalty' ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/25 shadow-[0_0_15px_rgba(201,168,76,0.1)]' : 'text-[#7A6E5E] hover:text-[#F5F0E8] hover:bg-[#C9A84C]/5 border border-transparent' }}">
+            <span>🎁 Bons Fidélité (Auto)</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#C9A84C]/10 text-[#C9A84C]">
+                {{ $loyalty_count }}
+            </span>
+        </button>
+        <button wire:click="$set('activeTab', 'seasonal')"
+                class="px-4 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2
+                       {{ $activeTab === 'seasonal' ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/25 shadow-[0_0_15px_rgba(201,168,76,0.1)]' : 'text-[#7A6E5E] hover:text-[#F5F0E8] hover:bg-[#C9A84C]/5 border border-transparent' }}">
+            <span>⏳ Bons Saisonniers</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#C9A84C]/10 text-[#C9A84C]">
+                {{ $seasonal_count }}
+            </span>
+        </button>
+        <button wire:click="$set('activeTab', 'promo')"
+                class="px-4 py-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2
+                       {{ $activeTab === 'promo' ? 'bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/25 shadow-[0_0_15px_rgba(201,168,76,0.1)]' : 'text-[#7A6E5E] hover:text-[#F5F0E8] hover:bg-[#C9A84C]/5 border border-transparent' }}">
+            <span>🎟 Codes Promos</span>
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#C9A84C]/10 text-[#C9A84C]">
+                {{ $promo_count }}
+            </span>
+        </button>
+    </div>
+
     {{-- Table des coupons --}}
     <div class="card-glass overflow-hidden">
         @if ($coupons->isEmpty())
-        <div class="px-6 py-16 text-center flex flex-col items-center justify-center" style="min-height: 600px;">
-            <p class="text-[#7A6E5E]">Aucun code de réduction. Créez votre premier code !</p>
+        <div class="px-6 py-16 text-center flex flex-col items-center justify-center" style="min-height: 400px;">
+            <p class="text-[#7A6E5E]">Aucun code de réduction dans cette catégorie.</p>
         </div>
         @else
         <table class="w-full">
@@ -285,7 +346,14 @@ class extends Component
                 @endphp
                 <tr class="hover:bg-[#C9A84C]/3 transition-colors">
                     <td class="px-5 py-3.5">
-                        <div class="font-mono text-[#C9A84C] font-semibold">{{ $coupon->code }}</div>
+                        <div class="font-mono text-[#C9A84C] font-semibold flex flex-wrap items-center gap-2">
+                            <span>{{ $coupon->code }}</span>
+                            @if ($coupon->is_loyalty && $coupon->user)
+                                <span class="text-[10px] bg-purple-950/40 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded-full font-sans font-normal tracking-wide">
+                                    Client : {{ $coupon->user->name }}
+                                </span>
+                            @endif
+                        </div>
                         @if ($coupon->description)
                         <div class="text-[#7A6E5E] text-xs mt-0.5">{{ $coupon->description }}</div>
                         @endif

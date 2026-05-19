@@ -931,7 +931,7 @@ class extends Component
                     </div>
 
                     {{-- Facture PDF disponible immédiatement --}}
-                    <a href="{{ route('client.orders.invoice', $order) }}" target="_blank"
+                    <a href="{{ route('client.orders.invoice', $order) }}"
                        class="inline-flex items-center gap-3 px-6 py-3 border border-[#C9A84C]/30 hover:border-[#C9A84C]/60 bg-[#C9A84C]/8 hover:bg-[#C9A84C]/15 rounded-sm transition-all group">
                         <div class="w-8 h-8 rounded-sm border border-[#C9A84C]/30 bg-[#C9A84C]/10 flex items-center justify-center shrink-0 group-hover:bg-[#C9A84C]/20 transition-colors">
                             <svg class="w-4 h-4 text-[#C9A84C]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -975,7 +975,6 @@ class extends Component
                     @if ($order->zip_path)
                     <div class="mb-4">
                         <a href="{{ route('client.orders.download', $order) }}?t={{ time() }}"
-                           target="_blank"
                            @click="setTimeout(() => $wire.refreshAfterDownload(), 1500)"
                            class="btn-gold text-lg px-12 py-5 inline-flex items-center gap-3 shadow-[0_10px_30px_rgba(201,168,76,0.25)] hover:scale-[1.02] transition-transform">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
