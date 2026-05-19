@@ -176,8 +176,10 @@ class extends Component
                             <span class="font-mono text-[#7A6E5E]/80">{{ $item->code }}</span>
                             @if ($item->used_count >= 1)
                                 <span class="text-emerald-400/80 font-medium">Utilisé ✓</span>
-                            @else
+                            @elseif (($item->expires_at && $item->expires_at->isPast()) || !$item->is_active)
                                 <span class="text-red-400/60 line-through">Expiré ✗</span>
+                            @else
+                                <span class="text-[#C9A84C] font-medium">Disponible</span>
                             @endif
                         </div>
                     @endforeach
