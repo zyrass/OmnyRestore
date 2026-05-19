@@ -114,7 +114,11 @@ class extends Component
                 </div>
 
                 <div class="text-xs md:text-sm text-[#7A6E5E]">
-                    <span class="text-[#C9A84C] font-bold">{{ $eligibleOrdersCount }}</span> commande{{ $eligibleOrdersCount > 1 ? 's' : '' }} éligible{{ $eligibleOrdersCount > 1 ? 's' : '' }} au total.
+                    @if ($loyaltyHistory->count() > 0)
+                        <span class="text-[#C9A84C] font-bold">{{ $loyaltyHistory->count() }}</span> Golden Ticket{{ $loyaltyHistory->count() > 1 ? 's' : '' }} débloqué{{ $loyaltyHistory->count() > 1 ? 's' : '' }} au total !
+                    @else
+                        Chaque cycle de 3 commandes d'au moins 10 € TTC débloque un Golden Ticket.
+                    @endif
                 </div>
             </div>
         </div>
