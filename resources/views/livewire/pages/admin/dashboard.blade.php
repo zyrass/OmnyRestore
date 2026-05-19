@@ -41,7 +41,7 @@ class extends Component
                 'revenue_month' => Order::where('payment_status', 'paid')
                                     ->whereMonth('paid_at', $now->month)
                                     ->whereYear('paid_at', $now->year)
-                                    ->sum('total_price_cents') * 1.20 / 100,
+                                    ->sum('total_price_cents') / 100,
                 'total_orders' => Order::whereHas('user')->count(),
                 'tickets_open' => SupportTicket::where('status', 'open')->count(),
                 'reviews_pending' => Testimonial::where('is_published', false)->whereNull('rejected_at')->count(),
