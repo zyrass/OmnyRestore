@@ -1113,8 +1113,18 @@ class extends Component
                     @endphp
 
                     <div class="border-t border-[#C9A84C]/10 pt-4 space-y-1.5">
-                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT Net</dt><dd class="text-[#F5F0E8]">{{ number_format($htC / 100, 2, ',', ' ') }} €</dd></div>
-                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">TVA 20%</dt><dd class="text-[#F5F0E8]">{{ number_format($tvaC / 100, 2, ',', ' ') }} €</dd></div>
+                        @if ($discountC > 0)
+                        <div class="flex justify-between text-xs">
+                            <dt class="text-[#7A6E5E]">Tarif TTC estimé</dt>
+                            <dd class="text-[#7A6E5E]">{{ number_format(($ttcC + $discountC) / 100, 2, ',', ' ') }} €</dd>
+                        </div>
+                        <div class="flex justify-between text-xs text-emerald-400">
+                            <dt>Remise ({{ $order->coupon_code }})</dt>
+                            <dd>−{{ number_format($discountC / 100, 2, ',', ' ') }} €</dd>
+                        </div>
+                        @endif
+                        <div class="flex justify-between"><dt class="text-[#7A6E5E]">HT{{ $discountC > 0 ? ' net' : '' }}</dt><dd class="text-[#F5F0E8]">{{ number_format($htC / 100, 2, ',', ' ') }} €</dd></div>
+                        <div class="flex justify-between"><dt class="text-[#7A6E5E]/70">TVA 20%</dt><dd class="text-[#7A6E5E]/70">{{ number_format($tvaC / 100, 2, ',', ' ') }} €</dd></div>
                         <div class="flex justify-between font-bold"><dt class="text-[#C9A84C]">TOTAL TTC</dt><dd class="text-[#C9A84C]">{{ number_format($ttcC / 100, 2, ',', ' ') }} €</dd></div>
                     </div>
                     @if ($order->paid_at)

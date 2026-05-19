@@ -84,6 +84,24 @@ class extends Component
         $this->order->refresh()->load(['media', 'delivery']);
     }
 
+    public function payWithoutCoupon(): mixed
+    {
+        abort_if($this->order->user_id !== auth()->id(), 403);
+        abort_if($this->order->status !== 'DONE', 403);
+
+        $this->order->update([
+            'coupon_code' => null,
+            'discount_cents' => 0,
+        ]);
+        $this->recalcPriceFromActivePhotos();
+        $this->couponCode = '';
+        $this->couponResult = null;
+        
+        session()->flash('success', 'Code promo retiré, redirection vers le paiement...');
+        
+        return redirect()->route('client.orders.checkout', $this->order);
+    }
+
     /**
      * Fournit les données calculées dynamiquement pour la vue.
      */
@@ -346,6 +364,7 @@ class extends Component
          showZipToast: false,
          showStatusToast: false,
          showInvoice: false,
+         showCouponWarning: {{ session('show_coupon_used_warning') ? 'true' : 'false' }},
          compareOpen: false,
          compareMediaId: null,
          compareFileName: '',
@@ -1356,6 +1375,50 @@ class extends Component
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                     Télécharger le PDF officiel
                 </a>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── Modal Avertissement Coupon déjà utilisé ── --}}
+    <div x-show="showCouponWarning" 
+         class="fixed inset-0 z-[110] flex items-center justify-center p-4"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         x-cloak>
+        <div class="absolute inset-0 bg-[#0F0C08]/95 backdrop-blur-md" @click="showCouponWarning = false"></div>
+        
+        <div class="relative w-full max-w-md bg-[#1A1510] border border-[#C9A84C]/30 rounded-sm shadow-2xl overflow-hidden"
+             x-transition:enter="transition ease-out duration-300 delay-100"
+             x-transition:enter-start="opacity-0 translate-y-8 scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 scale-100">
+            
+            <div class="px-6 py-5 border-b border-[#C9A84C]/10 flex items-center gap-3">
+                <span class="text-2xl">⚠️</span>
+                <h3 class="text-[#F5F0E8] font-bold text-base">Bon déjà utilisé ou expiré</h3>
+            </div>
+
+            <div class="p-6 space-y-4">
+                <p class="text-[#EDE8E0] text-sm leading-relaxed">
+                    Le bon de réduction <strong class="text-[#C9A84C] font-mono">{{ session('warning_coupon_code') }}</strong> appliqué à cette commande a déjà été utilisé dans une autre de vos commandes ou n'est plus actif.
+                </p>
+                <p class="text-[#7A6E5E] text-xs leading-relaxed">
+                    Souhaitez-vous poursuivre le paiement au tarif standard de <strong class="text-[#F5F0E8] font-semibold">{{ number_format($baseTtcC / 100, 2, ',', ' ') }} € TTC</strong> (sans la remise de 50%) ?
+                </p>
+            </div>
+            
+            <div class="px-6 py-4 bg-[#0F0C08]/50 border-t border-[#C9A84C]/10 flex flex-col sm:flex-row gap-2 justify-end">
+                <button @click="showCouponWarning = false" 
+                        class="px-4 py-2 text-xs border border-[#C9A84C]/25 text-[#7A6E5E] hover:text-[#F5F0E8] hover:border-[#C9A84C]/45 transition-colors rounded-sm">
+                    Annuler
+                </button>
+                <button wire:click="payWithoutCoupon" 
+                        class="btn-gold text-xs px-5 py-2 flex items-center justify-center gap-1.5 font-bold">
+                    Continuer sans le bon →
+                </button>
             </div>
         </div>
     </div>

@@ -260,11 +260,17 @@ class extends Component
                                 {{-- Ligne 1 : montant prévu (gris, petit) --}}
                                 <span class="text-[#7A6E5E] text-xs">
                                     Prévu : {{ number_format($mTtc / 100, 2, ',', ' ') }} €
+                                    @if ($order->coupon_code)
+                                        <span class="inline-block ml-1 text-[10px]" title="Code promo appliqué : {{ $order->coupon_code }}">🎁</span>
+                                    @endif
                                 </span>
                                 {{-- Ligne 2 : montant payé (blanc, affiché seulement si réglé) --}}
                                 @if ($isPaid)
                                 <span class="text-emerald-400 font-semibold text-sm">
                                     ✓ {{ number_format($mTtc / 100, 2, ',', ' ') }} € payé
+                                    @if ($order->coupon_code)
+                                        <span class="inline-block ml-1 text-xs" title="Code promo appliqué : {{ $order->coupon_code }}">🎁</span>
+                                    @endif
                                 </span>
                                 @endif
                             </div>

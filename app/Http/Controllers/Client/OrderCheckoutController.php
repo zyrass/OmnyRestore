@@ -41,6 +41,20 @@ class OrderCheckoutController extends Controller
             return back()->with('error', 'Cette commande n\'est pas disponible au paiement.');
         }
 
+        // Vérification stricte de l'état du coupon appliqué
+        if ($order->coupon_code) {
+            $coupon = \App\Models\Coupon::where('code', $order->coupon_code)->first();
+            $isCouponUsed = $coupon && $coupon->max_uses && $coupon->used_count >= $coupon->max_uses;
+            $isCouponExpired = $coupon && $coupon->expires_at && $coupon->expires_at->isPast();
+            $isCouponInactive = $coupon && !$coupon->is_active;
+
+            if ($isCouponUsed || $isCouponExpired || $isCouponInactive) {
+                return redirect()->route('client.orders.show', $order)
+                    ->with('show_coupon_used_warning', true)
+                    ->with('warning_coupon_code', $order->coupon_code);
+            }
+        }
+
         // ── Calcul du montant TTC ────────────────────────────────────────
         // ⚠️ Ne PAS faire round(htCents * 0.20) sur le total cumulé :
         //    3 photos light (83¢ HT) + 1 medium (167¢ HT) = 416¢ HT

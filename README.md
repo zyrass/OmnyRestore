@@ -12,8 +12,8 @@
 [![Stripe](https://img.shields.io/badge/Stripe-Cashier-635BFF?style=for-the-badge&logo=stripe&logoColor=white)](https://stripe.com)
 
 [![PHP](https://img.shields.io/badge/PHP-8.2+-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
-[![Tests](https://img.shields.io/badge/Tests-84%2F84%20%E2%9C%85-22c55e?style=for-the-badge&logo=php&logoColor=white)](tests/)
-[![Version](https://img.shields.io/badge/Version-2.6.0-6366f1?style=for-the-badge)](CHANGELOG.md)
+[![Tests](https://img.shields.io/badge/Tests-86%2F86%20%E2%9C%85-22c55e?style=for-the-badge&logo=php&logoColor=white)](tests/)
+[![Version](https://img.shields.io/badge/Version-2.7.0-6366f1?style=for-the-badge)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
 </div>

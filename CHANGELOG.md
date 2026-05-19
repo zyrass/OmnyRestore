@@ -6,6 +6,22 @@ Ce projet respecte le [Semantic Versioning](https://semver.org/) et les conventi
 
 ---
 
+## [2.7.0] — 2026-05-19 — Sécurisation des Paiements & Protection Anti-Abus de Bons
+
+- **Gestion Résiliente des Bons Re-Payés (Popup Avertissement)** :
+  - **Détection au Paiement** : Validation en temps réel de la disponibilité du bon de réduction (limite d'utilisations atteinte, validité temporelle ou inactif) juste avant d'initier la session Stripe Checkout.
+  - **Modal d'Avertissement Premium** : Intégration d'un popup élégant flouté (Alpine.js / Blade) si le coupon a déjà été consommé par une autre commande payée.
+  - **Bouton de Remplacement Intelligent** : Option de régler directement la commande au tarif standard (sans la réduction de 50%) via l'action Livewire `payWithoutCoupon()` sans aucune rupture dans l'expérience utilisateur.
+- **Harmonisation UI & Transparence Financière** :
+  - **Mise en valeur Visuelle** : Ajout d'une icône cadeau premium `🎁` dynamique dans les listes de commandes (client et administrateur) au survol avec affichage en infobulle (tooltip) du code promo appliqué.
+  - **Affichage des Remises Admin** : Affichage transparent du détail de la remise appliquée par coupon directement dans le panneau de détails du Super Admin.
+  - **Alignement TTC Exact** : Résolution des écarts de calculs dans le panneau latéral client en alignant la réduction de 50% sur le montant TTC exact de la commande.
+- **Sécurisation Anti-Double Soumission & Exploits** :
+  - **Verrouillage de Formulaire** : Ajout d'une protection anti-double-clic AlpineJS lors de la soumission de la commande pour éviter la création de doublons.
+  - **Vérification Transactionnelle Backend** : Protection contre l'exploitation des coupons lors d'un retour arrière du navigateur via un rechargement frais et verrouillé du coupon en base de données.
+- **Couverture de Tests Rétablie à 100%** :
+  - Création du fichier de tests automatisés d'intégration `tests/Feature/ClientCouponReuseTest.php` validant la détection de re-paiement et la redirection transparente. Suite de tests fonctionnelle et verte (**86/86 passés**).
+
 ## [2.6.0] — 2026-05-19 — Système de Fidélisation Gamifié & Bons Privilèges
 
 - **Boucle de Fidélité Automatique (Moteur de Règles)** :

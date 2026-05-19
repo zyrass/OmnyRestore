@@ -249,9 +249,15 @@ class extends Component
         // Appliquer le coupon si valide (calcul de la remise directement sur le TTC)
         if ($this->couponResult && $this->couponResult['valid']) {
             $couponCode = strtoupper(trim($this->couponCode));
+            // Récupérer une version fraîche pour éviter les double-clics concurrents
             $coupon = \App\Models\Coupon::where('code', $couponCode)->first();
-            if ($coupon) {
+            if ($coupon && (!$coupon->max_uses || $coupon->used_count < $coupon->max_uses)) {
                 $discountCents = $coupon->discountTtcCents($baseTtcCents);
+            } else {
+                // Le coupon a été déjà consommé entre-temps
+                $discountCents = 0;
+                $couponCode = null;
+                $this->couponResult = null;
             }
         }
 
@@ -370,7 +376,7 @@ class extends Component
         </div>
     </div>
 
-    <form wire:submit="submit">
+    <form wire:submit="submit" x-data="{ submitting: false }" x-on:submit="if (submitting) { $event.preventDefault(); return; } submitting = true">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
             {{-- ── Colonne principale ── --}}
@@ -618,16 +624,20 @@ class extends Component
                             // Somme TTC individuelle — évite la perte de centime due à l'arrondi TVA cumulée
                             $baseTtc   = (int) array_sum(array_column($analysisResults, 'price_ttc_cents'));
                             $baseHt    = (int) array_sum(array_column($analysisResults, 'price_cents'));
-                            $discount  = $couponResult['discount_cents'] ?? 0;
-                            // Remise appliquée sur HT, TVA recalculée sur le net HT
-                            $netHt     = max(0, $baseHt - $discount);
-                            $tva       = $baseTtc - $baseHt;  // TVA exacte = somme des TVA individuelles
+                            
+                            $discount  = 0;
+                            if ($couponResult && $couponResult['valid'] && !empty($couponResult['coupon'])) {
+                                $discount = $couponResult['coupon']->discountTtcCents($baseTtc);
+                            }
+                            
                             $ttc       = max(0, $baseTtc - $discount);
+                            $netHt     = (int) round($ttc / 1.2);
+                            $tva       = $ttc - $netHt;
                         @endphp
                         @if ($discount > 0)
                         <div class="flex justify-between text-sm">
-                            <span class="text-[#7A6E5E]">Sous-total HT</span>
-                            <span class="text-[#F5F0E8]">{{ number_format($baseHt / 100, 2, ',', ' ') }} €</span>
+                            <span class="text-[#7A6E5E]">Tarif TTC estimé</span>
+                            <span class="text-[#7A6E5E]">{{ number_format($baseTtc / 100, 2, ',', ' ') }} €</span>
                         </div>
                         <div class="flex justify-between text-sm text-emerald-400">
                             <span>Réduction</span>
@@ -636,12 +646,12 @@ class extends Component
                         @endif
                         <div class="border-t border-[#C9A84C]/10 pt-3 space-y-1.5">
                             <div class="flex justify-between text-sm">
-                                <span class="text-[#7A6E5E]">Total HT</span>
+                                <span class="text-[#7A6E5E]">HT{{ $discount > 0 ? ' net' : '' }}</span>
                                 <span class="text-[#F5F0E8]">{{ number_format($netHt / 100, 2, ',', ' ') }} &euro;</span>
                             </div>
                             <div class="flex justify-between text-sm">
-                                <span class="text-[#7A6E5E]">TVA 20%</span>
-                                <span class="text-[#F5F0E8]">{{ number_format($tva / 100, 2, ',', ' ') }} &euro;</span>
+                                <span class="text-[#7A6E5E]/70">TVA 20%</span>
+                                <span class="text-[#7A6E5E]/70">{{ number_format($tva / 100, 2, ',', ' ') }} &euro;</span>
                             </div>
                             <div class="flex justify-between pt-1 border-t border-[#C9A84C]/10">
                                 <span class="text-[#C9A84C] font-semibold text-sm">Total TTC</span>

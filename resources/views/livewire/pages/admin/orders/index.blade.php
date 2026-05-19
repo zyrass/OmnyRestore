@@ -181,9 +181,12 @@ class extends Component
                         @if ($ttcCents > 0)
                             <span class="{{ in_array($order->status, ['PAID','DELIVERED']) ? 'text-emerald-400 font-semibold' : '' }}">
                                 {{ number_format($ttcCents / 100, 2, ',', ' ') }} €
+                                @if ($order->coupon_code)
+                                    <span class="inline-block ml-1 text-xs" title="Code promo appliqué : {{ $order->coupon_code }}">🎁</span>
+                                @endif
                             </span>
                         @elseif ($order->coupon_code && $ttcCents === 0)
-                            <span class="text-emerald-400 font-medium">Offert</span>
+                            <span class="text-emerald-400 font-medium">Offert 🎁</span>
                         @else
                             <span class="text-[#7A6E5E]">—</span>
                         @endif
